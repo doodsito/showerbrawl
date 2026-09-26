@@ -2,11 +2,13 @@ import { getSprite, getImage } from './sprites.js';
 import { combatFX } from './combat-fx.js';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const poses = new Map();
+const seen = new Set();
 
 const TEAM_COL = { A: '#3b82f6', B: '#ef4444' };
 import { createDecor, DECOR_W, DECOR_H } from './decor.js';
 
 let decor = null;
+let fxCache = null;
 // Effets ponctuels venus du serveur (cast, hit, block), affiches avec le meme retard que l'interpolation.
 const FX_DELAY = 100;
 let fx = [];
@@ -20,6 +22,26 @@ export function pushEvents(events) {
 const SLOT_COL = { attack: '#fde047', defense: '#7dd3fc', super: '#f0abfc' };
 
 let bounds = null, boundsKey = null;
+// Pool d'items de tri en profondeur, reutilise d'une frame a l'autre (pas d'allocation par frame).
+const itemPool = [], items = [];
+let nItems = 0;
+function addItem(k, o, x, y) {
+  const it = itemPool[nItems] || (itemPool[nItems] = { k: '', o: null, x: 0, y: 0 });
+  nItems++; it.k = k; it.o = o; it.x = x; it.y = y; items.push(it);
+}
+const byDepth = (a, c) => a.y - c.y;
+// Halo de projectile pre-rendu par couleur (remplace shadowBlur, tres couteux par frame).
+const glowCache = new Map();
+function glow(col) {
+  let c = glowCache.get(col);
+  if (!c) {
+    c = document.createElement('canvas'); c.width = c.height = 48;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+    gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 48, 48); glowCache.set(col, c);
+  }
+  return c;
+}
 
 // Boite englobante des cases jouables '.' de arena.json (coords monde).
 function worldBounds(arena) {
@@ -58,8 +80,12 @@ export function render(ctx, W, H, arena, state, characters) {
   ctx.translate((W - DECOR_W * scale) / 2, (H - DECOR_H * scale) / 2);
   ctx.scale(scale, scale);
   ctx.imageSmoothingEnabled = false;
-  const project=(x,y)=>worldToScreen(x,y,b);
-  const fx=combatFX(ctx,project,kx,ky,reducedMotion.matches);
+  // Fonctions d'effets creees une fois par (contexte, arene, reduced-motion) au lieu de chaque frame.
+  if(!fxCache||fxCache.ctx!==ctx||fxCache.b!==b||fxCache.rm!==reducedMotion.matches){
+    const pr=(x,y)=>worldToScreen(x,y,b);
+    fxCache={ctx,b,rm:reducedMotion.matches,project:pr,fx:combatFX(ctx,pr,kx,ky,reducedMotion.matches)};
+  }
+  const project=fxCache.project, fx=fxCache.fx;
   const impact=(state?.effects||[]).find(e=>e.kind==='impact'&&e.age<.38);
   const drop=(state?.zones||[]).find(z=>(z.kind==='micDrop'||z.kind==='decree')&&z.age>=z.delay&&z.age-z.delay<.38);
   if(!reducedMotion.matches&&(impact||drop)){
@@ -71,7 +97,8 @@ export function render(ctx, W, H, arena, state, characters) {
 
   if (state) {
     const now=performance.now();
-    for (const id of poses.keys()) if(!state.players.some(p=>p.id===id))poses.delete(id);
+    seen.clear(); for (const p of state.players) seen.add(p.id);
+    for (const id of poses.keys()) if(!seen.has(id))poses.delete(id);
     for(const e of state.effects||[])fx.effect(e);
     for (const z of state.zones || []) {
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
@@ -88,13 +115,13 @@ export function render(ctx, W, H, arena, state, characters) {
       ctx.beginPath(); ctx.ellipse(x, y, rx * (0.4 + 0.5 * ((now / 600) % 1)), ry * (0.4 + 0.5 * ((now / 600) % 1)), 0, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
-    const items = [];
-    for(const w of state.walls||[])items.push({k:'wall',o:w,s:project(w.x,w.y+Math.abs(w.ux)*w.depth/2)});
+    items.length = 0; nItems = 0;
+    for(const w of state.walls||[]){const s=project(w.x,w.y+Math.abs(w.ux)*w.depth/2);addItem('wall',w,s[0],s[1]);}
     // Combat corps a corps: plus aucun projectile volant a dessiner.
-    for (const p of state.players || []) items.push({ k: 'j', o: p, s: worldToScreen(p.x, p.y, b) });
-    items.sort((a, c) => a.s[1] - c.s[1]);
+    for (const p of state.players || []) { const s = worldToScreen(p.x, p.y, b); addItem('j', p, s[0], s[1]); }
+    items.sort(byDepth);
     for (const it of items) {
-      const [x, y] = it.s;
+      const x = it.x, y = it.y;
       if(it.k==='wall'){fx.wall(it.o);continue;}
       if (it.k === 'p') {
         if(fx.projectile(it.o))continue;
@@ -132,16 +159,20 @@ function drawProjectile(ctx, o, x, y, kx, ky) {
   g.addColorStop(0, col); g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.strokeStyle = g; ctx.lineWidth = r * 1.6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + tx, y + ty); ctx.stroke();
-  ctx.shadowColor = col; ctx.shadowBlur = 12;
+  const gs = r + 12; ctx.drawImage(glow(col), x - gs, y - gs, gs * 2, gs * 2);
   ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, r * 0.45, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, r * 0.45, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
 
+const pos = new Map();
 function drawFx(ctx, state, b) {
   const now = performance.now();
-  const pos = new Map((state.players || []).map((p) => [p.id, p]));
-  fx = fx.filter((e) => now - e.t0 < 900);
+  pos.clear();
+  for (const p of state.players || []) pos.set(p.id, p);
+  let w = 0;
+  for (let i = 0; i < fx.length; i++) if (now - fx[i].t0 < 900) fx[w++] = fx[i];
+  fx.length = w;
   for (const e of fx) {
     const age = now - e.t0; if (age < 0) continue;
     const pl = pos.get(e.id);
