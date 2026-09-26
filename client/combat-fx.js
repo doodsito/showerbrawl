@@ -246,7 +246,7 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       for(let i=0;i<8;i++){const a=i*Math.PI/4+.2,d=(8+t*30)*big;rect(x+Math.cos(a)*d-2,y+Math.sin(a)*d*.8-2,4,4,i%2?'#ffd35a':'#ffffff');}
       g.translate(x-ux*(6-t*6),y-uy*(6-t*6));g.rotate(Math.atan2(uy,ux));
       rect(-8*big,-6*big,14*big,12*big,'#2b1b12');rect(-6*big,-5*big,11*big,10*big,'#e9b184');rect(3*big,-5*big,3*big,10*big,'#c98a60');
-      label(e.heavy?'POW!':'PAF!',0,-16*big,e.heavy?13:10,'#fff4c8');
+      label(e.heavy?'POW!':'WHAM!',0,-16*big,e.heavy?13:10,'#fff4c8');
     }else{
       g.strokeStyle='#ffffffaa';g.lineWidth=3;g.beginPath();const a=Math.atan2(uy,ux);g.arc(x-ux*10,y-uy*10,22,a-1,a+1);g.stroke();
     }

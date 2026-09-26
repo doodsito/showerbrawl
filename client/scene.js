@@ -233,7 +233,7 @@ function drawFx(ctx, state, b) {
       ctx.fillStyle = '#ff5555'; ctx.fillText('-' + Math.max(1, Math.round(e.amount)), x, y - 58 - age * 0.04);
     } else if (e.k === 'block') {
       ctx.globalAlpha = 1 - k; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
-      ctx.fillStyle = '#7dd3fc'; ctx.fillText('BLOQUE', x, y - 60 - age * 0.03);
+      ctx.fillStyle = '#7dd3fc'; ctx.fillText('BLOCKED', x, y - 60 - age * 0.03);
     } else if (e.k === 'cast') {
       // nom du pouvoir au-dessus du lanceur
       ctx.globalAlpha = Math.min(1, 2 - 2 * k); ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
@@ -284,8 +284,8 @@ function drawHud(g, state) {
   side(X + 4, tX - 6, '#2f7de1', '#60a5fa', ['#e0413a', '#f4f1e8'], false);
   side(tX + tW + 6, X + Wd - 4, '#e0413a', '#f87171', ['#e0413a', '#8f2420'], true);
   g.font = `900 22px ${HUD_FONT}`; g.textBaseline = 'middle';
-  g.textAlign = 'right'; g.fillStyle = '#030812'; g.fillText(`BLEUS ${sc.A}`, tX - 14, Y + Hd / 2 + 2); g.fillStyle = '#ddebff'; g.fillText(`BLEUS ${sc.A}`, tX - 14, Y + Hd / 2);
-  g.textAlign = 'left'; g.fillStyle = '#030812'; g.fillText(`${sc.B} ROUGES`, tX + tW + 14, Y + Hd / 2 + 2); g.fillStyle = '#ffe2df'; g.fillText(`${sc.B} ROUGES`, tX + tW + 14, Y + Hd / 2);
+  g.textAlign = 'right'; g.fillStyle = '#030812'; g.fillText(`BLUE ${sc.A}`, tX - 14, Y + Hd / 2 + 2); g.fillStyle = '#ddebff'; g.fillText(`BLUE ${sc.A}`, tX - 14, Y + Hd / 2);
+  g.textAlign = 'left'; g.fillStyle = '#030812'; g.fillText(`${sc.B} RED`, tX + tW + 14, Y + Hd / 2 + 2); g.fillStyle = '#ffe2df'; g.fillText(`${sc.B} RED`, tX + tW + 14, Y + Hd / 2);
   // Timer: panneau sombre isole au centre.
   pixelFrame(g, tX, Y + 5, tW, 48, { background: '#111a2b', outline: '#030812', outlineWidth: 2, inner: '#65758a', innerWidth: 2, cut: 2 });
   g.font = `900 34px ${HUD_FONT}`; g.textAlign = 'center';
@@ -305,7 +305,7 @@ function drawKOs(g, b) {
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `900 64px ${HUD_FONT}`;
     g.fillStyle = '#030812'; for (const [dx, dy] of [[-4,0],[4,0],[0,-4],[0,4],[4,5]]) g.fillText('KO!', dx, dy);
     g.fillStyle = '#e0413a'; g.fillText('KO!', 3, 0); g.fillStyle = '#2f7de1'; g.fillText('KO!', -3, 0); g.fillStyle = '#f6c343'; g.fillText('KO!', 0, 0);
-    const who = k.killerName ? `PAR ${String(k.killerName).toUpperCase()}` : k.fell ? 'CHUTE DU TOIT' : '';
+    const who = k.killerName ? `BY ${String(k.killerName).toUpperCase()}` : k.fell ? 'FELL OFF THE ROOF' : '';
     if (who) {
       g.font = `900 14px ${HUD_FONT}`; const tw = Math.ceil(g.measureText(who).width) + 14;
       g.fillStyle = '#050a12'; g.fillRect(-tw / 2 - 2, 34, tw + 4, 22);

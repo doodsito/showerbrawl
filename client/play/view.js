@@ -3,7 +3,7 @@
 import { render, pushEvents, decorPoint } from '../scene.js';
 
 const RENDER_DELAY = 70, MAX_EXTRAPOLATION = 50; // identiques a l'ecran hote
-const ZOOM = 2, FOLLOW = 8; // zoom ~2x sur le decor 960x540, suivi lisse (lerp exponentiel)
+const ZOOM = 1.75, FOLLOW = 8; // zoom 1.75x sur le decor 960x540, suivi lisse (lerp exponentiel)
 const MAX_DPR = 2;
 
 export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
