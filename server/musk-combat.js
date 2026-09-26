@@ -105,7 +105,7 @@ export function updateMuskZone(ctx,z,dt){
       if(z.hitIds.has(target.id)||Math.hypot(target.x-z.x,target.y-z.y)>z.r+target.r)continue;
       z.hitIds.add(target.id);
       if(!ctx.damage(target,z.damage,z.owner,z.x-z.ux*30,z.y-z.uy*30,0,true,false))return crash(ctx,z);
-      target.carriedBy=z.id;target.shove=null;target.dashT=0;target.dashHit=null;target.kbVx=0;target.kbVy=0;target.stunT=.2;
+      target.carriedBy=z.id;target.shove=null;target.dashT=0;target.dashHit=null;target.kbVx=0;target.kbVy=0;target.superKbVx=0;target.superKbVy=0;target.stunT=.2;
       z.passengers.add(target.id);effect(ctx,'spark',target.x,target.y);
     }
     for(const id of z.passengers){

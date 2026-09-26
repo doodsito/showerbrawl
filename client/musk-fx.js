@@ -12,7 +12,7 @@ export function muskFX(g,project,kx,ky,quiet){
       if(length<4)return;
       const envelope=Math.max(0,Math.min(1,z.age/.12,(z.duration-z.age)/.15));
       g.save();g.translate(x,y-28);g.rotate(Math.atan2(dy,dx));g.globalAlpha=.75+.25*envelope;
-      const width=length*(quiet?1:.95+Math.sin(z.age*65)*.05),height=Math.max(16,length*.4)*envelope;
+      const width=length*(quiet?1:.95+Math.sin(z.age*65)*.05),height=Math.max(16,length*.4*Math.tan((z.halfAngle??24)*Math.PI/180)/Math.tan(24*Math.PI/180))*envelope;
       if(img)g.drawImage(img,4,-height/2,width,height);
       else poly([[4,-3],[width,-height/2],[width,height/2],[4,3]],'#ffaf38');
       if(!quiet)for(let i=0;i<12;i++){

@@ -53,26 +53,30 @@ export function makePhysics(arena, dynamicWalls = () => []) {
     }
   }
 
-  // Knockback: ignore les bords (on peut etre ejecte du toit).
+  // Regular impulses stop at arena edges. Super impulses have a separate velocity:
+  // adding a super must never turn accumulated basic knockback into a ring-out.
   function applyKnockback(p, dt) {
-    if (!p.kbVx && !p.kbVy) return;
-    const steps = Math.max(1, Math.ceil(Math.hypot(p.kbVx, p.kbVy) * dt / 4));
+    moveWithWalls(p, (p.kbVx || 0) * dt, (p.kbVy || 0) * dt, p.r);
+    const vx = p.superKbVx || 0, vy = p.superKbVy || 0;
+    const steps = Math.max(1, Math.ceil(Math.hypot(vx, vy) * dt / 4));
     for (let i = 0; i < steps; i++) {
-      const next = {x: p.x + p.kbVx * dt / steps, y: p.y + p.kbVy * dt / steps};
-      if (dynamicWalls().some(w => wallContact(next, w, p.r))) { p.kbVx = 0; p.kbVy = 0; break; }
+      const next = {x: p.x + vx * dt / steps, y: p.y + vy * dt / steps};
+      if (dynamicWalls().some(w => wallContact(next, w, p.r))) { p.superKbVx = 0; p.superKbVy = 0; break; }
       p.x = next.x; p.y = next.y;
     }
     const decay = Math.pow(0.02, dt);
-    p.kbVx *= decay; p.kbVy *= decay;
-    if (Math.abs(p.kbVx) < 5) p.kbVx = 0;
-    if (Math.abs(p.kbVy) < 5) p.kbVy = 0;
+    for (const key of ['kbVx', 'kbVy', 'superKbVx', 'superKbVy']) {
+      p[key] = (p[key] || 0) * decay;
+      if (Math.abs(p[key]) < 5) p[key] = 0;
+    }
   }
 
-  function push(p, fromX, fromY, force) {
+  function push(p, fromX, fromY, force, canRingOut = false) {
     const d = Math.hypot(p.x - fromX, p.y - fromY) || 1;
     const f = force * CONFIG.KNOCKBACK;
-    p.kbVx = (p.kbVx || 0) + ((p.x - fromX) / d) * f;
-    p.kbVy = (p.kbVy || 0) + ((p.y - fromY) / d) * f;
+    const x = canRingOut ? 'superKbVx' : 'kbVx', y = canRingOut ? 'superKbVy' : 'kbVy';
+    p[x] = (p[x] || 0) + ((p.x - fromX) / d) * f;
+    p[y] = (p[y] || 0) + ((p.y - fromY) / d) * f;
   }
 
   // Centre hors sol => chute.

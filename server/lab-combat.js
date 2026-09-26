@@ -31,7 +31,7 @@ export function shove(target, ux, uy, distance, duration = .26) {
   const len = Math.hypot(ux, uy) || 1;
   target.shove = { ux: ux / len, uy: uy / len, distance, duration, remaining: duration };
   target.stunT = duration + .08; target.dashT = 0;
-  target.kbVx = 0; target.kbVy = 0;
+  target.kbVx = 0; target.kbVy = 0; target.superKbVx = 0; target.superKbVy = 0;
 }
 function enemy(ctx, p, range) {
   return [...ctx.players.values()].filter(o => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch)
@@ -52,7 +52,7 @@ function launch(ctx, p, target) {
     distance = d;
   }
   target.launch = { fromX: target.x, fromY: target.y, ux, uy, distance, age: 0, duration: .56 };
-  target.stunT = .9; target.shove = null; target.dashT = 0; target.kbVx = 0; target.kbVy = 0;
+  target.stunT = .9; target.shove = null; target.dashT = 0; target.kbVx = 0; target.kbVy = 0; target.superKbVx = 0; target.superKbVy = 0;
 }
 export function castLab(ctx, p, a) {
   if (a.behavior === 'wall') {
@@ -86,7 +86,7 @@ export function castLab(ctx, p, a) {
   if (wall) { hitWall(ctx, wall, fired ? 36 : 12, fired ? null : p.id); return true; }
   // Static scenery blocks melee as well as projectiles.
   for (let d = 4; d < reach; d += 4) if (ctx.physics.collidesWithWall(p.x + ux * d, p.y + uy * d, 1, false)) return true;
-  if (target && ctx.damage(target, a.damage, p.id, p.x, p.y, 0, true)) {
+  if (target && ctx.damage(target, a.damage, p.id, p.x, p.y, 0, true, !fired)) {
     if (fired) launch(ctx, p, target);
     else shove(target, ux, uy, 11, .1);
     effect(ctx, 'spark', target.x, target.y);

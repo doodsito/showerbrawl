@@ -88,7 +88,7 @@ export class Game {
       if (!this.physics.collidesWithWall(p.x, p.y, p.r)) break;
       p.x = s[0]; p.y = s[1];
     }
-    Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
+    Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, superKbVx: 0, superKbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
       muskBurn:null, carriedBy:null, combatAt: this.clock || 0, energy: 0, recoveryT: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
       input: {dx: 0, dy: 0}, pending: {}, shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
       fx: p.team === 'A' ? 1 : -1, fy: 0, cd: { attack: 0, defense: 0, super: 0 } });
@@ -118,7 +118,7 @@ export class Game {
     this.sendLobby();
   }
 
-  damage(t, amount, srcId, fromX, fromY, kb = 0, deferKO = false, chargeSource = true) {
+  damage(t, amount, srcId, fromX, fromY, kb = 0, deferKO = false, chargeSource = true, canRingOut = false) {
     if (!t.alive || t.hp <= 0 || t.launch || this.phase !== 'playing' || this.countdown > 0) return false;
     if (t.protectT > 0 || t.invulnT > 0) return false;
     if (t.shieldT > 0) {
@@ -135,7 +135,7 @@ export class Game {
       this.events.push({ k:'hit', id:t.id, x:Math.round(t.x), y:Math.round(t.y), amount:Math.round(amount*10)/10, team:t.team, lab:hasLabKit(t)||hasLabKit(this.players.get(srcId)||{}) });
     }
     t.lastHit = srcId; t.lastHitT = 3;
-    if (kb) this.physics.push(t, fromX, fromY, kb);
+    if (kb) this.physics.push(t, fromX, fromY, kb, canRingOut);
     if (t.hp <= 0 && !deferKO) this.kill(t, srcId);
     return true;
   }
@@ -163,7 +163,7 @@ export class Game {
     // Compte a rebours: joueurs visibles mais figes, inputs ignores, timer de manche arrete.
     if (this.countdown > 0) {
       this.countdown = Math.max(0, this.countdown - dt);
-      for (const p of this.players.values()) { p.kbVx = 0; p.kbVy = 0; }
+      for (const p of this.players.values()) { p.kbVx = 0; p.kbVy = 0; p.superKbVx = 0; p.superKbVy = 0; }
       if (this.countdown === 0) console.log('[countdown] FIGHT!');
       return;
     }
@@ -271,7 +271,7 @@ export class Game {
         cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
       })),
       projectiles: this.projectiles.map((p) => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, team: p.team, visual:p.visual, vx:p.vx, vy:p.vy })),
-      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit, ux:z.ux, uy:z.uy, reach:z.reach, owner:z.owner })),
+      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit, ux:z.ux, uy:z.uy, reach:z.reach, halfAngle:z.halfAngle, owner:z.owner })),
       events: this.events.splice(0),
       walls: this.walls.map(w => ({...w})), effects: this.effects.map(e => ({...e})),
       score: this.score,

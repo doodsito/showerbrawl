@@ -1,392 +1,63 @@
 {
-  "_schema": {
-    "note": "Un objet par perso. REGLE DE COMBAT: attack et defense = corps a corps (au contact); super = peut viser a distance (frappe ciblee avec alerte au sol, esquivable). type DOIT etre dans: projectile, burst, zone, dash, shield. Rien d'autre.",
-    "fields": {
-      "name": "affiche a l'ecran",
-      "hp": "points de vie",
-      "speed": "vitesse px/s",
-      "sprite": "chemin d'un PNG servi par Vite (ex: sprites/trump.png, fichier dans client/public/sprites/) OU id de crane genere au runtime (client/sprites.js) si pas de PNG",
-      "attack/defense/super": "un pouvoir chacun, parametre une des 5 briques",
-      "labKit": "optionnel, true = regles du kit labo: acceleration au contact, defense/super a l'appui seulement, pas de pouvoir pendant un dash, effets labo cote client",
-      "fullBody": "optionnel, true = sprite PNG dessine en pied (grande taille) au lieu du format tete",
-      "shieldStyle": "optionnel, 'sunglasses' = bulle bleue + lunettes de soleil sur le sprite pendant le bouclier",
-      "hint": "optionnel, texte d'aide affiche sur la manette sous les boutons",
-      "behavior (dans un pouvoir)": "optionnel, un pouvoir avec behavior passe par le code labo (server/lab-combat.js), sinon par les 5 briques",
-      "super cible (type zone + target:enemy)": "vise l'ennemi vivant le plus proche dans range, alerte au sol pendant delay (s) puis frappe: range (portee), radius (rayon), delay (0.5 a 0.9), damage, knockback, hits (impacts successifs, defaut 1), spread (ecart entre impacts), gap (s entre impacts), charge (energie requise, 100). Sans ennemi a portee: frappe devant a mi-portee."
-    }
-  },
+  "_schema": {"note": "Un objet par perso. REGLE DE COMBAT: attack et defense = corps a corps (au contact); super = peut viser a distance (frappe ciblee avec alerte au sol, esquivable). type DOIT etre dans: projectile, burst, zone, dash, shield. Rien d'autre.", "fields": {"name": "affiche a l'ecran", "hp": "points de vie", "speed": "vitesse px/s", "sprite": "chemin d'un PNG servi par Vite (ex: sprites/trump.png, fichier dans client/public/sprites/) OU id de crane genere au runtime (client/sprites.js) si pas de PNG", "attack/defense/super": "un pouvoir chacun, parametre une des 5 briques", "labKit": "optionnel, true = defense/super a l’appui seulement et effets dedies cote client", "fullBody": "optionnel, true = sprite PNG dessine en pied (grande taille) au lieu du format tete", "shieldStyle": "optionnel, 'sunglasses' = bulle bleue + lunettes de soleil sur le sprite pendant le bouclier", "hint": "optionnel, texte d'aide affiche sur la manette sous les boutons", "behavior (dans un pouvoir)": "optionnel, un pouvoir avec behavior passe par le code labo (server/lab-combat.js), sinon par les 5 briques", "super cible (type zone + target:enemy)": "vise l'ennemi vivant le plus proche dans range, alerte au sol pendant delay (s) puis frappe: range (portee), radius (rayon), delay (0.5 a 0.9), damage, knockback, hits (impacts successifs, defaut 1), spread (ecart entre impacts), gap (s entre impacts), charge (energie requise, 100). Sans ennemi a portee: frappe devant a mi-portee.", "recovery (dans un pouvoir)": "secondes de ralentissement apres un coup, distinctes du cooldown; tous les personnages retrouvent ensuite leur vitesse"}},
   "trump": {
-    "name": "Trump",
-    "hp": 115,
-    "speed": 185,
-    "sprite": "sprites/trump.png",
-    "labKit": true,
-    "fullBody": true,
-    "hint": "Direct au contact · Mur devant toi · Super chargé en combat",
-    "attack": {
-      "type": "zone",
-      "behavior": "punch",
-      "damage": 12,
-      "range": 105,
-      "cooldown": 0.5,
-      "label": "Direct",
-      "icon": "sprites/fx_punch.png",
-      "recovery": 0.2
-    },
-    "defense": {
-      "type": "shield",
-      "behavior": "wall",
-      "duration": 4.5,
-      "cooldown": 8,
-      "label": "Mur MAGA",
-      "icon": "sprites/trump_defense.png"
-    },
-    "super": {
-      "type": "zone",
-      "behavior": "fired",
-      "damage": 30,
-      "range": 130,
-      "cooldown": 5,
-      "charge": 100,
-      "label": "You’re fired!"
-    }
+    "name": "Trump", "hp": 115, "speed": 185, "sprite": "sprites/trump.png", "labKit": true, "fullBody": true, "hint": "Direct au contact · Mur devant toi · Super chargé en combat",
+    "attack": {"type": "zone", "behavior": "punch", "damage": 12, "range": 105, "cooldown": 0.5, "label": "Direct", "icon": "sprites/fx_punch.png", "recovery": 0.2},
+    "defense": {"type": "shield", "behavior": "wall", "duration": 4.5, "cooldown": 8, "label": "Mur MAGA", "icon": "sprites/trump_defense.png"},
+    "super": {"type": "zone", "behavior": "fired", "damage": 30, "range": 130, "cooldown": 5, "charge": 100, "label": "You’re fired!"}
   },
   "biden": {
-    "name": "Biden",
-    "hp": 110,
-    "speed": 180,
-    "sprite": "biden",
-    "attack": {
-      "type": "projectile",
-      "damage": 13,
-      "range": 80,
-      "knockback": 220,
-      "cooldown": 0.5,
-      "label": "Aviateurs",
-      "recovery": 0.18
-    },
-    "defense": {
-      "type": "dash",
-      "distance": 180,
-      "duration": 0.26,
-      "damage": 4,
-      "knockback": 160,
-      "cooldown": 5,
-      "label": "Nap Time",
-      "invulnerable": false
-    },
-    "super": {
-      "type": "zone",
-      "target": "enemy",
-      "range": 420,
-      "radius": 90,
-      "delay": 0.75,
-      "damage": 26,
-      "knockback": 320,
-      "cooldown": 6,
-      "charge": 100,
-      "label": "Executive Order"
-    }
+    "name": "Biden", "hp": 110, "speed": 180, "sprite": "biden",
+    "attack": {"type": "projectile", "damage": 12, "range": 80, "knockback": 200, "cooldown": 0.52, "label": "Aviateurs", "recovery": 0.18},
+    "defense": {"type": "dash", "distance": 180, "duration": 0.26, "damage": 4, "knockback": 160, "cooldown": 5, "label": "Nap Time", "invulnerable": false},
+    "super": {"type": "zone", "target": "enemy", "range": 420, "radius": 90, "delay": 0.75, "damage": 26, "knockback": 320, "cooldown": 6, "charge": 100, "label": "Executive Order"}
   },
   "musk": {
-    "name": "Musk",
-    "hp": 100,
-    "speed": 210,
-    "sprite": "sprites/musk.png",
-    "labKit": true,
-    "fullBody": true,
-    "hint": "Lance-flammes : recul et brûlure · Hyperloop : esquive · Cybertruck chargé en combat",
-    "attack": {
-      "type": "zone",
-      "behavior": "flamethrower",
-      "range": 180,
-      "duration": 0.75,
-      "dps": 38,
-      "pushDistance": 6,
-      "burnDps": 7,
-      "burnDuration": 0.8,
-      "chargeHit": 6,
-      "cooldown": 1.2,
-      "label": "Lance-flammes",
-      "icon": "sprites/musk_attack.png",
-      "recovery": 0.2,
-      "halfAngle": 34
-    },
-    "defense": {
-      "type": "dash",
-      "behavior": "hyperloop",
-      "distance": 260,
-      "duration": 0.18,
-      "invulnerable": false,
-      "away": true,
-      "cooldown": 4.5,
-      "label": "Hyperloop",
-      "icon": "sprites/musk_hyperloop.svg"
-    },
-    "super": {
-      "type": "zone",
-      "behavior": "cybertruck",
-      "damage": 42,
-      "cooldown": 6,
-      "charge": 100,
-      "label": "Cybertruck",
-      "icon": "sprites/musk_super.png"
-    }
+    "name": "Musk", "hp": 100, "speed": 210, "sprite": "sprites/musk.png", "labKit": true, "fullBody": true, "hint": "Lance-flammes : recul et brûlure · Hyperloop : esquive · Cybertruck chargé en combat",
+    "attack": {"type": "zone", "behavior": "flamethrower", "range": 150, "duration": 0.75, "dps": 32, "pushDistance": 6, "burnDps": 7, "burnDuration": 0.8, "chargeHit": 5, "cooldown": 1.2, "label": "Lance-flammes", "icon": "sprites/musk_attack.png", "recovery": 0.2, "halfAngle": 26},
+    "defense": {"type": "dash", "behavior": "hyperloop", "distance": 260, "duration": 0.18, "invulnerable": false, "away": true, "cooldown": 4.5, "label": "Hyperloop", "icon": "sprites/musk_hyperloop.svg"},
+    "super": {"type": "zone", "behavior": "cybertruck", "damage": 42, "cooldown": 6, "charge": 100, "label": "Cybertruck", "icon": "sprites/musk_super.png"}
   },
   "obama": {
-    "name": "Obama",
-    "hp": 100,
-    "speed": 215,
-    "sprite": "sprites/obama.png",
-    "labKit": true,
-    "fullBody": true,
-    "attack": {
-      "type": "projectile",
-      "damage": 11,
-      "range": 80,
-      "knockback": 200,
-      "cooldown": 0.42,
-      "label": "Énergie",
-      "icon": "sprites/obama_attack.png",
-      "visual": "energy",
-      "recovery": 0.14
-    },
-    "defense": {
-      "type": "dash",
-      "distance": 238,
-      "duration": 0.28,
-      "away": true,
-      "invulnerable": false,
-      "cooldown": 4,
-      "label": "Esquive",
-      "icon": "sprites/obama.png"
-    },
-    "super": {
-      "type": "zone",
-      "behavior": "micDrop",
-      "damage": 30,
-      "radius": 110,
-      "delay": 0.75,
-      "cooldown": 5,
-      "charge": 100,
-      "label": "Mic Drop",
-      "icon": "sprites/obama_super.png"
-    }
+    "name": "Obama", "hp": 100, "speed": 215, "sprite": "sprites/obama.png", "labKit": true, "fullBody": true,
+    "attack": {"type": "projectile", "damage": 11, "range": 80, "knockback": 200, "cooldown": 0.42, "label": "Énergie", "icon": "sprites/obama_attack.png", "visual": "energy", "recovery": 0.14},
+    "defense": {"type": "dash", "distance": 238, "duration": 0.28, "away": true, "invulnerable": false, "cooldown": 4, "label": "Esquive", "icon": "sprites/obama.png"},
+    "super": {"type": "zone", "behavior": "micDrop", "damage": 30, "radius": 110, "delay": 0.85, "cooldown": 5, "charge": 100, "label": "Mic Drop", "icon": "sprites/obama_super.png"}
   },
   "harris": {
-    "name": "Harris",
-    "hp": 90,
-    "speed": 210,
-    "sprite": "harris",
-    "attack": {
-      "type": "projectile",
-      "damage": 9,
-      "range": 75,
-      "knockback": 145,
-      "cooldown": 0.38,
-      "label": "Rire Nucleaire",
-      "recovery": 0.12
-    },
-    "defense": {
-      "type": "shield",
-      "duration": 1.1,
-      "cooldown": 7,
-      "label": "Soutien des Donateurs"
-    },
-    "super": {
-      "type": "zone",
-      "target": "enemy",
-      "range": 480,
-      "radius": 75,
-      "delay": 0.65,
-      "damage": 24,
-      "knockback": 280,
-      "cooldown": 6,
-      "charge": 100,
-      "label": "Diagramme de Venn"
-    }
+    "name": "Harris", "hp": 90, "speed": 210, "sprite": "harris",
+    "attack": {"type": "projectile", "damage": 10, "range": 75, "knockback": 145, "cooldown": 0.38, "label": "Rire Nucleaire", "recovery": 0.12},
+    "defense": {"type": "shield", "duration": 1.1, "cooldown": 7, "label": "Soutien des Donateurs"},
+    "super": {"type": "zone", "target": "enemy", "range": 480, "radius": 75, "delay": 0.65, "damage": 24, "knockback": 280, "cooldown": 6, "charge": 100, "label": "Diagramme de Venn"}
   },
   "maduro": {
-    "name": "Maduro",
-    "hp": 125,
-    "speed": 165,
-    "sprite": "maduro",
-    "attack": {
-      "type": "burst",
-      "radius": 90,
-      "damage": 12,
-      "knockback": 220,
-      "cooldown": 0.85,
-      "label": "Petrole Brut",
-      "recovery": 0.25
-    },
-    "defense": {
-      "type": "shield",
-      "duration": 1.8,
-      "cooldown": 8.5,
-      "label": "Election Truquee"
-    },
-    "super": {
-      "type": "zone",
-      "target": "enemy",
-      "range": 420,
-      "radius": 115,
-      "delay": 0.9,
-      "damage": 30,
-      "knockback": 300,
-      "cooldown": 6,
-      "charge": 100,
-      "label": "Hyperinflation"
-    }
+    "name": "Maduro", "hp": 125, "speed": 165, "sprite": "maduro",
+    "attack": {"type": "burst", "radius": 90, "damage": 12, "knockback": 220, "cooldown": 0.85, "label": "Petrole Brut", "recovery": 0.25},
+    "defense": {"type": "shield", "duration": 1.8, "cooldown": 8.5, "label": "Election Truquee"},
+    "super": {"type": "zone", "target": "enemy", "range": 420, "radius": 115, "delay": 0.9, "damage": 30, "knockback": 300, "cooldown": 6, "charge": 100, "label": "Hyperinflation"}
   },
   "sanders": {
-    "name": "Sanders",
-    "hp": 110,
-    "speed": 175,
-    "sprite": "sanders",
-    "attack": {
-      "type": "projectile",
-      "damage": 12,
-      "range": 70,
-      "knockback": 180,
-      "cooldown": 0.7,
-      "label": "Mitaines",
-      "recovery": 0.22
-    },
-    "defense": {
-      "type": "shield",
-      "duration": 1.0,
-      "cooldown": 8,
-      "label": "Je Suis Encore La"
-    },
-    "super": {
-      "type": "zone",
-      "target": "enemy",
-      "range": 440,
-      "radius": 110,
-      "delay": 0.85,
-      "damage": 22,
-      "knockback": 330,
-      "cooldown": 6,
-      "charge": 100,
-      "label": "Redistribution"
-    }
+    "name": "Sanders", "hp": 110, "speed": 175, "sprite": "sanders",
+    "attack": {"type": "projectile", "damage": 13, "range": 70, "knockback": 180, "cooldown": 0.62, "label": "Mitaines", "recovery": 0.22},
+    "defense": {"type": "shield", "duration": 1.3, "cooldown": 8, "label": "Je Suis Encore La"},
+    "super": {"type": "zone", "target": "enemy", "range": 440, "radius": 110, "delay": 0.85, "damage": 22, "knockback": 330, "cooldown": 6, "charge": 100, "label": "Redistribution"}
   },
   "schwarzenegger": {
-    "name": "Schwarzenegger",
-    "hp": 110,
-    "speed": 170,
-    "sprite": "schwarzenegger",
-    "attack": {
-      "type": "projectile",
-      "damage": 18,
-      "range": 75,
-      "knockback": 230,
-      "cooldown": 0.85,
-      "label": "Hasta La Vista",
-      "recovery": 0.3
-    },
-    "defense": {
-      "type": "dash",
-      "distance": 220,
-      "duration": 0.16,
-      "damage": 8,
-      "knockback": 240,
-      "cooldown": 6,
-      "label": "Get To The Choppa",
-      "invulnerable": false
-    },
-    "super": {
-      "type": "zone",
-      "target": "enemy",
-      "range": 420,
-      "radius": 95,
-      "delay": 0.8,
-      "damage": 34,
-      "knockback": 440,
-      "cooldown": 6,
-      "charge": 100,
-      "label": "I'll Be Back"
-    }
+    "name": "Schwarzenegger", "hp": 110, "speed": 170, "sprite": "schwarzenegger",
+    "attack": {"type": "projectile", "damage": 17, "range": 70, "knockback": 200, "cooldown": 0.95, "label": "Hasta La Vista", "recovery": 0.32},
+    "defense": {"type": "dash", "distance": 220, "duration": 0.16, "damage": 8, "knockback": 240, "cooldown": 6, "label": "Get To The Choppa", "invulnerable": false},
+    "super": {"type": "zone", "target": "enemy", "range": 420, "radius": 95, "delay": 0.8, "damage": 34, "knockback": 440, "cooldown": 6, "charge": 100, "label": "I'll Be Back"}
   },
   "macron": {
-    "name": "Macron",
-    "hp": 95,
-    "speed": 205,
-    "sprite": "sprites/macron.png",
-    "labKit": true,
-    "fullBody": true,
-    "shieldStyle": "sunglasses",
-    "hint": "Baguettes : +25 % par impact · Lunettes : bouclier · 49.3 ciblé",
-    "attack": {
-      "type": "projectile",
-      "damage": 7,
-      "range": 80,
-      "knockback": 140,
-      "cooldown": 0.34,
-      "label": "Triple baguette",
-      "icon": "sprites/macron_baguettes.svg",
-      "recovery": 0.12
-    },
-    "defense": {
-      "type": "shield",
-      "duration": 1.2,
-      "cooldown": 7,
-      "label": "Lunettes de soleil",
-      "icon": "sprites/macron_sunglasses.svg"
-    },
-    "super": {
-      "type": "zone",
-      "target": "enemy",
-      "range": 520,
-      "radius": 65,
-      "delay": 0.6,
-      "damage": 28,
-      "knockback": 360,
-      "cooldown": 6,
-      "charge": 100,
-      "label": "49.3",
-      "icon": "sprites/macron_super.png"
-    }
+    "name": "Macron", "hp": 100, "speed": 205, "sprite": "sprites/macron.png", "labKit": true, "fullBody": true, "shieldStyle": "sunglasses", "hint": "Baguettes rapides · Lunettes : protection brève · 49.3 ciblé",
+    "attack": {"type": "projectile", "damage": 8, "range": 90, "knockback": 140, "cooldown": 0.3, "label": "Triple baguette", "icon": "sprites/macron_baguettes.svg", "recovery": 0.12},
+    "defense": {"type": "shield", "duration": 1.4, "cooldown": 7, "label": "Lunettes de soleil", "icon": "sprites/macron_sunglasses.svg"},
+    "super": {"type": "zone", "target": "enemy", "range": 520, "radius": 65, "delay": 0.6, "damage": 28, "knockback": 360, "cooldown": 6, "charge": 100, "label": "49.3", "icon": "sprites/macron_super.png"}
   },
   "zelensky": {
-    "name": "Zelensky",
-    "hp": 100,
-    "speed": 205,
-    "sprite": "zelensky",
-    "attack": {
-      "type": "projectile",
-      "damage": 12,
-      "range": 90,
-      "knockback": 190,
-      "cooldown": 0.46,
-      "label": "Drone Bayraktar",
-      "recovery": 0.16
-    },
-    "defense": {
-      "type": "dash",
-      "distance": 210,
-      "duration": 0.18,
-      "damage": 8,
-      "knockback": 230,
-      "cooldown": 5,
-      "label": "Contre-offensive",
-      "invulnerable": false
-    },
-    "super": {
-      "type": "zone",
-      "target": "enemy",
-      "range": 600,
-      "radius": 70,
-      "delay": 0.65,
-      "damage": 13,
-      "knockback": 200,
-      "hits": 3,
-      "spread": 70,
-      "gap": 0.2,
-      "cooldown": 6,
-      "charge": 100,
-      "label": "Aide Militaire"
-    }
+    "name": "Zelensky", "hp": 100, "speed": 205, "sprite": "zelensky",
+    "attack": {"type": "projectile", "damage": 12, "range": 90, "knockback": 190, "cooldown": 0.46, "label": "Drone Bayraktar", "recovery": 0.16},
+    "defense": {"type": "dash", "distance": 210, "duration": 0.18, "damage": 8, "knockback": 230, "cooldown": 5, "label": "Contre-offensive", "invulnerable": false},
+    "super": {"type": "zone", "target": "enemy", "range": 600, "radius": 70, "delay": 0.65, "damage": 13, "knockback": 200, "hits": 3, "spread": 70, "gap": 0.2, "cooldown": 6, "charge": 100, "label": "Aide Militaire"}
   }
 }
