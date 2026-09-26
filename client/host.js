@@ -81,7 +81,7 @@ function showLobby(d) {
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
     $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
-    if (phase === 'lobby') { $('end').style.display = 'none'; resetState(); }
+    if (phase === 'lobby') { $('end').style.display = 'none'; clearInterval(endTimer); resetState(); }
     if (d.qr) $('qr').src = d.qr;
     if (d.url) $('url').textContent = d.url;
     renderSlots(d);
@@ -164,21 +164,32 @@ function drawLobbyBg() {
   g.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+// Ecran de fin: VICTORY + equipe gagnante, score, sprite du meilleur joueur. Retour lobby auto (serveur) ou REJOUER (RESET).
+let endTimer = null;
 function showEnd(d) {
   try {
     const box = $('endBox');
-    const w = d.winner === 'A' ? '<span class="A">Victoire des Bleus</span>' : d.winner === 'B' ? '<span class="B">Victoire des Rouges</span>' : 'Égalité';
-    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    let h = `<h1>${w}</h1><h2><span class="A">${d.score?.A ?? 0}</span> : <span class="B">${d.score?.B ?? 0}</span></h2>`;
-    if (d.mvp) h += `<p>MVP : <b class="${d.mvp.team}">${esc(d.mvp.name)}</b> (${d.mvp.kills} kills)</p>`;
-    h += '<table><tr><th>Joueur</th><th>Kills</th><th>Morts</th></tr>';
-    for (const p of [...(d.players || [])].sort((a, b) => b.kills - a.kills))
-      h += `<tr><td class="${p.team}">${esc(p.name)}</td><td>${p.kills}</td><td>${p.deaths}</td></tr>`;
-    h += '</table><p>Retour au lobby dans quelques secondes...</p>';
-    box.innerHTML = h;
+    const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const win = d.winner === 'A' ? ['A', 'TEAM BLEUE WINS'] : d.winner === 'B' ? ['B', 'TEAM ROUGE WINS'] : ['draw', 'EGALITE'];
+    box.innerHTML = `<div class="victory">${win[0] === 'draw' ? 'FIN DU MATCH' : 'VICTORY'}</div>
+      <div class="winner ${win[0]}">${win[1]}</div>
+      <div class="score"><div class="A">${d.score?.A ?? 0}<small>BLEUS</small></div><div class="vs">VS</div><div class="B">${d.score?.B ?? 0}<small>ROUGES</small></div></div>
+      <div class="mvp"></div>
+      <div class="foot"><span id="endCount"></span><button id="replay">REJOUER</button></div>`;
+    const m = d.mvp, chars = (lobby && lobby.characters) || {};
+    if (m) {
+      const ch = chars[m.character];
+      const spr = document.createElement('div'); spr.className = 'spr'; spr.appendChild(spriteEl(ch, m.character));
+      const t = document.createElement('div'); t.className = 't';
+      t.innerHTML = `<div class="lab">MVP</div><div class="nm ${m.team}" style="color:var(--${m.team === 'A' ? 'blueL' : 'redL'})">${esc(m.name)}</div><div class="ch">${esc(ch ? ch.name : m.character)} · ${m.kills} KILL${m.kills > 1 ? 'S' : ''}</div>`;
+      box.querySelector('.mvp').append(spr, t);
+    }
+    $('replay').onclick = (e) => { e.stopPropagation(); socket.emit(MSG.RESET, (r) => console.log('[host] REJOUER -> RESET', r)); };
+    let n = 6; const tickEnd = () => { const c = $('endCount'); if (c) c.textContent = n > 0 ? `RETOUR AU LOBBY DANS ${n}S` : ''; n--; };
+    clearInterval(endTimer); tickEnd(); endTimer = setInterval(tickEnd, 1000);
     $('end').style.display = 'flex';
     SFX.win();
-  } catch (e) {}
+  } catch (e) { console.warn('[host] ecran de fin', e); }
 }
 
 // Un seul socket persistant pour HOST et START, meme apres un rechargement HMR du module.
