@@ -61,6 +61,12 @@ export class Game {
     if (!p) return;
     const n = (v) => (Number.isFinite(+v) ? Math.max(-1, Math.min(1, +v)) : 0);
     p.input = { dx: n(d.dx), dy: n(d.dy), attack: !!d.attack, defense: !!d.defense, super: !!d.super };
+    const moving = p.input.dx !== 0 || p.input.dy !== 0, now = Date.now();
+    if ((moving || p._wasMoving) && now - (p._inLog || 0) > 1000) {
+      p._inLog = now;
+      console.log(`[input] ${p.name} dx=${p.input.dx.toFixed(2)} dy=${p.input.dy.toFixed(2)} pos=${Math.round(p.x)},${Math.round(p.y)}`);
+    }
+    p._wasMoving = moving;
   }
 
   spawn(p) {
