@@ -12,6 +12,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       # The deploy key is restricted on the VM to run only ~/showerbrawl/deploy.sh
       - name: Run deploy.sh on the VM
