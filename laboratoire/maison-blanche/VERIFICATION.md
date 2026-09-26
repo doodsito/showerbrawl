@@ -4,13 +4,22 @@
 
 ## Tests automatisés
 
-14 tests réussis : limites de l’octogone, collisions, portée, endurance, garde, super, recul, KO, chronomètre, IA, frappes rapides, touches simultanées, plein écran, stabilité des textes et pause sur perte de focus.
+54 tests réussis : limites de l’octogone, collisions, portée, endurance, garde, super, recul, KO, chronomètre, IA, frappes rapides, touches simultanées, plein écran, stabilité des textes et pause sur perte de focus.
 
 ```sh
 node --test laboratoire/maison-blanche/tests/*.test.js
 ```
 
 Les tests d’interface exécutent le vrai adaptateur et la simulation avec un DOM simulé. Le dessin Canvas est vérifié dans le navigateur.
+
+## Nouveaux contrôles du combat
+
+- Mur MAGA : perspective et collisions partagent la même base ; placement, dégâts, expiration et destruction testés.
+- Trump : projection animée jusqu’à la cage, murs rencontrés, pause et KO après arrivée.
+- Obama : projectile mobile, interception par le mur, recul progressif et garde ; esquive longue sans traverser murs, corps ou cage ; zone Mic Drop évitable, impact unique et destruction des murs.
+- Fuite : distance gagnée après un échange et ralentissement pendant une attaque.
+- Changement de personnage : remise à zéro du combat et mise à jour des capacités.
+- Animation du Mic Drop, sprites et effets contrôlés dans le navigateur ; aucune erreur JavaScript observée.
 
 ## QA visuel et interactions
 

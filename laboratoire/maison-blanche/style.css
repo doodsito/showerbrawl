@@ -80,3 +80,16 @@
   .result p { margin: 4px 0 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .ability { transition: none; } }
+
+/* Team art preview, with original files preserved at full resolution. */
+.art-bar { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 20px; padding:12px 2px; font:10px LocalMono,monospace; color:var(--muted); line-height:1.6; }
+.art-bar > span:first-child { color:var(--gold); letter-spacing:1px; }
+.art-bar i { display:inline-block; width:6px; height:6px; margin-right:7px; background:var(--gold); }
+.ability-art { width:38px; height:29px; object-fit:contain; image-rendering:pixelated; }
+@media(max-width:430px){ .art-bar { font-size:9px; } }
+.motion-toggle { display:flex; align-items:center; gap:6px; color:var(--cream); cursor:pointer; min-height:28px; }
+.motion-toggle input { margin:0; }
+
+.character-picker { display:flex; align-items:center; gap:8px; }
+.character-picker select { background:#182131; color:var(--cream); border:1px solid #465569; border-radius:3px; padding:8px 24px 8px 8px; font:inherit; min-height:40px; }
+.ability-art[hidden],.icon[hidden] { display:none; }
