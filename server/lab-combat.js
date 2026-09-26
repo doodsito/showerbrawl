@@ -68,17 +68,14 @@ export function castLab(ctx, p, a) {
     ctx.walls.push(wall);
     return true;
   }
-  const target = enemy(ctx, p, a.range);
+  const target = enemy(ctx, p, a.behavior === 'micDrop' ? Infinity : a.range);
   const [ux, uy] = direction(p, target);
   p.fx = ux; p.fy = uy;
   if (a.behavior === 'micDrop' || a.behavior === 'decree') {
-    if(a.behavior==='decree'&&!target)return false;
+    if(!target)return false;
     ctx.zones.push({ id: ctx.nextId(), kind: a.behavior, angle:Math.atan2(uy,ux), owner: p.id, team: p.team,
-      x: target ? target.x : p.x + ux * a.range, y: target ? target.y : p.y + uy * a.range,
+      x: target.x, y: target.y,
       r: a.radius, age: 0, delay: a.delay, duration: a.delay + 1.25, damage: a.damage, hit: false });
-    // A cast without a nearby enemy still lands on the playable floor.
-    const drop = ctx.zones.at(-1);
-    if (!target) { drop.x = p.x; drop.y = p.y; ctx.physics.moveWithWalls(drop, ux * a.range, uy * a.range, 2); }
     return true;
   }
   const fired = a.behavior === 'fired';
