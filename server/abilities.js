@@ -40,7 +40,7 @@ const BRICKS = {
     if (!e) { fx(ctx, 'whiff', p.x + p.fx * reach * .6, p.y + p.fy * reach * .6, { ux: p.fx, uy: p.fy }, .25); return; }
     face(p, e);
     const hx = (p.x + e.x) / 2, hy = (p.y + e.y) / 2;
-    if (ctx.damage(e, a.damage ?? 10, p.id, p.x, p.y, a.knockback ?? 260)) fx(ctx, 'strike', hx, hy, { ux: p.fx, uy: p.fy, heavy: (a.damage ?? 10) >= 15 });
+    if (ctx.damage(e, a.damage ?? 10, p.id, p.x, p.y, a.knockback ?? 260)) fx(ctx, 'strike', hx, hy, { ux: p.fx, uy: p.fy, heavy: (a.damage ?? 10) >= 15, visual: a.visual });
     else fx(ctx, 'whiff', hx, hy, { ux: p.fx, uy: p.fy }, .25);
   },
   // Onde de choc au sol centree sur le lanceur: ne vole pas, gros recul radial.

@@ -89,7 +89,7 @@ export class Game {
       p.x = s[0]; p.y = s[1];
     }
     Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
-      muskBurn:null, carriedBy:null, energy: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
+      muskBurn:null, carriedBy:null, combatAt: this.clock || 0, energy: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
       input: {dx: 0, dy: 0}, pending: {}, shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
       fx: p.team === 'A' ? 1 : -1, fy: 0, cd: { attack: 0, defense: 0, super: 0 } });
   }
@@ -97,6 +97,7 @@ export class Game {
   start() {
     if (this.phase === 'playing') return;
     this.phase = 'playing';
+    this.clock = 0;
     this.countdown = COUNTDOWN;
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
@@ -126,6 +127,8 @@ export class Game {
       return false;
     }
     t.hp = Math.max(0, t.hp - amount); t.flashT = .18;
+    // Horloge de combat: coup recu ou donne => pas de regeneration pendant REGEN_DELAY.
+    t.combatAt = this.clock || 0; const src = this.players.get(srcId); if (src) src.combatAt = this.clock || 0;
     if(chargeSource)charge(this.players.get(srcId), amount * 2.2); charge(t, amount);
     if (amount >= 1 || !t._hitEvT || Date.now() - t._hitEvT > 250) {
       t._hitEvT = Date.now();
@@ -138,11 +141,17 @@ export class Game {
   }
 
   kill(t, srcId) {
+    const fell = t.hp > 0; // tue par la chute hors du toit (et non par les degats)
     t.alive = false; t.hp = 0; t.deaths++;
     t.respawnT = CONFIG.RESPAWN_TIME;
     const k = srcId && this.players.get(srcId);
-    if (k && k !== t && k.team !== t.team) { k.kills++; this.score[k.team]++; }
-    else { const other = CONFIG.TEAMS.find((x) => x !== t.team); if (other) this.score[other]++; }
+    const credited = k && k !== t && k.team !== t.team;
+    if (credited) {
+      k.kills++; this.score[k.team]++;
+      if (k.alive) k.hp = Math.min(k.maxHp, k.hp + (CONFIG.KILL_HEAL ?? 0)); // soin au kill
+    } else { const other = CONFIG.TEAMS.find((x) => x !== t.team); if (other) this.score[other]++; }
+    this.events?.push({ k: 'kill', id: t.id, name: t.name, team: t.team, x: Math.round(t.x), y: Math.round(t.y), fell,
+      killer: credited ? k.id : null, killerName: credited ? k.name : null, killerTeam: credited ? k.team : null });
   }
 
   tick(elapsed) {
@@ -160,6 +169,7 @@ export class Game {
     }
 
     this.timeLeft -= dt;
+    this.clock = (this.clock || 0) + dt;
     if ((this._ticks = (this._ticks || 0) + 1) % (CONFIG.TICK_RATE * 10) === 0)
       console.log(`[tick] ${Math.ceil(this.timeLeft)}s restantes, ${this.players.size} joueurs, score A${this.score.A}-B${this.score.B}`);
     if (this.timeLeft <= 0) return this.end();
@@ -172,6 +182,9 @@ export class Game {
         continue;
       }
       for (const k of ['protectT', 'shieldT', 'invulnT', 'lastHitT', 'stunT', 'poseT', 'recoilT', 'flashT']) if (p[k] > 0) p[k] -= dt;
+      // Regeneration passive lente hors combat.
+      if (p.hp > 0 && p.hp < p.maxHp && !p.launch && this.clock - (p.combatAt ?? 0) >= (CONFIG.REGEN_DELAY ?? 3))
+        p.hp = Math.min(p.maxHp, p.hp + (CONFIG.REGEN_PER_SEC ?? 0) * dt);
       if (p.lastHitT <= 0) p.lastHit = null;
       for (const s of SLOTS) if (p.cd[s] > 0) p.cd[s] = Math.max(0, p.cd[s] - dt);
 

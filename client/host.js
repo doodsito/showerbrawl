@@ -1,6 +1,20 @@
 import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
 import { render, pushEvents } from './scene.js';
+
+// Hook d'evenements de combat pour les sons d'action (ou tout autre effet), independant des projectiles.
+// Usage: import { onCombatEvent } from './host.js'; onCombatEvent((e) => { if (e.k === 'hit') ... });
+// Aussi dispo sans import: window.showerBrawl.onCombatEvent(fn).
+// Types: cast {id, slot, type, label, team, x, y} | hit {id, amount, team, x, y} | block {id, x, y}
+//        | kill {id, name, team, x, y, fell, killer, killerName, killerTeam}. Renvoie une fonction pour se desabonner.
+const COMBAT_KINDS = new Set(['cast', 'hit', 'block', 'kill']);
+const combatListeners = new Set();
+export function onCombatEvent(fn) { combatListeners.add(fn); return () => combatListeners.delete(fn); }
+function emitCombatEvents(events) {
+  if (!combatListeners.size || !events) return;
+  for (const e of events) if (COMBAT_KINDS.has(e.k)) for (const fn of combatListeners) { try { fn(e); } catch (err) { console.warn('[combat hook]', err); } }
+}
+window.showerBrawl = Object.assign(window.showerBrawl || {}, { onCombatEvent });
 import { SFX } from './sfx.js';
 import { Music } from './music.js';
 import { createDecor, DECOR_W, DECOR_H } from './decor.js';
@@ -224,7 +238,7 @@ socket.on(MSG.STATE, (s) => {
   if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
     if (phase !== 'playing') { phase = 'playing'; Music.setPhase(phase); $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
-    pushUpdate(s); sounds(s); pushEvents(s.events);
+    pushUpdate(s); sounds(s); pushEvents(s.events); emitCombatEvents(s.events);
   } catch (e) {}
 });
 socket.on(MSG.END, showEnd);

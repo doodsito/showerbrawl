@@ -1,9 +1,11 @@
+import {getImage} from './sprites.js';
 import {wallCorners} from '../shared/wall-geometry.js';
 
 // Effects ported from the lab; every location and warning radius comes from the server.
 const OCTAGON = [[275,338],[685,338],[825,390],[853,438],[735,502],[225,502],[107,438],[135,390]];
 export function combatFX(g, project, kx, ky, reducedMotion) {
   const motionOptions={reducedMotion};
+  for(const name of ['mic_object_v1','stamp_object_v1','trump_defense','obama_attack'])getImage(`sprites/${name}.png`);
   const rect=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));};
   const poly=(points,color,stroke)=>{g.beginPath();points.forEach(([x,y],i)=>i?g.lineTo(Math.round(x),Math.round(y)):g.moveTo(Math.round(x),Math.round(y)));g.closePath();g.fillStyle=color;g.fill();if(stroke){g.strokeStyle=stroke;g.lineWidth=2;g.stroke();}};
   const line=(x,y,x2,y2,c,width=1)=>{g.strokeStyle=c;g.lineWidth=width;g.beginPath();g.moveTo(Math.round(x),Math.round(y));g.lineTo(Math.round(x2),Math.round(y2));g.stroke();};
@@ -24,7 +26,16 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       g.save();g.beginPath();face.forEach(([x,y],n)=>n?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.clip();
       g.transform((b[0]-a[0])/80,(b[1]-a[1])/80,0,1,a[0],a[1]-h);
       for(let row=0;row<6;row++)for(let col=-1;col<5;col++)rect(col*20+(row%2?10:0)+1,row*10+1,18,8,WC.bricks[(row+col+6)%3]);
-      if(i%2===1 && obstacle.age>.18){g.save();g.translate(80,0);g.scale(-1,1);label('MAGA',40,20,12,'#fff4d8');g.restore();}
+      if(i%2===1){
+        const texture=getImage('sprites/trump_defense.png');
+        g.save();g.translate(80,0);g.scale(-1,1);
+        if(texture){
+          const sx=texture.naturalWidth/1536,sy=texture.naturalHeight/1024;
+          g.drawImage(texture,340*sx,290*sy,985*sx,460*sy,0,0,80,30);
+          g.fillStyle=WC.face+'55';g.fillRect(0,0,80,30);
+        }else if(obstacle.age>.18)label('MAGA',40,20,12,'#fff4d8');
+        g.restore();
+      }
       if(obstacle.hp<36){line(48,0,38,20,'#273245',2);line(38,20,47,38,'#273245',2);}
       if(obstacle.hp<=12)line(15,20,27,50,'#273245',3);
       g.restore();
@@ -85,7 +96,8 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
   function micDrop(drop,foreground=false){
     const falling=drop.age<drop.delay,t=Math.min(1,drop.age/drop.delay),x=drop.x,y=drop.y;
     const age=Math.max(0,drop.age-drop.delay),quiet=motionOptions.reducedMotion;
-    const radius=drop.r*kx,fade=falling?1:Math.max(0,1-age/(drop.duration-drop.delay));
+    const radius=(drop.r*kx),fade=falling?1:Math.max(0,1-age/(drop.duration-drop.delay));
+    const objectArt=getImage('sprites/mic_object_v1.png');
     g.save();
     if(!foreground){
       // Keep the warning radius honest; the shockwaves are cosmetic after contact.
@@ -95,6 +107,8 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
         g.globalAlpha=.6;ring(radius,'#eac780','#f7bd6815');
         if(!quiet){g.globalAlpha=.25+.4*t;ring(radius*(1-t),'#8ddcff');}
         line(x-12,y,x+12,y,'#e8d3a5',2);line(x,y-7,x,y+7,'#e8d3a5',2);
+        const shadow=10+24*t*t;g.globalAlpha=.15+.3*t;
+        poly(Array.from({length:12},(_,i)=>[x+Math.cos(i*Math.PI/6)*shadow,y+Math.sin(i*Math.PI/6)*shadow*.35]),'#172534');
       }else{
         g.globalAlpha=fade;
         poly([[x-26,y-8],[x-12,y-15],[x+24,y-12],[x+34,y+3],[x+12,y+13],[x-23,y+10]],'#293d5366','#708594');
@@ -135,18 +149,24 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
         for(let i=0;i<6;i++)rect(x-12+i*5,y-lift-44-i%2*15,2,28+i*6,i%2?'#f1c6aa':'#8bd9ff');
         g.restore();
       }
-      g.translate(x,y-14-lift);g.rotate(quiet?.2:falling?-.35+t*.5:Math.sin(Math.min(1,age/.36)*Math.PI)*.8+Math.min(1,age/.45)*1.25);
-      g.scale(2.15,2.15);
-      rect(-3,-2,6,22,'#142339');rect(-1,-1,2,18,'#8ba4b9');rect(-2,15,4,3,'#b4d9e6');
-      poly([[-7,-12],[7,-12],[9,-8],[9,-2],[5,2],[-5,2],[-9,-2],[-9,-8]],'#d3e5ec','#425970');
-      for(let i=0;i<3;i++)line(-6,-9+i*3,6,-9+i*3,'#526e86');
-      line(-4,-11,-4,-3,'#f1fbff',2);
+      // Head-first contact, then a physical bounce onto its side. The lowest point stays on the floor.
+      const tilt=quiet?(falling?-Math.PI:-1.45):falling?-2.2-t*.9416:-Math.PI+Math.min(1,age/.42)*1.69;
+      const support=Math.abs(Math.cos(tilt))*48+Math.abs(Math.sin(tilt))*20;
+      g.translate(x,y-lift-support);g.rotate(tilt);
+      if(objectArt){
+        g.drawImage(objectArt,409,95,434,1065,-20,-48,40,96);
+      }else{
+        rect(-7,-4,14,50,'#142339');rect(-3,-1,4,42,'#8ba4b9');
+        poly([[-14,-43],[14,-43],[19,-31],[19,-12],[10,-3],[-10,-3],[-19,-12],[-19,-31]],'#d3e5ec','#425970');
+        for(let i=0;i<6;i++)line(-12,-37+i*5,12,-37+i*5,'#526e86');
+      }
     }
     g.restore();
   }
   function decree(drop,foreground=false){
     const quiet=motionOptions.reducedMotion,falling=drop.age<drop.delay;
     const t=Math.min(1,drop.age/drop.delay),age=Math.max(0,drop.age-drop.delay),fade=falling?1:Math.max(0,1-age/1.1),x=drop.x,y=drop.y;
+    const objectArt=getImage('sprites/stamp_object_v1.png');
     g.save();g.globalAlpha=fade;
     if(!foreground){
       g.beginPath();OCTAGON.forEach(([xx,yy],i)=>i?g.lineTo(xx,yy):g.moveTo(xx,yy));g.closePath();g.clip();
@@ -155,22 +175,64 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
         const r=falling?radius-k*3:radius+k*8;
         poly(Array.from({length:24},(_,i)=>[x+Math.cos(i*Math.PI/12)*r,y+Math.sin(i*Math.PI/12)*r*ky/kx]),falling?'#e4c27408':'#e4c27412',['#589afa','#f3ead4','#f16b70'][k]);
       }
-      if(!falling){
+      if(falling){
+        const shadow=16+24*t*t;g.globalAlpha=.15+.3*t;
+        poly(Array.from({length:12},(_,i)=>[x+Math.cos(i*Math.PI/6)*shadow,y+Math.sin(i*Math.PI/6)*shadow*.4]),'#172534');
+      }else{
+        // A seal is left in the floor, with no floating text or title card.
+        g.globalAlpha=fade*.65;
+        poly([[x-36,y-9],[x,y-17],[x+36,y-9],[x+36,y+8],[x,y+15],[x-36,y+8]],'#67432944','#d7b264');
+        for(let k=0;k<3;k++)poly([[x-21+k*14,y-5],[x-7+k*14,y-5],[x-7+k*14,y+5],[x-21+k*14,y+5]],['#5c8dc5','#e2d9ba','#c36563'][k]);
         for(let i=0;i<10;i++){const a=i*Math.PI/5;line(x+Math.cos(a)*20,y+Math.sin(a)*8,x+Math.cos(a)*75,y+Math.sin(a)*27,'#3b4353',2);}
       }
     }else{
       if(!falling&&!quiet)for(let i=0;i<30;i++){
         const a=i*2.399,xx=x+Math.cos(a)*age*(65+i%5*30),yy=y+Math.sin(a)*age*45-100*age+100*age*age;
-        g.save();g.translate(xx,yy);g.rotate(a+age*5);rect(-3,-2,7,4,['#6497e4','#ede6ce','#d96363','#d6b569'][i%4]);g.restore();
+        g.save();g.translate(xx,yy);g.rotate(a+age*(i%2?5:-4));
+        if(i%3===0){
+          // Papers from the team's illustration fan out as separate pieces.
+          g.scale(Math.max(.25,Math.abs(Math.cos(age*8+i))),1);
+          rect(-5,-7,10,14,'#534838');rect(-4,-6,8,12,'#f4e7c5');
+          rect(-3,-5,2,3,'#527fc3');rect(1,-5,2,3,'#c85b5a');
+          line(-2,0,2,0,'#9b8665');line(-2,3,1,3,'#9b8665');
+        }else rect(-3,-2,7,4,['#6497e4','#ede6ce','#d96363','#d6b569'][i%4]);
+        g.restore();
       }
       const plunge=Math.max(0,(t-.25)/.75),lift=quiet?(falling?50:0):falling?155*(1-plunge**3):Math.sin(Math.min(1,age/.3)*Math.PI)*15;
       g.translate(x,y-lift);g.rotate(quiet?0:falling?-.18*(1-t):Math.sin(age*13)*.06*fade);
-      // A real stamp falls and rebounds. Lettering stays in the ability card.
-      poly([[-39,-12],[30,-12],[42,-3],[34,9],[-35,9],[-43,-1]],'#96703a','#423425');
-      rect(-36,-12,72,13,'#d5ad61');rect(-32,-10,64,3,'#f8dc92');rect(-25,-18,50,7,'#9f7437');
-      rect(-11,-55,22,37,'#263d67');rect(-7,-54,6,33,'#5876a0');rect(-15,-59,30,10,'#d1a252');
-      poly([[-18,-76],[-10,-84],[11,-84],[19,-76],[16,-61],[-16,-61]],'#b28442','#473520');rect(-10,-80,9,16,'#e2bd74');
-      rect(-24,-5,16,8,'#477ac4');rect(-8,-5,16,8,'#eee5cc');rect(8,-5,16,8,'#c85157');
+      // Compress briefly at contact, keeping the base on the contact point.
+      const press=quiet||falling?0:Math.max(0,1-age/.12);
+      g.scale(1+press*.1,1-press*.12);
+      if(objectArt){
+        g.drawImage(objectArt,235,33,784,1209,-44,-132,88,136);
+      }else{
+        poly([[-39,-12],[30,-12],[42,-3],[34,9],[-35,9],[-43,-1]],'#96703a','#423425');
+        rect(-36,-12,72,13,'#d5ad61');rect(-32,-10,64,3,'#f8dc92');rect(-25,-18,50,7,'#9f7437');
+        rect(-11,-55,22,37,'#263d67');rect(-7,-54,6,33,'#5876a0');rect(-15,-59,30,10,'#d1a252');
+        poly([[-18,-76],[-10,-84],[11,-84],[19,-76],[16,-61],[-16,-61]],'#b28442','#473520');
+        rect(-24,-5,16,8,'#477ac4');rect(-8,-5,16,8,'#eee5cc');rect(8,-5,16,8,'#c85157');
+      }
+    }
+    g.restore();
+  }
+  function energyBurst(e){
+    const t=e.age/e.duration,quiet=motionOptions.reducedMotion;
+    const power=e.hit?1:.45,spread=(8+t*36)*power;
+    g.save();g.translate(e.x,e.y);g.rotate(Math.atan2(e.dy,e.dx));
+    g.globalAlpha=(1-t)*(e.blocked?.65:1);
+    if(quiet){
+      poly([[-6,0],[0,-12],[6,0],[0,12]],'#b6e8ff');
+    }else{
+      g.lineWidth=2;
+      poly(Array.from({length:12},(_,i)=>[Math.cos(i*Math.PI/6)*spread*.5,Math.sin(i*Math.PI/6)*spread]),'#b7edff18',e.blocked?'#b7d2e6':'#8dd9ff');
+      for(let i=0;i<14;i++){
+        const a=i*2.399,r=spread*(.7+i%3*.3),xx=Math.cos(a)*r,yy=Math.sin(a)*r;
+        line(xx,yy,xx+Math.cos(a)*(5+8*(1-t)),yy+Math.sin(a)*(5+8*(1-t)),['#71cfff','#fff3d5','#f77578'][i%3],i%3?2:3);
+      }
+      if(e.hit&&t<.28){
+        g.globalAlpha=(1-t/.28)*.8;
+        poly([[-5,0],[-9,-12],[0,-7],[4,-22],[7,-7],[16,-11],[8,0],[15,12],[5,7],[0,21],[-3,7],[-12,10]],'#e9faff');
+      }
     }
     g.restore();
   }
@@ -223,6 +285,11 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
     },
     micDrop(drop,front=false){const [x,y]=project(drop.x,drop.y);micDrop({...drop,x,y},front);},
     effect(e,front=false){const [x,y]=project(e.x,e.y);
+      if(e.kind==='strike'&&e.visual==='energy'){if(front){
+        const art=getImage('sprites/obama_attack.png');
+        if(art&&e.age<.2){g.save();g.globalAlpha=1-e.age/.2;g.translate(x,y-32);g.rotate(Math.atan2((e.uy||0)*ky,(e.ux??1)*kx));g.drawImage(art,-45,-18,54,36);g.restore();}
+        energyBurst({...e,x,y:y-32,dx:(e.ux??1)*kx,dy:(e.uy||0)*ky,hit:true});
+      }return;}
       if(e.kind==='impact'){impact({...e,x,y},front);return;}
       if(e.kind==='shockwave'){shockwave({...e,x,y},front);return;}
       if(e.kind==='strike'||e.kind==='whiff'){if(front)strike({...e,x,y});return;}

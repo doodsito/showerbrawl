@@ -37,12 +37,12 @@ test('melee strike: misses at range, hits and pushes at contact, never spawns a 
  const {game,p,q}=setup(t,'obama','trump');cast(game,p,'attack');assert.equal(game.projectiles.length,0);advance(game,.4);assert.equal(q.hp,100);
  Object.assign(q,{x:340});p.cd.attack=0;cast(game,p,'attack');assert.equal(q.hp,89);assert.equal(game.projectiles.length,0);
  const atHit=q.x;advance(game,.3);assert.ok(q.x-atHit>20,'knockback pousse la cible');
- assert.ok(game.effects.some(e=>e.kind==='strike'),'effet de coup au point d\'impact');
+ assert.ok(game.effects.some(e=>e.kind==='strike'&&e.visual==='energy'),'effet énergie au point d\'impact');
 });
 test('friendly players take no projectile or Mic Drop damage',t=>{
  const {game,p,q}=setup(t,'obama','trump');q.team='A';q.x=370;p.fx=1;p.fy=0;
  cast(game,p,'attack');advance(game,.5);assert.equal(q.hp,100);
- p.energy=100;cast(game,p,'super');game.zones[0].x=q.x;advance(game,1);assert.equal(q.hp,100);
+ p.energy=100;assert.equal(cast(game,p,'super'),false);assert.equal(game.zones.length,0);assert.equal(p.energy,100);advance(game,1);assert.equal(q.hp,100);
 });
 test('Obama dash defaults away, travels 238 units, and has no invulnerability',t=>{
  const {game,p,q}=setup(t,'obama','trump');p.x=400;q.x=500;
@@ -54,12 +54,19 @@ test('dash cannot tunnel through a wall or another player even on a slow frame',
  cast(game,p,'defense');game.tick(.1);game.tick(.1);game.tick(.1);assert.ok(p.x>game.walls[0].x);
  game.walls=[];p.cd.defense=0;p.x=480;q.x=400;p.dx=-1;cast(game,p,'defense');advance(game,.3);assert.ok(p.x-q.x>=35.9);
 });
-test('Mic Drop lands on Obama himself, warns, can be escaped and only hits once',t=>{
- const {game,p,q}=setup(t,'obama','trump');p.energy=100;cast(game,p,'super');assert.equal(p.energy,0);
- const drop=game.zones[0];assert.equal(drop.x,p.x);assert.equal(drop.y,p.y);advance(game,.9);assert.equal(q.hp,100,'hors de l\'onde');
- advance(game,1.3);assert.equal(game.zones.length,0);
- p.cd.super=0;p.energy=100;q.x=p.x+60;cast(game,p,'super');advance(game,.8);assert.equal(q.hp,100);advance(game,.06);assert.equal(q.hp,72);
- advance(game,1.3);assert.equal(q.hp,72);
+test('Mic Drop targets the nearest living enemy across the arena, warns and hits once',t=>{
+ const {game,p,q}=setup(t,'obama','trump');q.x=680;q.y=340;p.energy=100;
+ game.join({id:'ally'},{team:'A',character:'trump'});const ally=game.players.get('ally');Object.assign(ally,{x:320,y:320,protectT:0});
+ game.join({id:'far'},{team:'B',character:'macron'});const far=game.players.get('far');Object.assign(far,{x:760,y:450,protectT:0});
+ assert.equal(cast(game,p,'super'),true);assert.equal(p.energy,0);
+ const drop=game.zones[0];assert.equal(drop.x,q.x);assert.equal(drop.y,q.y);
+ advance(game,.8);assert.equal(q.hp,100);advance(game,.06);assert.equal(q.hp,72);
+ assert.equal(ally.hp,100);assert.equal(p.hp,100);advance(game,1.3);assert.equal(q.hp,72);assert.equal(game.zones.length,0);
+});
+test('the Mic Drop target stays fixed so the enemy can escape before impact',t=>{
+ const {game,p,q}=setup(t,'obama','trump');p.energy=100;cast(game,p,'super');
+ const drop=game.zones[0],x=drop.x,y=drop.y;q.x+=160;
+ advance(game,.9);assert.equal(drop.x,x);assert.equal(drop.y,y);assert.equal(q.hp,100);
 });
 test('Mic Drop destroys walls, spares allies, respects spawn protection and shields',t=>{
  const {game,p,q}=setup(t,'obama','trump');q.x=400;q.fx=-1;cast(game,q,'defense');p.energy=100;cast(game,p,'super');
@@ -124,4 +131,23 @@ test('countdown 3-2-1: players frozen, inputs ignored and match timer stopped un
     assert.ok(p.x>x0,'bouge apres FIGHT');
     assert.ok(game.timeLeft<t0,'timer demarre apres FIGHT');
   } finally { game.dispose(); }
+});
+
+test('kill: soin au tueur plafonne a maxHp, evenement kill avec le nom du tueur', t => {
+ const {game,p,q}=setup(t,'biden','musk');
+ p.hp=50;q.hp=0;game.kill(q,p.id);
+ assert.equal(p.hp,50+25);assert.equal(p.kills,1);
+ const ev=game.events.find(e=>e.k==='kill');assert.equal(ev.killerName,p.name);assert.equal(ev.name,q.name);assert.equal(ev.fell,false);
+ p.hp=p.maxHp-5;game.spawn(q);game.kill(q,p.id);assert.equal(p.hp,p.maxHp,'plafonne');
+});
+test('regeneration passive: 1 PV/s seulement apres 3 s hors combat', t => {
+ const {game,p,q}=setup(t,'biden','musk');Object.assign(q,{x:700});
+ p.hp=50;p.combatAt=game.clock;
+ for(let i=0;i<20;i++)game.tick(.1);assert.equal(p.hp,50,'pas de regen avant 3 s');
+ for(let i=0;i<20;i++)game.tick(.1);assert.ok(p.hp>50.5&&p.hp<52,'~1 PV/s ensuite');
+ game.damage(p,5,q.id,q.x,q.y);const hp=p.hp;for(let i=0;i<10;i++)game.tick(.1);assert.equal(p.hp,hp,'coup recu: regen coupee');
+});
+test('chute hors du toit: evenement kill marque fell', t => {
+ const {game,q}=setup(t,'biden','musk');q.x=-50;game.tick(.05);
+ const ev=game.events.find(e=>e.k==='kill');assert.ok(ev);assert.equal(ev.fell,true);
 });
