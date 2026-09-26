@@ -33,11 +33,11 @@ test('invalid wall placement has no cooldown; a placed wall expires and reset cl
  q.x=470;assert.ok(cast(game,p,'defense'));advance(game,6.1);assert.equal(game.walls.length,0);
  game.reset();assert.equal(game.effects.length,0);assert.equal(game.zones.length,0);assert.equal(p.energy,0);
 });
-test('energy projectile travels, pushes progressively and respects the wall',t=>{
- const {game,p,q}=setup(t,'obama','trump');cast(game,p,'attack');assert.equal(q.hp,100);advance(game,.4);
- assert.equal(q.hp,90);const atHit=q.x;advance(game,.4);assert.ok(q.x-atHit>50);assert.ok(q.x>=590&&q.x<=600);
- Object.assign(p,{x:470,fx:-1,cd:{attack:0,defense:0,super:0}});Object.assign(q,{x:300,fx:1});cast(game,q,'defense');
- cast(game,p,'attack');advance(game,.5);assert.equal(q.hp,90);assert.equal(game.walls[0].hp,24);
+test('melee strike: misses at range, hits and pushes at contact, never spawns a projectile',t=>{
+ const {game,p,q}=setup(t,'obama','trump');cast(game,p,'attack');assert.equal(game.projectiles.length,0);advance(game,.4);assert.equal(q.hp,100);
+ Object.assign(q,{x:340});p.cd.attack=0;cast(game,p,'attack');assert.equal(q.hp,89);assert.equal(game.projectiles.length,0);
+ const atHit=q.x;advance(game,.3);assert.ok(q.x-atHit>20,'knockback pousse la cible');
+ assert.ok(game.effects.some(e=>e.kind==='strike'),'effet de coup au point d\'impact');
 });
 test('friendly players take no projectile or Mic Drop damage',t=>{
  const {game,p,q}=setup(t,'obama','trump');q.team='A';q.x=370;p.fx=1;p.fy=0;
@@ -54,11 +54,12 @@ test('dash cannot tunnel through a wall or another player even on a slow frame',
  cast(game,p,'defense');game.tick(.1);game.tick(.1);game.tick(.1);assert.ok(p.x>game.walls[0].x);
  game.walls=[];p.cd.defense=0;p.x=480;q.x=400;p.dx=-1;cast(game,p,'defense');advance(game,.3);assert.ok(p.x-q.x>=35.9);
 });
-test('Mic Drop warns at a fixed position, can be escaped and only hits once',t=>{
+test('Mic Drop lands on Obama himself, warns, can be escaped and only hits once',t=>{
  const {game,p,q}=setup(t,'obama','trump');p.energy=100;cast(game,p,'super');assert.equal(p.energy,0);
- const drop=game.zones[0];advance(game,.8);assert.equal(q.hp,100);assert.equal(drop.x,470);
- advance(game,.06);assert.equal(q.hp,72);advance(game,1.3);assert.equal(q.hp,72);assert.equal(game.zones.length,0);
- p.cd.super=0;p.energy=100;q.x=470;cast(game,p,'super');q.y=470;advance(game,.9);assert.equal(q.hp,72);
+ const drop=game.zones[0];assert.equal(drop.x,p.x);assert.equal(drop.y,p.y);advance(game,.9);assert.equal(q.hp,100,'hors de l\'onde');
+ advance(game,1.3);assert.equal(game.zones.length,0);
+ p.cd.super=0;p.energy=100;q.x=p.x+60;cast(game,p,'super');advance(game,.8);assert.equal(q.hp,100);advance(game,.06);assert.equal(q.hp,72);
+ advance(game,1.3);assert.equal(q.hp,72);
 });
 test('Mic Drop destroys walls, spares allies, respects spawn protection and shields',t=>{
  const {game,p,q}=setup(t,'obama','trump');q.x=400;q.fx=-1;cast(game,q,'defense');p.energy=100;cast(game,p,'super');
@@ -85,12 +86,23 @@ test('short mobile taps survive between server ticks, defense does not recast wh
 });
 test('snapshots carry authoritative wall, charge, dash and attack visual state',t=>{
  const {game,p,q,events}=setup(t);cast(game,p,'defense');p.energy=42;cast(game,q,'attack');cast(game,q,'defense');game.broadcast();
- const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles[0].visual,'energy');assert.ok(s.players[1].dash);
+ const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,0);assert.ok(s.players[1].dash);
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
-test('existing characters still cast all five generic bricks',t=>{
- const {game,p,q}=setup(t,'biden','maduro');cast(game,p,'attack');assert.equal(game.projectiles.length,1);cast(game,p,'defense');assert.ok(p.invulnT>0);
- cast(game,p,'super');assert.equal(game.projectiles.length,9);cast(game,q,'defense');assert.ok(q.shieldT>0);cast(game,q,'super');assert.equal(game.zones.length,1);
+test('generic bricks are all melee: strike, ground shockwave, centred zone, charge, shield',t=>{
+ const {game,p,q}=setup(t,'biden','maduro');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,120,'trop loin');
+ cast(game,p,'defense');assert.ok(p.invulnT>0);assert.ok(p.dashHit);
+ cast(game,p,'super');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'));
+ cast(game,q,'defense');assert.ok(q.shieldT>0);cast(game,q,'super');assert.equal(game.zones.length,1);assert.equal(game.zones[0].x,q.x);
+});
+test('charge (dash) hits and pushes the enemy on its path',t=>{
+ const {game,p,q}=setup(t,'schwarzenegger','biden');q.x=p.x+120;const hp=q.hp,x0=q.x;
+ cast(game,p,'defense');advance(game,.3);assert.equal(q.hp,hp-12);assert.ok(q.x-x0>30,'pousse devant');
+});
+test('super shockwave damages and knocks back every nearby enemy, not the far ones',t=>{
+ const {game,p,q}=setup(t,'sanders','biden');game.join({id:'c'},{team:'B',character:'musk',name:'far'});
+ const far=game.players.get('c');Object.assign(far,{x:p.x+400,y:p.y,protectT:0});q.x=p.x+80;const x0=q.x;
+ cast(game,p,'super');assert.equal(q.hp,110-18);assert.equal(far.hp,far.maxHp);advance(game,.3);assert.ok(q.x-x0>40);
 });
 
 test('countdown 3-2-1: players frozen, inputs ignored and match timer stopped until FIGHT', () => {
