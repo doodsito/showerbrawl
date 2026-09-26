@@ -4,6 +4,9 @@ import { MSG } from '../../shared/protocol.js';
 
 const $ = (s) => document.querySelector(s);
 const socket = io();
+let stateLogged = false;
+socket.on('connect', () => console.log('[play] socket connecte', socket.id));
+socket.on('connect_error', (e) => console.warn('[play] serveur injoignable', e.message));
 const st = { phase: 'lobby', teams: { A: [], B: [] }, characters: {}, team: null, character: null, joined: false, lastHp: null };
 const input = { dx: 0, dy: 0, attack: false, defense: false, super: false };
 const cds = { attack: 0, defense: 0, super: 0 };
@@ -113,6 +116,7 @@ setInterval(() => {
 }, 50);
 
 socket.on(MSG.LOBBY, (d) => {
+  console.log('[play] LOBBY', d.phase);
   try {
     const prev = st.phase;
     st.phase = d?.phase || 'lobby';
@@ -126,6 +130,7 @@ socket.on(MSG.LOBBY, (d) => {
 });
 
 socket.on(MSG.STATE, (s) => {
+  if (!stateLogged) { stateLogged = true; console.log('[play] premier STATE'); }
   try {
     if (!st.joined) return;
     const me = (s?.players || []).find((p) => p.id === socket.id);

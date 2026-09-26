@@ -106,9 +106,14 @@ function showEnd(d) {
 }
 
 const socket = io();
-socket.on('connect', () => { try { socket.emit(MSG.HOST); } catch (e) {} });
-socket.on(MSG.LOBBY, showLobby);
+let stateLogged = false;
+const status = (t) => { try { $('url').dataset.status = t; $('start').title = t; } catch (e) {} };
+socket.on('connect', () => { console.log('[host] socket connecte', socket.id, socket.io.engine.transport.name); status(''); try { socket.emit(MSG.HOST); } catch (e) {} });
+socket.on('connect_error', (e) => { console.warn('[host] serveur injoignable', e.message); status('serveur injoignable'); $('start').textContent = 'SERVEUR INJOIGNABLE'; });
+socket.on('disconnect', (r) => console.warn('[host] deconnecte', r));
+socket.on(MSG.LOBBY, (d) => { console.log('[host] LOBBY', d.phase, (d.teams?.A?.length || 0) + (d.teams?.B?.length || 0), 'joueurs'); if (socket.connected) $('start').textContent = 'START'; showLobby(d); });
 socket.on(MSG.STATE, (s) => {
+  if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
     if (phase !== 'playing') { phase = 'playing'; $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
     pushUpdate(s); sounds(s);
@@ -116,7 +121,8 @@ socket.on(MSG.STATE, (s) => {
 });
 socket.on(MSG.END, showEnd);
 
-$('start').addEventListener('click', () => { try { SFX.init(); socket.emit(MSG.START); } catch (e) {} });
+$('start').addEventListener('click', () => { try { SFX.init(); console.log('[host] START envoye, connecte =', socket.connected);
+  socket.emit(MSG.START, (r) => console.log('[host] START ack', r)); } catch (e) {} });
 addEventListener('pointerdown', () => SFX.init());
 
 function loop() {
