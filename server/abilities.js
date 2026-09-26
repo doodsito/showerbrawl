@@ -1,4 +1,4 @@
-import { isLabFighter, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
+import { charge, isLabFighter, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
 // 5 briques generiques, parametrees par le JSON du pouvoir. Aucune classe en dur.
 // ctx = { players: Map, projectiles: [], zones: [], physics, damage(target, amount, src, fromX, fromY, kb), nextId() }
 
@@ -31,7 +31,7 @@ function spawnProjectile(ctx, p, a, ux, uy) {
     x: p.x + ux * (p.r + r), y: p.y + uy * (p.r + r),
     vx: ux * speed, vy: uy * speed, r,
     damage: a.damage ?? 10, knockback: a.knockback ?? 150,
-    ttl: (a.range || 400) / speed, visual: a.visual, pushDistance: a.pushDistance,
+    ttl: (a.range || 400) / speed, visual: a.visual, pushDistance: a.pushDistance, chargeHit:a.chargeHit, wallDamage:a.wallDamage,
   });
 }
 
@@ -39,7 +39,11 @@ const BRICKS = {
   projectile(ctx, p, a) {
     const [ux, uy] = aim(ctx, p, a.range || 400);
     p.fx = ux; p.fy = uy;
-    spawnProjectile(ctx, p, a, ux, uy);
+    const count=a.count||1,angle=Math.atan2(uy,ux);
+    for(let i=0;i<count;i++){
+      const direction=angle+(i-(count-1)/2)*(a.spread||0);
+      spawnProjectile(ctx,p,a,Math.cos(direction),Math.sin(direction));
+    }
   },
   burst(ctx, p, a) {
     const n = a.count || 8;
@@ -100,13 +104,14 @@ export function updateProjectiles(ctx, dt) {
     for (let i = 0; i < steps; i++) {
       const dx = pr.vx * stepTime / steps, dy = pr.vy * stepTime / steps;
       const wall = firstWall(ctx, pr, dx, dy);
-      if (wall) { hitWall(ctx, wall, 12, pr.owner); return false; }
+      if (wall) { hitWall(ctx, wall, pr.wallDamage??12, pr.visual==='baguette'||pr.visual==='decree'?null:pr.owner); return false; }
       pr.x += dx; pr.y += dy;
       if (physics.collidesWithWall(pr.x, pr.y, pr.r, false)) return false;
       for (const o of ctx.players.values()) {
         if (!o.alive || o.hp <= 0 || o.team === pr.team || o.launch) continue;
         if (physics.circlesOverlap(pr, pr.r, o, o.r)) {
-          const hit = ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * .01, pr.y - pr.vy * .01, pr.pushDistance ? 0 : pr.knockback, !!pr.pushDistance);
+          const hit = ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * .01, pr.y - pr.vy * .01, pr.pushDistance ? 0 : pr.knockback, !!pr.pushDistance, pr.chargeHit == null);
+          if(hit && pr.chargeHit != null)charge(ctx.players.get(pr.owner),pr.chargeHit);
           if (hit && pr.pushDistance) shove(o, pr.vx, pr.vy, pr.pushDistance);
           return false;
         }
@@ -120,7 +125,7 @@ export function updateProjectiles(ctx, dt) {
 
 export function updateZones(ctx, dt) {
   ctx.zones = ctx.zones.filter((z) => {
-    if (z.kind === 'micDrop') return updateMicDrop(ctx, z, dt);
+    if (z.kind === 'micDrop' || z.kind === 'decree') return updateMicDrop(ctx, z, dt);
     z.ttl -= dt;
     if (z.follow) {
       const f = ctx.players.get(z.follow);

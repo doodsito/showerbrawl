@@ -92,6 +92,7 @@ function setupPad() {
   });
   $('#kit-hint').textContent=ch.super?.charge?'Le super se charge en combat · Esquive : joystick + bouton':'Maintiens une direction et utilise tes capacités';
   if(st.character==='trump')$('#kit-hint').textContent='Direct au contact · Mur devant toi · Super chargé en combat';
+  if(st.character==='macron')$('#kit-hint').textContent='Baguettes : +25 % par impact · Lunettes : bouclier · 49.3 ciblé';
   document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : 'var(--b)');
   if (stick) return;
   try {

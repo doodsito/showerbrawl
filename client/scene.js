@@ -61,7 +61,7 @@ export function render(ctx, W, H, arena, state, characters) {
   const project=(x,y)=>worldToScreen(x,y,b);
   const fx=combatFX(ctx,project,kx,ky,reducedMotion.matches);
   const impact=(state?.effects||[]).find(e=>e.kind==='impact'&&e.age<.38);
-  const drop=(state?.zones||[]).find(z=>z.kind==='micDrop'&&z.age>=z.delay&&z.age-z.delay<.38);
+  const drop=(state?.zones||[]).find(z=>(z.kind==='micDrop'||z.kind==='decree')&&z.age>=z.delay&&z.age-z.delay<.38);
   if(!reducedMotion.matches&&(impact||drop)){
     const age=drop?drop.age-drop.delay:impact.age,force=(1-age/.38)*(drop?9:6);
     ctx.translate(Math.sin(age*97)*force,Math.cos(age*79)*force*.55);
@@ -75,6 +75,7 @@ export function render(ctx, W, H, arena, state, characters) {
     for(const e of state.effects||[])fx.effect(e);
     for (const z of state.zones || []) {
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
+      if(z.kind==='decree'){fx.decree(z);continue;}
       const [x, y] = worldToScreen(z.x, z.y, b);
       const rx = z.r * kx, ry = z.r * ky, pulse = 0.5 + 0.5 * Math.sin(now / 90);
       const col = TEAM_COL[z.team] || '#fff';
@@ -96,6 +97,7 @@ export function render(ctx, W, H, arena, state, characters) {
       const [x, y] = it.s;
       if(it.k==='wall'){fx.wall(it.o);continue;}
       if (it.k === 'p') {
+        if(fx.projectile(it.o))continue;
         const img=it.o.visual==='energy'&&getImage('sprites/obama_attack.png');
         if(img){ctx.save();ctx.translate(x,y-36);ctx.rotate(Math.atan2(it.o.vy*ky,it.o.vx*kx));ctx.drawImage(img,-28,-14,48,28);ctx.restore();continue;}
         drawProjectile(ctx,it.o,x,y-18,kx,ky);
@@ -103,6 +105,7 @@ export function render(ctx, W, H, arena, state, characters) {
     }
   }
   if(state)for(const z of state.zones||[])if(z.kind==='micDrop')fx.micDrop(z,true);
+  if(state)for(const z of state.zones||[])if(z.kind==='decree')fx.decree(z,true);
   if(state)drawFx(ctx,state,b);
   decor.foreground(ctx);
   if(state)for(const e of state.effects||[])fx.effect(e,true);
@@ -177,7 +180,7 @@ function drawFx(ctx, state, b) {
 function drawPlayer(ctx, p, characters, time) {
   const R=15, col=TEAM_COL[p.team]||'#fff', quiet=reducedMotion.matches;
   const img=getImage(characters?.[p.character]?.sprite||p.character,p.character);
-  const full=img&&(p.character==='trump'||p.character==='obama'), h=full?76:51;
+  const full=img&&(p.character==='trump'||p.character==='obama'||p.character==='macron'), h=full?76:51;
   let pose=poses.get(p.id);
   if(!pose){pose={x:p.x,y:p.y,t:time,phase:0,walk:0};poses.set(p.id,pose);}
   const dt=Math.min(.1,Math.max(0,time-pose.t)),distance=Math.hypot(p.x-pose.x,(p.y-pose.y)*3);
@@ -198,7 +201,7 @@ function drawPlayer(ctx, p, characters, time) {
   ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,20,6,0,0,Math.PI*2);ctx.stroke();
   if(p.shield||p.protected){
     const pulse=quiet?1:1+.06*Math.sin(time*12.5);
-    ctx.save();ctx.fillStyle=p.shield?'#facc1548':'#ffffff28';ctx.strokeStyle=p.shield?'#facc15':'#ffffff66';ctx.lineWidth=2;
+    ctx.save();ctx.fillStyle=p.shield?(p.character==='macron'?'#75cfff22':'#facc1548'):'#ffffff28';ctx.strokeStyle=p.shield?(p.character==='macron'?'#8edbff':'#facc15'):'#ffffff66';ctx.lineWidth=2;
     ctx.beginPath();ctx.ellipse(p.x,p.y-h/2,29*pulse,(h/2+7)*pulse,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
   }
   if(img){
@@ -208,7 +211,13 @@ function drawPlayer(ctx, p, characters, time) {
       for(let i=1;i<5;i++){ctx.save();ctx.globalAlpha=.24/i;ctx.translate(p.x-direction*i*12,p.y-lift);ctx.scale(face,1);ctx.drawImage(img,-w/2,-h,w,h);ctx.restore();}
     }
     ctx.save();ctx.translate(p.x+offset,p.y-lift);ctx.rotate(angle);ctx.scale(face*sx,sy);if(p.flash)ctx.globalAlpha=.75;
-    ctx.drawImage(img,-w/2,-h,w,h);ctx.restore();
+    ctx.drawImage(img,-w/2,-h,w,h);
+    if(p.character==='macron'&&p.shield){
+      ctx.fillStyle='#091321';ctx.fillRect(-10,-h+11,9,6);ctx.fillRect(2,-h+11,9,6);
+      ctx.fillStyle='#d4b579';ctx.fillRect(-2,-h+12,5,2);
+      ctx.fillStyle='#b4d9eb';ctx.fillRect(-8,-h+12,4,1);ctx.fillRect(4,-h+12,4,1);
+    }
+    ctx.restore();
   }else{const spr=getSprite(p.character);if(spr)ctx.drawImage(spr,p.x-R,p.y-R*2,R*2,R*2);}
   const hp=Math.max(0,Math.min(1,p.hp/p.maxHp));
   ctx.fillStyle='#000a';ctx.fillRect(p.x-20,top-9,40,4);ctx.fillStyle=hp>.5?'#22c55e':hp>.25?'#facc15':'#ef4444';ctx.fillRect(p.x-20,top-9,40*hp,4);

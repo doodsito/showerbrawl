@@ -1,7 +1,7 @@
 // Authoritative versions of the lab abilities. Visuals consume these same world objects.
 import { wallContact, wallSegmentEntry, wallsOverlap } from '../shared/wall-geometry.js';
 
-export const isLabFighter = p => p.character === 'trump' || p.character === 'obama';
+export const isLabFighter = p => p.character === 'trump' || p.character === 'obama' || p.character === 'macron';
 export function effect(ctx, kind, x, y, extra = {}, duration = .6) {
   ctx.effects.push({ id: ctx.nextId(), kind, x, y, age: 0, duration, ...extra });
 }
@@ -70,8 +70,9 @@ export function castLab(ctx, p, a) {
   const target = enemy(ctx, p, a.range);
   const [ux, uy] = direction(p, target);
   p.fx = ux; p.fy = uy;
-  if (a.behavior === 'micDrop') {
-    ctx.zones.push({ id: ctx.nextId(), kind: 'micDrop', owner: p.id, team: p.team,
+  if (a.behavior === 'micDrop' || a.behavior === 'decree') {
+    if(a.behavior==='decree'&&!target)return false;
+    ctx.zones.push({ id: ctx.nextId(), kind: a.behavior, angle:Math.atan2(uy,ux), owner: p.id, team: p.team,
       x: target ? target.x : p.x + ux * a.range, y: target ? target.y : p.y + uy * a.range,
       r: a.radius, age: 0, delay: a.delay, duration: a.delay + 1.25, damage: a.damage, hit: false });
     // A cast without a nearby enemy still lands on the playable floor.
@@ -136,8 +137,13 @@ export function updateMicDrop(ctx, z, dt) {
       if (!target.alive || target.team === z.team || target.launch || Math.hypot(target.x - z.x, target.y - z.y) > z.r + target.r) continue;
       if (ctx.damage(target, z.damage, z.owner, z.x, z.y, 0, true, false)) {
         const dx = target.x - z.x, dy = target.y - z.y;
-        shove(target, Math.hypot(dx, dy) > 1e-6 ? dx : 1, dy, 100, .32);
+        shove(target, Math.hypot(dx, dy) > 1e-6 ? dx : Math.cos(z.angle), Math.hypot(dx,dy)>1e-6?dy:Math.sin(z.angle), z.kind==='decree'?70:100, .32);
       }
+    }
+    if(z.kind==='decree')for(let i=0;i<9;i++){
+      const a=z.angle+i*Math.PI*2/9,ux=Math.cos(a),uy=Math.sin(a),x=z.x+ux*(z.r+24),y=z.y+uy*(z.r+24);
+      if(ctx.physics.collidesWithWall(x,y,8)||firstWall(ctx,z,x-z.x,y-z.y))continue;
+      ctx.projectiles.push({id:ctx.nextId(),owner:z.owner,team:z.team,x,y,vx:ux*400,vy:uy*400,r:8,ttl:420/400,visual:'decree',damage:10,knockback:0,pushDistance:65,chargeHit:0,wallDamage:12});
     }
   }
   return z.age < z.duration;

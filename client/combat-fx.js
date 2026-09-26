@@ -140,7 +140,54 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
     }
     g.restore();
   }
+  function decree(drop,foreground=false){
+    const quiet=motionOptions.reducedMotion,falling=drop.age<drop.delay;
+    const t=Math.min(1,drop.age/drop.delay),age=Math.max(0,drop.age-drop.delay),fade=falling?1:Math.max(0,1-age/1.1),x=drop.x,y=drop.y;
+    g.save();g.globalAlpha=fade;
+    if(!foreground){
+      g.beginPath();OCTAGON.forEach(([xx,yy],i)=>i?g.lineTo(xx,yy):g.moveTo(xx,yy));g.closePath();g.clip();
+      const radius=falling?(drop.r*kx):(drop.r*kx)+(quiet?55:age*220);
+      for(let k=0;k<3;k++){
+        const r=falling?radius-k*3:radius+k*8;
+        poly(Array.from({length:24},(_,i)=>[x+Math.cos(i*Math.PI/12)*r,y+Math.sin(i*Math.PI/12)*r*ky/kx]),falling?'#e4c27408':'#e4c27412',['#589afa','#f3ead4','#f16b70'][k]);
+      }
+      if(!falling){
+        for(let i=0;i<10;i++){const a=i*Math.PI/5;line(x+Math.cos(a)*20,y+Math.sin(a)*8,x+Math.cos(a)*75,y+Math.sin(a)*27,'#3b4353',2);}
+      }
+    }else{
+      if(!falling&&!quiet)for(let i=0;i<30;i++){
+        const a=i*2.399,xx=x+Math.cos(a)*age*(65+i%5*30),yy=y+Math.sin(a)*age*45-100*age+100*age*age;
+        g.save();g.translate(xx,yy);g.rotate(a+age*5);rect(-3,-2,7,4,['#6497e4','#ede6ce','#d96363','#d6b569'][i%4]);g.restore();
+      }
+      const plunge=Math.max(0,(t-.25)/.75),lift=quiet?(falling?50:0):falling?155*(1-plunge**3):Math.sin(Math.min(1,age/.3)*Math.PI)*15;
+      g.translate(x,y-lift);g.rotate(quiet?0:falling?-.18*(1-t):Math.sin(age*13)*.06*fade);
+      // A real stamp falls and rebounds. Lettering stays in the ability card.
+      poly([[-39,-12],[30,-12],[42,-3],[34,9],[-35,9],[-43,-1]],'#96703a','#423425');
+      rect(-36,-12,72,13,'#d5ad61');rect(-32,-10,64,3,'#f8dc92');rect(-25,-18,50,7,'#9f7437');
+      rect(-11,-55,22,37,'#263d67');rect(-7,-54,6,33,'#5876a0');rect(-15,-59,30,10,'#d1a252');
+      poly([[-18,-76],[-10,-84],[11,-84],[19,-76],[16,-61],[-16,-61]],'#b28442','#473520');rect(-10,-80,9,16,'#e2bd74');
+      rect(-24,-5,16,8,'#477ac4');rect(-8,-5,16,8,'#eee5cc');rect(8,-5,16,8,'#c85157');
+    }
+    g.restore();
+  }
+  function baguette(shot){
+    const a=Math.atan2(shot.dy,shot.dx),x=shot.x,y=shot.y-38;
+    g.save();g.translate(x,y);g.rotate(a);
+    if(!motionOptions.reducedMotion){line(-34,-3,-19,-3,'#f7d69688',2);line(-40,3,-22,3,'#f7d69655',2);}
+    poly([[-22,-3],[-18,-7],[17,-7],[24,-2],[24,3],[18,7],[-17,7],[-22,3]],'#d89a4d','#774523');
+    rect(-16,-5,31,3,'#f3cc80');for(let i=0;i<4;i++)line(-12+i*8,-3,-7+i*8,3,'#ffe9af',2);
+    g.restore();
+  }
   return {wall,
+    decree(drop,front=false){const [x,y]=project(drop.x,drop.y);decree({...drop,x,y},front);},
+    projectile(shot){
+      if(shot.visual!=='baguette'&&shot.visual!=='decree')return false;
+      const [x,y]=project(shot.x,shot.y);
+      if(shot.visual==='baguette'){baguette({...shot,x,y,dx:shot.vx*kx,dy:shot.vy*ky});return true;}
+      g.save();g.translate(x,y-20);g.rotate(Math.atan2(shot.vy*ky,shot.vx*kx));
+      line(-30,0,-8,0,'#d9b97788',5);poly([[-9,-9],[7,-9],[13,0],[7,9],[-9,9],[-14,0]],'#e5bd73','#744d29');
+      rect(-7,-5,5,10,'#4781d4');rect(-2,-5,5,10,'#f5e9c8');rect(3,-5,5,10,'#d15c62');g.restore();return true;
+    },
     micDrop(drop,front=false){const [x,y]=project(drop.x,drop.y);micDrop({...drop,x,y},front);},
     effect(e,front=false){const [x,y]=project(e.x,e.y);
       if(e.kind==='impact'){impact({...e,x,y},front);return;}
