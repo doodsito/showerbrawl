@@ -174,6 +174,35 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
     }
     g.restore();
   }
+  // Coup au contact: poing qui claque, flash et etincelles au point d'impact. 'whiff' = coup dans le vide.
+  function strike(e){
+    const t=Math.min(1,e.age/e.duration),miss=e.kind==='whiff',y=e.y-26,x=e.x;
+    const ux=e.ux??1,uy=(e.uy??0)*ky/kx,big=e.heavy?1.5:1;
+    g.save();g.globalAlpha=1-t;
+    if(!miss){
+      g.fillStyle='#fff8d8';g.beginPath();g.arc(x,y,(10+t*16)*big,0,Math.PI*2);g.fill();
+      for(let i=0;i<8;i++){const a=i*Math.PI/4+.2,d=(8+t*30)*big;rect(x+Math.cos(a)*d-2,y+Math.sin(a)*d*.8-2,4,4,i%2?'#ffd35a':'#ffffff');}
+      g.translate(x-ux*(6-t*6),y-uy*(6-t*6));g.rotate(Math.atan2(uy,ux));
+      rect(-8*big,-6*big,14*big,12*big,'#2b1b12');rect(-6*big,-5*big,11*big,10*big,'#e9b184');rect(3*big,-5*big,3*big,10*big,'#c98a60');
+      label(e.heavy?'POW!':'PAF!',0,-16*big,e.heavy?13:10,'#fff4c8');
+    }else{
+      g.strokeStyle='#ffffffaa';g.lineWidth=3;g.beginPath();const a=Math.atan2(uy,ux);g.arc(x-ux*10,y-uy*10,22,a-1,a+1);g.stroke();
+    }
+    g.restore();
+  }
+  // Onde de choc AU SOL centree sur le lanceur: anneaux ecrases en perspective, fissures, poussiere.
+  function shockwave(e,front){
+    const t=Math.min(1,e.age/e.duration),R=e.r*kx*(.25+.75*t),col=e.team==='B'?'#f16b70':'#589afa';
+    g.save();g.globalAlpha=1-t;
+    if(!front){
+      for(let k=0;k<3;k++){const r=Math.max(2,R-k*10);g.strokeStyle=k===0?col:'#f3ead4';g.lineWidth=k===0?5:2;g.beginPath();g.ellipse(e.x,e.y,r,r*ky/kx,0,0,Math.PI*2);g.stroke();}
+      g.fillStyle=col+'22';g.beginPath();g.ellipse(e.x,e.y,R,R*ky/kx,0,0,Math.PI*2);g.fill();
+      for(let i=0;i<10;i++){const a=i*Math.PI/5+.3;line(e.x+Math.cos(a)*R*.3,e.y+Math.sin(a)*R*.3*ky/kx,e.x+Math.cos(a)*R*.8,e.y+Math.sin(a)*R*.8*ky/kx,'#3b4353',2);}
+    }else if(!motionOptions.reducedMotion){
+      for(let i=0;i<14;i++){const a=i*2.399,d=R*(.6+(i%3)*.15);rect(e.x+Math.cos(a)*d,e.y+Math.sin(a)*d*ky/kx-10-t*18,4,4,i%2?'#d9cfb4':'#9aa4ad');}
+    }
+    g.restore();
+  }
   function baguette(shot){
     const a=Math.atan2(shot.dy,shot.dx),x=shot.x,y=shot.y-38;
     g.save();g.translate(x,y);g.rotate(a);
@@ -195,6 +224,8 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
     micDrop(drop,front=false){const [x,y]=project(drop.x,drop.y);micDrop({...drop,x,y},front);},
     effect(e,front=false){const [x,y]=project(e.x,e.y);
       if(e.kind==='impact'){impact({...e,x,y},front);return;}
+      if(e.kind==='shockwave'){shockwave({...e,x,y},front);return;}
+      if(e.kind==='strike'||e.kind==='whiff'){if(front)strike({...e,x,y});return;}
       if(!front)return;
       g.save();g.globalAlpha=Math.max(0,1-e.age/e.duration);
       if(e.kind==='fired') {label('YOU’RE FIRED!',x,y-92,10,'#f1e4c8');}

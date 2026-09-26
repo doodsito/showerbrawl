@@ -90,7 +90,7 @@ export function render(ctx, W, H, arena, state, characters) {
     }
     const items = [];
     for(const w of state.walls||[])items.push({k:'wall',o:w,s:project(w.x,w.y+Math.abs(w.ux)*w.depth/2)});
-    for (const p of state.projectiles || []) items.push({ k: 'p', o: p, s: worldToScreen(p.x, p.y, b) });
+    // Combat corps a corps: plus aucun projectile volant a dessiner.
     for (const p of state.players || []) items.push({ k: 'j', o: p, s: worldToScreen(p.x, p.y, b) });
     items.sort((a, c) => a.s[1] - c.s[1]);
     for (const it of items) {
