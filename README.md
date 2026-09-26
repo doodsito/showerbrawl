@@ -16,7 +16,7 @@ Elle libère d'abord le port 3000 (tue le process qui l'occupe, pour éviter `EA
 
 **Rollback en une ligne :** GitHub > Actions > **Rollback** > Run workflow > coller le SHA d'une version qui marchait (visible sur `/health` ou en bas de l'écran hôte) : la prod revient à ce commit en ~1-2 min. Le prochain push sur `main` redéploie normalement la dernière version.
 
-Push sur main = deploiement direct, sans tests. En cas de probleme: workflow Rollback avec le SHA precedent.
+Push sur main: le job `test` (npm run test:unit + build) conditionne le deploiement; le job `e2e` (Playwright, npm run test:e2e) tourne a chaque push sans bloquer. En cas de probleme: workflow Rollback avec le SHA precedent.
 
 ## Personnages : design vs jeu (à trancher)
 
