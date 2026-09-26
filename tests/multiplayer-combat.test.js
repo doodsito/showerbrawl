@@ -9,7 +9,7 @@ function setup(t, a='trump', b='obama') {
   const events=[];
   const game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false});
   t.after(()=>game.dispose());
-  game.join({id:'a'},{team:'A',character:a});game.join({id:'b'},{team:'B',character:b});game.start();
+  game.join({id:'a'},{team:'A',character:a});game.join({id:'b'},{team:'B',character:b});game.start();game.countdown=0; // tests de combat: on saute le 3-2-1
   const p=game.players.get('a'),q=game.players.get('b');
   Object.assign(p,{x:300,y:320,protectT:0});Object.assign(q,{x:470,y:320,protectT:0});
   return {game,p,q,events};
@@ -86,9 +86,30 @@ test('short mobile taps survive between server ticks, defense does not recast wh
 test('snapshots carry authoritative wall, charge, dash and attack visual state',t=>{
  const {game,p,q,events}=setup(t);cast(game,p,'defense');p.energy=42;cast(game,q,'attack');cast(game,q,'defense');game.broadcast();
  const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles[0].visual,'energy');assert.ok(s.players[1].dash);
- game.reset();game.start();game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
+ game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('existing characters still cast all five generic bricks',t=>{
  const {game,p,q}=setup(t,'biden','maduro');cast(game,p,'attack');assert.equal(game.projectiles.length,1);cast(game,p,'defense');assert.ok(p.invulnT>0);
  cast(game,p,'super');assert.equal(game.projectiles.length,9);cast(game,q,'defense');assert.ok(q.shieldT>0);cast(game,q,'super');assert.equal(game.zones.length,1);
+});
+
+test('countdown 3-2-1: players frozen, inputs ignored and match timer stopped until FIGHT', () => {
+  const events=[];
+  const game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false});
+  try {
+    game.join({id:'a'},{team:'A',character:'biden'});game.join({id:'b'},{team:'B',character:'musk'});game.start();
+    const p=game.players.get('a'),x0=p.x,t0=game.timeLeft;
+    assert.equal(game.countdown,3);
+    game.input('a',{dx:1,dy:0,attack:true});
+    for(let i=0;i<20;i++)game.tick(.1); // 2 s
+    assert.equal(p.x,x0,'immobile pendant le compte a rebours');
+    assert.equal(game.projectiles.length,0,'aucune attaque pendant le compte a rebours');
+    assert.equal(game.timeLeft,t0,'timer arrete');
+    game.broadcast();assert.ok(events.filter(e=>e.name==='state').at(-1).data.countdown>0);
+    for(let i=0;i<12;i++)game.tick(.1); // FIGHT!
+    assert.equal(game.countdown,0);
+    for(let i=0;i<5;i++)game.tick(.1);
+    assert.ok(p.x>x0,'bouge apres FIGHT');
+    assert.ok(game.timeLeft<t0,'timer demarre apres FIGHT');
+  } finally { game.dispose(); }
 });

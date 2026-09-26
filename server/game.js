@@ -6,7 +6,8 @@ import { cast, updateProjectiles, updateZones } from './abilities.js';
 import { isLabFighter, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
 
 const SLOTS = ['attack', 'defense', 'super'];
-const END_SCREEN = 10; // s avant retour lobby
+const END_SCREEN = 6; // s d'ecran de victoire avant retour lobby
+const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
 
 export class Game {
   constructor(io, { characters, arena, lobbyExtra = {}, autoTick = true }) {
@@ -95,6 +96,7 @@ export class Game {
   start() {
     if (this.phase === 'playing') return;
     this.phase = 'playing';
+    this.countdown = COUNTDOWN;
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
     this.projectiles = []; this.zones = []; this.walls = []; this.effects = []; this.events = [];
@@ -104,6 +106,8 @@ export class Game {
 
   // Arret immediat: retour lobby, joueurs gardes, score remis a zero.
   reset() {
+    clearTimeout(this.endTimer);
+    this.countdown = 0;
     this.phase = 'lobby';
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
@@ -113,7 +117,7 @@ export class Game {
   }
 
   damage(t, amount, srcId, fromX, fromY, kb = 0, deferKO = false, chargeSource = true) {
-    if (!t.alive || t.hp <= 0 || t.launch || this.phase !== 'playing') return false;
+    if (!t.alive || t.hp <= 0 || t.launch || this.phase !== 'playing' || this.countdown > 0) return false;
     if (t.protectT > 0 || t.invulnT > 0) return false;
     if (t.shieldT > 0) {
       this.physics.push(t, fromX, fromY, kb * .3);
@@ -145,6 +149,14 @@ export class Game {
     const dt = Math.max(0, Math.min(0.1, elapsed ?? (now - this.last) / 1000));
     this.last = now;
     if (this.phase !== 'playing') return;
+
+    // Compte a rebours: joueurs visibles mais figes, inputs ignores, timer de manche arrete.
+    if (this.countdown > 0) {
+      this.countdown = Math.max(0, this.countdown - dt);
+      for (const p of this.players.values()) { p.kbVx = 0; p.kbVy = 0; }
+      if (this.countdown === 0) console.log('[countdown] FIGHT!');
+      return;
+    }
 
     this.timeLeft -= dt;
     if ((this._ticks = (this._ticks || 0) + 1) % (CONFIG.TICK_RATE * 10) === 0)
@@ -224,6 +236,7 @@ export class Game {
     const r = (v) => Math.round(v * 10) / 10;
     this.io.emit(MSG.STATE, {
       t: Date.now(),
+      countdown: Math.round((this.countdown || 0) * 100) / 100,
       players: [...this.players.values()].map((p) => ({
         id: p.id, name: p.name, team: p.team, character: p.character,
         x: r(p.x), y: r(p.y), hp: Math.ceil(p.hp), maxHp: p.maxHp, alive: p.alive,
