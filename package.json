@@ -6,7 +6,10 @@
     "dev": "vite",
     "build": "vite build",
     "start": "node server/index.js",
-    "loadtest": "node scripts/loadtest.js"
+    "loadtest": "node scripts/loadtest.js",
+    "predev:all": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
+    "dev:all": "concurrently -k \"node server/index.js\" \"vite\"",
+    "start:all": "npm run dev:all"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -16,6 +19,7 @@
     "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
+    "concurrently": "^10.0.5",
     "vite": "^8.3.1"
   }
 }
