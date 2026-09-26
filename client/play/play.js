@@ -48,7 +48,7 @@ function taken(team, ch) {
 function renderSelect() {
   document.querySelectorAll('.team').forEach((b) => b.classList.toggle('on', b.dataset.team === st.team));
   const box = $('#chars'); box.innerHTML = '';
-  if (st.character && !st.characters[st.character]) st.character = null;
+  if (st.character && Object.keys(st.characters).length && !st.characters[st.character]) st.character = null;
   if (st.character && st.team && taken(st.team, st.character)) st.character = null;
   for (const [id, c] of Object.entries(st.characters || {})) {
     const b = document.createElement('button');
