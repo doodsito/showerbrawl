@@ -1,6 +1,7 @@
 import nipplejs from 'nipplejs';
 import { io } from 'socket.io-client';
 import { MSG } from '../../shared/protocol.js';
+import { createView } from './view.js';
 
 const $ = (s) => document.querySelector(s);
 const socket = io();
@@ -176,6 +177,29 @@ window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();});
 setInterval(sendInput,100); // filet de securite, l'envoi principal est immediat
 
+// Vue de jeu sur le telephone (camera sur mon perso) ou manette seule, choix memorise.
+let viewEnabled = true;
+try { viewEnabled = localStorage.getItem('sb_view') !== 'off'; } catch (e) {}
+const SHOW_FPS = new URLSearchParams(location.search).get('fps') === '1';
+if (SHOW_FPS) $('#fps').hidden = false;
+const view = createView($('#view'), { getArena: () => st.arena, getCharacters: () => st.characters, myId: () => socket.id, fpsEl: SHOW_FPS ? $('#fps') : null });
+function syncView() {
+  const on = viewEnabled && st.joined && st.phase === 'playing' && !$('#pad').hidden;
+  view.setActive(on);
+  document.body.classList.toggle('viewing', on);
+  $('#viewToggle').textContent = viewEnabled ? 'Controller only' : 'Game view';
+}
+$('#viewToggle').addEventListener('click', (e) => {
+  e.stopPropagation(); viewEnabled = !viewEnabled;
+  try { localStorage.setItem('sb_view', viewEnabled ? 'on' : 'off'); } catch (err) {}
+  syncView();
+});
+socket.on(MSG.VIEW, (v) => { try { view.push(v); } catch (e) {} });
+window.showerBrawlView = view; // debug / tests: position de la camera
+// Sans ecran hote: le premier joueur inscrit lance la manche depuis sa manette (meme MSG.START).
+$('#startMatch').addEventListener('click', (e) => { e.stopPropagation(); socket.emit(MSG.START); });
+setInterval(syncView, 500);
+
 socket.on(MSG.LOBBY, (d) => {
   console.log('[play] LOBBY', d.phase);
   try {
@@ -184,11 +208,14 @@ socket.on(MSG.LOBBY, (d) => {
     if(st.phase!=='playing'){clearInput();st.energy=0;st.alive=false;for(const k of Object.keys(cds))cds[k]=0;}
     st.teams = d?.teams || { A: [], B: [] };
     if (d?.characters) st.characters = d.characters;
+    if (d?.arena) st.arena = d.arena;
+    $('#startMatch').hidden = !(st.phase === 'lobby' && d?.hasHost === false && d?.firstPlayer === socket.id);
     const inTeam = ['A', 'B'].some((t) => (st.teams[t] || []).some((p) => p.id === socket.id));
     if (st.phase === 'lobby' && prev === 'ended') { st.joined = false; }
     // Le serveur fait foi: si on est dans une equipe, on est en manette (y compris en cours de manche).
     if (inTeam && st.phase !== 'ended') { st.joined = true; st.wantJoin = true; setupPad(); show('pad'); }
     if (!st.joined) { renderSelect(); show('select'); } else renderSelect();
+    syncView();
   } catch (e) {}
 });
 

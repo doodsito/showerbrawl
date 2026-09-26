@@ -84,7 +84,13 @@ export function worldToScreen(x, y, b) {
   return [OCT.cx + nx * OCT.hw, OCT.cy + ny * OCT.hh];
 }
 
-export function render(ctx, W, H, arena, state, characters) {
+// Point du decor 960x540 correspondant a une position monde (pour la camera de la manette).
+export function decorPoint(arena, x, y) { return worldToScreen(x, y, worldBounds(arena)); }
+export { DECOR_W, DECOR_H };
+
+// camera optionnelle {x, y, zoom, me}: centre la vue sur (x,y) du decor 960x540, bornee au decor (jamais hors image),
+// met en evidence le joueur `me` et n'affiche pas le HUD hote. Sans camera: rendu hote inchange.
+export function render(ctx, W, H, arena, state, characters, camera) {
   ctx.fillStyle = '#0a0f24'; ctx.fillRect(0, 0, W, H);
   if (!arena || !arena.grid) return;
   if (!decor) decor = createDecor();
@@ -92,10 +98,18 @@ export function render(ctx, W, H, arena, state, characters) {
   const kx = (OCT.hw * 2) / (b.x1 - b.x0), ky = (OCT.hh * 2) / (b.y1 - b.y0);
   const time = performance.now() / 1000;
 
-  const scale = Math.min(W / DECOR_W, H / DECOR_H);
   ctx.save();
-  ctx.translate((W - DECOR_W * scale) / 2, (H - DECOR_H * scale) / 2);
-  ctx.scale(scale, scale);
+  if (camera) {
+    const scale = Math.max(W / DECOR_W, H / DECOR_H) * (camera.zoom || 2);
+    const tx = Math.min(0, Math.max(W - DECOR_W * scale, W / 2 - camera.x * scale));
+    const ty = Math.min(0, Math.max(H - DECOR_H * scale, H / 2 - camera.y * scale));
+    ctx.translate(Math.round(tx), Math.round(ty));
+    ctx.scale(scale, scale);
+  } else {
+    const scale = Math.min(W / DECOR_W, H / DECOR_H);
+    ctx.translate((W - DECOR_W * scale) / 2, (H - DECOR_H * scale) / 2);
+    ctx.scale(scale, scale);
+  }
   ctx.imageSmoothingEnabled = false;
   // Fonctions d'effets creees une fois par (contexte, arene, reduced-motion) au lieu de chaque frame.
   if(!fxCache||fxCache.ctx!==ctx||fxCache.b!==b||fxCache.rm!==reducedMotion.matches){
@@ -158,7 +172,7 @@ export function render(ctx, W, H, arena, state, characters) {
       } else {
         const hs=hitStops.get(it.o.id),nowMs=performance.now();
         if(hs&&nowMs>=hs.from&&nowMs<hs.until){if(hs.x==null){hs.x=x;hs.y=y;}drawPlayer(ctx,{...it.o,x:hs.x,y:hs.y,flash:true},characters,hs.from/1000);}
-        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);drawPlayer(ctx, { ...it.o, x, y }, characters, time);}
+        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);if(camera&&camera.me===it.o.id)drawMeMarker(ctx,x,y,time);drawPlayer(ctx, { ...it.o, x, y }, characters, time);}
       }
     }
   }
@@ -170,8 +184,8 @@ export function render(ctx, W, H, arena, state, characters) {
   decor.foreground(ctx);
   if(state)for(const e of state.effects||[])if(e.kind==='truckWreck')musk.wreck(e);else fx.effect(e,true);
   ctx.restore();
-  // HUD superieur (design/hud-top-approved.json), dessine dans le repere 960x540 du decor.
-  if (state) {
+  // HUD superieur (design/hud-top-approved.json), dessine dans le repere 960x540 du decor. Pas sur la manette (camera).
+  if (state && !camera) {
     const k = Math.min(W / DECOR_W, H / DECOR_H);
     ctx.save();
     ctx.setTransform(k, 0, 0, k, (W - DECOR_W * k) / 2, (H - DECOR_H * k) / 2); // meme echelle que l'arene, sans tremblement
@@ -323,6 +337,17 @@ function drawLeaders(g, state, characters) {
   });
 }
 
+// Mon perso (vue manette): anneau dore au sol + fleche au-dessus, pulsants.
+function drawMeMarker(g, x, y, time) {
+  const pulse = 1 + Math.sin(time * 6) * 0.08;
+  g.save();
+  g.strokeStyle = '#f6c343'; g.lineWidth = 2; g.beginPath(); g.ellipse(x, y, 24 * pulse, 8 * pulse, 0, 0, Math.PI * 2); g.stroke();
+  const ay = y - 120 - Math.abs(Math.sin(time * 5)) * 4;
+  g.fillStyle = '#030812'; g.beginPath(); g.moveTo(x - 8, ay - 2); g.lineTo(x + 8, ay - 2); g.lineTo(x, ay + 9); g.closePath(); g.fill();
+  g.fillStyle = '#f6c343'; g.beginPath(); g.moveTo(x - 6, ay); g.lineTo(x + 6, ay); g.lineTo(x, ay + 7); g.closePath(); g.fill();
+  g.restore();
+}
+
 function drawPlayer(ctx, p, characters, time) {
   const R=15, col=TEAM_COL[p.team]||'#fff', quiet=reducedMotion.matches;
   const img=getImage(characters?.[p.character]?.sprite||p.character,p.character);
@@ -331,7 +356,7 @@ function drawPlayer(ctx, p, characters, time) {
   if(!pose){pose={x:p.x,y:p.y,t:time,phase:0,walk:0};poses.set(p.id,pose);}
   const dt=Math.min(.1,Math.max(0,time-pose.t)),distance=Math.hypot(p.x-pose.x,(p.y-pose.y)*3);
   const walking=p.moving&&!p.launch&&!p.shove&&!p.dash&&p.alive;
-  pose.walk+=(Number(walking&&distance>.01)-pose.walk)*(1-Math.exp(-22*dt));
+  pose.walk+=(Number(!!(walking&&distance>.01))-pose.walk)*(1-Math.exp(-22*dt));
   if(walking)pose.phase+=Math.min(20,distance)/64*Math.PI*2;
   Object.assign(pose,{x:p.x,y:p.y,t:time});
   const face=p.fx>=0?1:-1, attack=(p.pose||0)/(p.action==='super'?.4:.2);
