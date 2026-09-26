@@ -113,7 +113,11 @@ function setupPad() {
   img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = assetUrl(ch.sprite); img.onerror = () => { img.hidden = true; }; }
   if (stick) return;
   try {
-    stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', size: 91, restOpacity: 0.95,
+    // Mode static: dessin fixe en bas a gauche, en miroir exact du bouton ATTACK (taille et marges CSS).
+    const cs = getComputedStyle(document.documentElement), padBtn = parseFloat(cs.getPropertyValue('--pad-btn')) || 88;
+    const at = `calc(var(--pad-m) + ${padBtn / 2}px + `;
+    stick = nipplejs.create({ zone: $('#stick'), mode: 'static', size: padBtn, restOpacity: 1,
+      position: { left: at + 'var(--sl))', bottom: at + 'var(--sb))' },
       color: { front: 'radial-gradient(circle at 40% 32%, #ffffff 0%, #d7dee8 40%, #9aa7b8 100%)', back: 'radial-gradient(circle, #243756 0%, #1b2942 70%)' } });
     // nipplejs v1: handler(evt) avec evt.data. v0.x: handler(evt, data). On gere les deux.
     stick.on('move', (evt, legacy) => {
