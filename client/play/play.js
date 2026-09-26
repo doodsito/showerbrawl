@@ -5,7 +5,11 @@ import { MSG } from '../../shared/protocol.js';
 const $ = (s) => document.querySelector(s);
 const socket = io();
 let stateLogged = false;
-socket.on('connect', () => console.log('[play] socket connecte', socket.id));
+socket.on('connect', () => {
+  console.log('[play] socket connecte', socket.id);
+  // Reconnexion (veille du tel, reseau): on rejoint automatiquement avec le meme choix.
+  if (st.wantJoin && st.team && st.character) doJoin();
+});
 socket.on('connect_error', (e) => console.warn('[play] serveur injoignable', e.message));
 const st = { phase: 'lobby', teams: { A: [], B: [] }, characters: {}, team: null, character: null, joined: false, lastHp: null };
 const input = { dx: 0, dy: 0, attack: false, defense: false, super: false };
@@ -24,7 +28,12 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 function show(id) { for (const s of ['select', 'pad', 'end']) $('#' + s).hidden = s !== id; }
 
-function taken(team, ch) { return (st.teams?.[team] || []).some((p) => p.character === ch && p.id !== socket.id); }
+function taken(team, ch) {
+  const others = (st.teams?.[team] || []).filter((p) => p.id !== socket.id);
+  const used = new Set(others.map((p) => p.character));
+  if (Object.keys(st.characters || {}).every((c) => used.has(c))) return false; // tous pris: doublons autorises
+  return used.has(ch);
+}
 
 function renderSelect() {
   document.querySelectorAll('.team').forEach((b) => b.classList.toggle('on', b.dataset.team === st.team));
@@ -45,16 +54,24 @@ function renderSelect() {
 
 document.querySelectorAll('.team').forEach((b) => (b.onclick = () => { st.team = b.dataset.team; renderSelect(); }));
 
+function doJoin() {
+  const name = ($('#name').value || '').trim().slice(0, 16);
+  socket.emit(MSG.JOIN, { team: st.team, character: st.character, name }, (res) => {
+    console.log('[play] JOIN ack', res);
+    if (res && res.ok === false) { st.joined = false; st.wantJoin = false; $('#err').textContent = res.error || 'Impossible de rejoindre'; renderSelect(); show('select'); return; }
+    st.joined = true; st.wantJoin = true; st.lastHp = null;
+    setupPad(); if (st.phase !== 'ended') show('pad');
+  });
+}
+
 $('#join').onclick = () => {
   try {
     const name = $('#name').value.trim().slice(0, 16);
     try { localStorage.setItem('sb_name', name); localStorage.setItem('sb_team', st.team); localStorage.setItem('sb_char', st.character); } catch (e) {}
     $('#err').textContent = '';
-    socket.emit(MSG.JOIN, { team: st.team, character: st.character, name }, (res) => {
-      if (res && res.ok === false) { st.joined = false; $('#err').textContent = res.error || 'Impossible de rejoindre'; show('select'); }
-    });
-    st.joined = true; st.lastHp = null;
+    st.joined = true; st.wantJoin = true; st.lastHp = null;
     setupPad(); show('pad');
+    doJoin();
   } catch (e) {}
 };
 
@@ -137,7 +154,8 @@ socket.on(MSG.LOBBY, (d) => {
     if (d?.characters) st.characters = d.characters;
     const inTeam = ['A', 'B'].some((t) => (st.teams[t] || []).some((p) => p.id === socket.id));
     if (st.phase === 'lobby' && prev === 'ended') { st.joined = false; }
-    if (st.joined && !inTeam && st.phase !== 'ended') { /* garde la manette, le serveur peut tarder */ }
+    // Le serveur fait foi: si on est dans une equipe, on est en manette (y compris en cours de manche).
+    if (inTeam && st.phase !== 'ended') { st.joined = true; st.wantJoin = true; setupPad(); show('pad'); }
     if (!st.joined) { renderSelect(); show('select'); } else renderSelect();
   } catch (e) {}
 });
@@ -174,5 +192,5 @@ socket.on(MSG.END, (d) => {
   } catch (e) {}
 });
 
-socket.on('disconnect', () => { st.joined = false; });
+socket.on('disconnect', () => { st.joined = false; /* wantJoin garde: re-JOIN auto a la reconnexion */ });
 renderSelect();
