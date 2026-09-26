@@ -147,7 +147,7 @@ body[data-phase=playing][data-alive="0"] .halo{opacity:.06}
 #pad.shake .stick,#pad.shake .btns{animation:padshake 150ms linear}
 @keyframes padshake{0%,100%{translate:0 0}25%{translate:-4px 2px}50%{translate:4px -2px}75%{translate:-2px -1px}}
 .hap{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;left:-10px;top:-10px}
-.hud{position:relative;align-items:center}
+.hud{align-items:center}
 .vib{position:relative;z-index:10;min-width:44px;min-height:40px;margin:-10px -12px -10px 0;background:none;border:0;padding:0;font-size:20px;line-height:1;color:inherit;touch-action:manipulation;pointer-events:auto}
 .vib.off{opacity:.35;filter:grayscale(1)}
 .vib.off::after{content:'';position:absolute;left:10px;right:10px;top:50%;height:3px;background:#ff5a52;transform:rotate(-45deg);border-radius:2px}
