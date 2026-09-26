@@ -12,6 +12,19 @@ Elle libère d'abord le port 3000 (tue le process qui l'occupe, pour éviter `EA
 
 Écran hôte : http://localhost:5173/ · Manette : scanner le QR affiché (ou http://<IP LAN>:5173/play/).
 
+## Déploiement automatique
+
+**Pousser sur `main` = déploiement automatique** sur https://showerbrawl.doodsito.com, sans intervention. Délai habituel : **~1 à 2 min** après le push.
+
+- `.github/workflows/deploy.yml` se déclenche à chaque push sur `main` et lance `deploy.sh` sur la VM (SSH, clé restreinte à ce script).
+- `deploy.sh` fait `git pull`, reconstruit l'image Docker (cache npm BuildKit, couches réutilisées) avec le SHA du commit, redémarre le conteneur, puis attend que `/health` annonce ce nouveau SHA.
+
+**Vérifier quelle version tourne :**
+- https://showerbrawl.doodsito.com/health renvoie `{"ok":true,"players":N,"sha":"<commit>"}` ;
+- ou en bas à gauche de l'écran hôte, en petit gris : `v <commit>`.
+
+Si le SHA affiché est celui de ton dernier push (`git rev-parse --short HEAD`), la prod est à jour.
+
 ## Arène Maison Blanche — prototype pixel art
 
 [Présentation et commandes](laboratoire/maison-blanche/README.md). Décor Canvas, combat local contre une IA, commandes clavier et tactiles.
