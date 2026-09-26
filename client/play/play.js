@@ -176,6 +176,35 @@ socket.on(MSG.LOBBY, (d) => {
   } catch (e) {}
 });
 
+// Retour de coup: vibration Android, switch haptique iOS 18, vignette rouge + tremblement partout.
+let vibOn = true, lastBuzz = 0, hitTimer = null;
+try { vibOn = localStorage.getItem('sb_vib') !== '0'; } catch (e) {}
+const vibBtn = $('#vib');
+const renderVib = () => { vibBtn.classList.toggle('off', !vibOn); vibBtn.setAttribute('aria-pressed', String(vibOn)); };
+renderVib();
+vibBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+vibBtn.addEventListener('click', () => { vibOn = !vibOn; renderVib(); try { localStorage.setItem('sb_vib', vibOn ? '1' : '0'); } catch (e) {} if (vibOn) buzz(40); });
+const canVibrate = typeof navigator.vibrate === 'function';
+const hap = $('#hap'), hapLbl = $('#hapLbl');
+// iOS 18: basculer un <input switch> via son label declenche un tic haptique. Safari peut l'ignorer hors geste:
+// on tente une fois, et si le switch n'est pas pris en charge ou si la bascule echoue, on abandonne sans bruit.
+let hapOk = !canVibrate && hap && 'switch' in hap;
+function buzz(pattern) {
+  if (!vibOn) return;
+  try {
+    if (canVibrate) { navigator.vibrate(pattern); return; }
+    if (hapOk) { const before = hap.checked; hapLbl.click(); if (hap.checked === before) hapOk = false; }
+  } catch (e) { hapOk = false; }
+}
+function hitFeedback(dmg, dead) {
+  const now = performance.now();
+  if (dead || now - lastBuzz >= 120) { lastBuzz = now; buzz(dead ? [100, 60, 200] : dmg > 15 ? 90 : 40); }
+  const h = $('#hit'), pad = $('#pad');
+  h.classList.remove('on', 'dead'); pad.classList.remove('shake'); void h.offsetWidth;
+  h.classList.add(dead ? 'dead' : 'on'); pad.classList.add('shake');
+  clearTimeout(hitTimer); hitTimer = setTimeout(() => { h.classList.remove('on', 'dead'); pad.classList.remove('shake'); }, dead ? 450 : 150);
+}
+
 // Etat perso leger envoye par le serveur a ce seul socket (le STATE complet ne va qu'a l'ecran hote).
 socket.on(MSG.ME, (me) => {
   if (!stateLogged) { stateLogged = true; console.log('[play] premier ME'); }
@@ -188,8 +217,9 @@ socket.on(MSG.ME, (me) => {
     st.alive=me.alive;st.energy=me.energy||0;
     for(const k of Object.keys(cds))cds[k]=performance.now()+Math.max(0,me.cd?.[k]||0)*1000;
     $('#hp').textContent = `PV ${Math.max(0, Math.round(me.hp))}/${me.maxHp ?? '?'}`;
-    if (st.lastHp != null && me.hp < st.lastHp) { try { navigator.vibrate?.(60); } catch (e) {} }
-    st.lastHp = me.hp;
+    if (st.lastHp != null && me.hp < st.lastHp && me.alive !== false) hitFeedback(st.lastHp - me.hp, false);
+    if (st.wasAlive === true && me.alive === false) hitFeedback(0, true);
+    st.wasAlive = me.alive; st.lastHp = me.hp;
     const r = $('#respawn');
     if (me.alive === false) { r.hidden = false; r.textContent = `Respawn dans ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}s`; }
     else r.hidden = true;
