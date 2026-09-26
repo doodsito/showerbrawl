@@ -172,6 +172,7 @@ function renderSlots(d) {
 let rosterKey = '';
 function renderRoster(chars) {
   const ids = Object.keys(chars);
+  if (ids.length) $('charCount').textContent = `${ids.length} CHARACTERS`;
   const key = ids.map((id) => id + chars[id].sprite).join('|');
   if (key === rosterKey) return;
   rosterKey = key;
