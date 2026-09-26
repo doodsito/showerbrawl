@@ -59,7 +59,13 @@
   #game{position:fixed;inset:0;display:none}
   #mute{position:fixed;top:10px;left:10px;z-index:7;width:34px;height:34px;padding:0;border:2px solid #ffffff22;border-radius:4px;background:#08111fb0;color:#f2efe4;font-size:16px;line-height:1;cursor:pointer;opacity:.55}
   #mute:hover{opacity:1}
-  #reset{position:fixed;top:12px;right:12px;z-index:5;display:none;font:800 18px system-ui;padding:10px 18px;border:0;border-radius:10px;background:#ef4444;color:#fff;cursor:pointer;box-shadow:0 2px 10px #0008}
+  /* Bouton ARRETER LA MANCHE (design/hud-top-approved.json): pixel-art arcade, coins anguleux */
+  #reset{position:fixed;top:12px;right:14px;z-index:5;display:none;box-sizing:border-box;width:190px;height:48px;padding:0;cursor:pointer;
+    font:900 13px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;color:#fff3e9;text-shadow:0 2px 0 #54131c;
+    background:linear-gradient(#f35454 0 42%,#df3737 42%);border:4px solid #54131c;border-radius:0;
+    box-shadow:inset 0 0 0 2px #ff7878,4px 4px 0 #030812cc;image-rendering:pixelated}
+  #reset:hover{filter:brightness(1.08)}
+  #reset:active{transform:translate(2px,2px);box-shadow:inset 0 0 0 2px #ff7878,2px 2px 0 #030812cc}
   /* Compte a rebours 3-2-1-FIGHT! (style arcade du lobby) */
   #countdown{position:fixed;inset:0;z-index:6;display:none;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(ellipse at center,#08111f66,#08111f00 70%)}
   #countdown span{font:900 min(34vh,30vw)/1 var(--mono);color:var(--white);letter-spacing:.04em;

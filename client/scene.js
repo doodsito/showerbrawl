@@ -145,16 +145,13 @@ export function render(ctx, W, H, arena, state, characters) {
   decor.foreground(ctx);
   if(state)for(const e of state.effects||[])if(e.kind==='truckWreck')musk.wreck(e);else fx.effect(e,true);
   ctx.restore();
-  // HUD
+  // HUD superieur (design/hud-top-approved.json), dessine dans le repere 960x540 du decor.
   if (state) {
-    const s = state.score || { A: 0, B: 0 };
-    const tl = Math.max(0, Math.ceil(state.timeLeft || 0));
-    const mm = String(Math.floor(tl / 60)).padStart(2, '0'), ss = String(tl % 60).padStart(2, '0');
-    ctx.font = 'bold 36px system-ui'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#0008'; ctx.fillRect(W / 2 - 260, 8, 520, 46);
-    ctx.textAlign = 'right'; ctx.fillStyle = TEAM_COL.A; ctx.fillText(`Bleus ${s.A}`, W / 2 - 90, 31);
-    ctx.textAlign = 'left'; ctx.fillStyle = TEAM_COL.B; ctx.fillText(`${s.B} Rouges`, W / 2 + 90, 31);
-    ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText(`${mm}:${ss}`, W / 2, 31);
+    const k = Math.min(W / DECOR_W, H / DECOR_H);
+    ctx.save();
+    ctx.setTransform(k, 0, 0, k, (W - DECOR_W * k) / 2, (H - DECOR_H * k) / 2); // meme echelle que l'arene, sans tremblement
+    drawHud(ctx, state);
+    ctx.restore();
   }
 }
 
@@ -216,6 +213,45 @@ function drawFx(ctx, state, b) {
   }
 }
 
+const HUD_FONT = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+// Cadre pixel: contour aux coins coupes, fond, bordure interieure. Tout en fillRect.
+function pixelFrame(g, x, y, w, h, o) {
+  const c = o.cut || 0, ow = o.outlineWidth || 0, iw = o.innerWidth || 0;
+  if (ow) { g.fillStyle = o.outline; g.fillRect(x - ow + c, y - ow, w + ow * 2 - c * 2, h + ow * 2); g.fillRect(x - ow, y - ow + c, w + ow * 2, h + ow * 2 - c * 2); }
+  g.fillStyle = o.background; g.fillRect(x, y, w, h);
+  if (iw) { g.fillStyle = o.inner; g.fillRect(x, y, w, iw); g.fillRect(x, y + h - iw, w, iw); g.fillRect(x, y, iw, h); g.fillRect(x + w - iw, y, iw, h); }
+}
+// Etoile blanche pixel 7x7 (echelle s).
+const STAR = ['...#...', '...#...', '#######', '.#####.', '..###..', '.##.##.', '##...##'];
+function pixelStar(g, x, y, s, col) { g.fillStyle = col; STAR.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') g.fillRect(x + i * s, y + j * s, s, s); })); }
+function drawHud(g, state) {
+  const sc = state.score || { A: 0, B: 0 };
+  const tl = Math.max(0, Math.ceil(state.timeLeft || 0));
+  const time = `${String(Math.floor(tl / 60)).padStart(2, '0')}:${String(tl % 60).padStart(2, '0')}`;
+  const X = 220, Y = 8, Wd = 520, Hd = 58, cx = 480;
+  g.imageSmoothingEnabled = false;
+  pixelFrame(g, X, Y, Wd, Hd, { background: '#08111f', outline: '#030812', outlineWidth: 4, inner: '#34445d', innerWidth: 2, cut: 4 });
+  // Sections equipes (gauche bleue, droite rouge): barre d'accent, rayures, etoile.
+  const secY = Y + 6, secH = Hd - 12, tW = 132, tX = cx - tW / 2;
+  const side = (x0, x1, accent, light, stripes, flip) => {
+    g.fillStyle = accent + '33'; g.fillRect(x0, secY, x1 - x0, secH);
+    g.fillStyle = accent; g.fillRect(flip ? x1 - 6 : x0, secY, 6, secH);
+    g.fillStyle = light; g.fillRect(flip ? x1 - 6 : x0, secY, 6, 2);
+    const sx = flip ? x1 - 46 : x0 + 10;
+    for (let i = 0; i < 5; i++) { g.fillStyle = stripes[i % 2]; g.fillRect(sx, secY + 6 + i * 7, 36, 4); }
+    pixelStar(g, flip ? x1 - 36 : x0 + 20, secY + 14, 2, '#ffffff');
+  };
+  side(X + 4, tX - 6, '#2f7de1', '#60a5fa', ['#e0413a', '#f4f1e8'], false);
+  side(tX + tW + 6, X + Wd - 4, '#e0413a', '#f87171', ['#e0413a', '#8f2420'], true);
+  g.font = `900 22px ${HUD_FONT}`; g.textBaseline = 'middle';
+  g.textAlign = 'right'; g.fillStyle = '#030812'; g.fillText(`BLEUS ${sc.A}`, tX - 14, Y + Hd / 2 + 2); g.fillStyle = '#ddebff'; g.fillText(`BLEUS ${sc.A}`, tX - 14, Y + Hd / 2);
+  g.textAlign = 'left'; g.fillStyle = '#030812'; g.fillText(`${sc.B} ROUGES`, tX + tW + 14, Y + Hd / 2 + 2); g.fillStyle = '#ffe2df'; g.fillText(`${sc.B} ROUGES`, tX + tW + 14, Y + Hd / 2);
+  // Timer: panneau sombre isole au centre.
+  pixelFrame(g, tX, Y + 5, tW, 48, { background: '#111a2b', outline: '#030812', outlineWidth: 2, inner: '#65758a', innerWidth: 2, cut: 2 });
+  g.font = `900 34px ${HUD_FONT}`; g.textAlign = 'center';
+  g.fillStyle = '#030812'; g.fillText(time, cx, Y + 5 + 26); g.fillStyle = '#f4f1e8'; g.fillText(time, cx, Y + 5 + 24);
+}
+
 function drawPlayer(ctx, p, characters, time) {
   const R=15, col=TEAM_COL[p.team]||'#fff', quiet=reducedMotion.matches;
   const img=getImage(characters?.[p.character]?.sprite||p.character,p.character);
@@ -269,7 +305,15 @@ function drawPlayer(ctx, p, characters, time) {
   ctx.fillStyle='#000a';ctx.fillRect(p.x-20,top-9,40,4);ctx.fillStyle=hp>.5?'#22c55e':hp>.25?'#facc15':'#ef4444';ctx.fillRect(p.x-20,top-9,40*hp,4);
   if(characters?.[p.character]?.super?.charge){ctx.fillStyle='#26314c';ctx.fillRect(p.x-20,top-3,40,2);ctx.fillStyle='#edcb80';ctx.fillRect(p.x-20,top-3,40*(p.energy||0)/100,2);}
   // Nom une seule fois, au-dessus de la barre de vie (plus sous les pieds, ou il semblait detache du perso).
-  ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle='#000';ctx.fillText(p.name||'',p.x+1,top-11);ctx.fillStyle='#fff';ctx.fillText(p.name||'',p.x,top-12);ctx.textBaseline='top';
+  // Nameplate pixel compacte (design HUD): fond sombre, contour, lisere couleur d'equipe, meme position.
+  if(p.name){
+    ctx.font=`900 9px ${HUD_FONT}`;const name=String(p.name).toUpperCase(),tw=Math.ceil(ctx.measureText(name).width),bx=Math.round(p.x-tw/2-4),by=Math.round(top-23),bw=tw+8;
+    ctx.fillStyle='#050a12';ctx.fillRect(bx-1,by-1,bw+2,14);
+    ctx.fillStyle='#10182a';ctx.fillRect(bx,by,bw,12);
+    ctx.fillStyle=p.team==='B'?'#e0413a':'#2f7de1';ctx.fillRect(bx,by+10,bw,2);
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#ffffff';ctx.fillText(name,Math.round(p.x),by+5.5);
+  }
+  ctx.textBaseline='top';
   if(p.alive===false&&p.respawnIn>0){ctx.globalAlpha=1;ctx.font='bold 14px monospace';ctx.fillText(String(Math.ceil(p.respawnIn)),p.x,p.y-30);}
   ctx.restore();
 }
