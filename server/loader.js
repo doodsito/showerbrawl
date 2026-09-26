@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, watchFile } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ABILITY_TYPES } from '../shared/protocol.js';
 
@@ -27,4 +27,17 @@ function loadArena() {
 }
 
 export const characters = loadCharacters();
+
+// Recharge characters.json a chaud (l'objet exporte est mis a jour sur place). Erreur de JSON => on garde l'ancien.
+export function watchCharacters(onChange) {
+  watchFile(fileURLToPath(new URL('../shared/characters.json', import.meta.url)), { interval: 1000 }, () => {
+    try {
+      const fresh = loadCharacters();
+      for (const k of Object.keys(characters)) if (!(k in fresh)) delete characters[k];
+      Object.assign(characters, fresh);
+      console.log('[loader] characters.json recharge:', Object.keys(characters).length, 'persos');
+      onChange?.();
+    } catch (e) { console.warn('[loader] characters.json invalide, ancien garde:', e.message); }
+  });
+}
 export const arena = loadArena();
