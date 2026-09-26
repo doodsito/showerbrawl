@@ -12,6 +12,7 @@ input{padding:12px;border-radius:10px;border:0;font-size:16px;user-select:text;-
 .chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
 .char{padding:10px;border-radius:10px;border:3px solid transparent;background:var(--mut);color:var(--fg);text-align:left;font-size:14px}
 .char b{display:block;font-size:16px}
+.char .thumb{float:right;height:40px;margin:-4px -4px 0 4px;image-rendering:pixelated}
 .char.on{border-color:#fff}
 .char:disabled{opacity:.3}
 .join{padding:18px;border:0;border-radius:12px;background:#2bb673;color:#fff;font-size:20px;font-weight:700}

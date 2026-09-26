@@ -82,6 +82,11 @@ function showLobby(d) {
         const li = document.createElement('li');
         const ch = d.characters && d.characters[p.character];
         li.textContent = `${p.name}${ch ? ' (' + ch.name + ')' : ''}`;
+        if (ch && /\.(png|webp|gif|jpe?g)$/i.test(ch.sprite || '')) {
+          const im = document.createElement('img'); im.src = ch.sprite.startsWith('/') ? ch.sprite : '/' + ch.sprite;
+          im.style.cssText = 'height:28px;vertical-align:middle;margin-left:8px;image-rendering:pixelated';
+          im.onerror = () => im.remove(); li.appendChild(im);
+        }
         ul.appendChild(li);
       }
     }

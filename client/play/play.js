@@ -44,6 +44,13 @@ function renderSelect() {
     const b = document.createElement('button');
     b.className = 'char' + (id === st.character ? ' on' : '');
     b.disabled = !!(st.team && taken(st.team, id));
+    // Vignette PNG si le perso en a une (sprite = chemin), sinon rien.
+    if (/\.(png|webp|gif|jpe?g)$/i.test(c.sprite || '')) {
+      const im = document.createElement('img'); im.className = 'thumb'; im.alt = '';
+      im.src = c.sprite.startsWith('/') ? c.sprite : '/' + c.sprite;
+      im.onerror = () => { console.warn('[play] PNG introuvable', im.src); im.remove(); };
+      b.appendChild(im);
+    }
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
     const s = document.createElement('small'); s.textContent = `PV ${c.hp ?? '?'} · ${c.attack?.label || ''}`; b.appendChild(s);
     b.onclick = () => { st.character = id; renderSelect(); };
