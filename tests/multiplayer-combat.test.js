@@ -162,7 +162,7 @@ function duel(t,a){
   const {game,p,q}=setup(t,a,a==='biden'?'musk':'biden');
   Object.assign(p,{x:200,y:320,fx:1,fy:0});Object.assign(q,{x:400,y:320});return {game,p,q};
 }
-for(const id of Object.keys(characters).filter(id=>!characters[id].attack.travel)){
+for(const id of Object.keys(characters).filter(id=>!characters[id].attack.travel&&!characters[id].attack.behavior)){
   test(`${id}: l'attaque de base ne touche pas a 200 unites`,t=>{
     const {game,p,q}=duel(t,id);const hp=q.hp;cast(game,p,'attack');advance(game,.6);
     assert.equal(q.hp,hp);assert.equal(game.projectiles.length,0);

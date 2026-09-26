@@ -152,10 +152,10 @@ export function dashHits(ctx, p) {
   }
 }
 
-// Attaque de base standard (CONFIG.BASE_ATTACK) pour tous: coup au contact, memes degats, cooldown, portee, recul et recovery.
-// Les attaques au contact gardent leur label, icone et visuel. Un projectile travel explicite conserve son kit.
+// Contact defaults only. Explicit projectile and behavior kits keep their simulation.
+// Les attaques au contact gardent leur label, icone et visuel. Un projectile travel ou un behavior explicite conserve son kit.
 export function standardAttack(own = {}) {
-  if (own.type === 'projectile' && own.travel === true) return { ...CONFIG.BASE_ATTACK, ...own };
+  if (own.behavior || (own.type === 'projectile' && own.travel === true)) return { ...CONFIG.BASE_ATTACK, ...own };
   return { type: 'projectile', ...CONFIG.BASE_ATTACK, label: own.label, icon: own.icon, visual: own.visual };
 }
 

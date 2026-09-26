@@ -7,7 +7,7 @@ import { characters, arena } from '../server/loader.js';
 import { cast } from '../server/abilities.js';
 import { CONFIG } from '../shared/config.js';
 
-const IDS = Object.keys(characters).filter(id=>!characters[id].attack.travel);
+const IDS = Object.keys(characters).filter(id=>!characters[id].attack.travel&&!characters[id].attack.behavior);
 const B = CONFIG.BASE_ATTACK;
 
 function duel(id, dist = 60) {

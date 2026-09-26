@@ -4,8 +4,7 @@ import { CONFIG } from '../shared/config.js';
 import {Game} from '../server/game.js';
 import {characters,arena} from '../server/loader.js';
 import {cast} from '../server/abilities.js';
-import {castMusk} from '../server/musk-combat.js';
-const FLAME={type:'zone',behavior:'flamethrower',cooldown:1.2,range:150,duration:.75,dps:32,pushDistance:6,burnDps:7,burnDuration:.8,chargeHit:5,recovery:.2,halfAngle:26,label:'Flamethrower'}; // module musk-combat teste directement: l'attaque de base est standard (CONFIG.BASE_ATTACK)
+const FLAME=characters.musk.attack;
 import {hitWall} from '../server/lab-combat.js';
 import {makePhysics} from '../server/physics.js';
 
@@ -67,7 +66,7 @@ test('Trump cannot recharge by punching own or allied walls; enemy walls grant c
 });
 
 test('flame cone rejects a target outside its angle and advertises its geometry',t=>{
- const {game,p,q}=duel(t,'musk','trump');q.x=350;castMusk(game,p,FLAME);
+ const {game,p,q}=duel(t,'musk','trump');q.x=350;cast(game,p,'attack');
  const angle=(FLAME.halfAngle+8)*Math.PI/180;
  Object.assign(q,{x:p.x+100*Math.cos(angle),y:p.y+100*Math.sin(angle)});advance(game,.1);
  assert.equal(q.hp,q.maxHp);

@@ -18,7 +18,7 @@ for(const [id,visual,count] of [['macron','baguette',3],['obama','energy',1]]) {
   const {game,p,q,snapshot}=setup(t,id);const hp=q.hp;assert(cast(game,p,'attack'));
   if(p.char.attack.travel){
    assert.equal(q.hp,hp);assert.equal(snapshot().projectiles.length,count);assert.equal(snapshot().projectiles[0].visual,visual);
-   for(let i=0;i<4;i++)game.tick(.05);assert.equal(q.hp,hp-p.char.attack.damage);
+   for(let i=0;i<4;i++)game.tick(.05);assert(Math.abs(q.hp-(hp-p.char.attack.damage))<1e-6);
   }else{
    assert.equal(hp-q.hp,CONFIG.BASE_ATTACK.damage);assert.equal(snapshot().projectiles.length,0);
    assert(game.effects.some(e=>e.kind==='strike'&&e.visual===visual));

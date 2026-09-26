@@ -33,11 +33,11 @@ Chaque push lance d'abord `npm test` + `npm run build` : si ça échoue, rien n'
 | Obama | Défense | aucune | « Esquive », dash 238 en arrière |
 | Obama | Super | « Mic Drop Strike », ciblé à distance, portée 560, rayon 76, dégâts 55, knockback 220 | « Mic Drop », centré sur Obama (portée 0), rayon 110, dégâts 28, poussée 100, charge 100 |
 
-Le design de Leo prévoit des attaques de base à distance, alors que la règle du jeu les veut au corps à corps (seul le super peut viser à distance, voir ci-dessous).
+Ce tableau est un historique des écarts de design. Les règles actuelles ci-dessous et `shared/characters.json` font foi ; les tirs et le lance-flammes ont leur propre simulation à distance.
 
 ### Équité (validée)
 
-**Attaque de base, PV et vitesse sont identiques pour les 10 persos**, fixés dans `shared/config.js` (valeurs = médianes des persos au moment de l'alignement) :
+**PV et vitesse sont identiques pour les 10 persos.** `BASE_ATTACK` définit les coups au contact sans kit explicite. Les projectiles et le lance-flammes conservent les paramètres de `shared/characters.json` :
 
 | Réglage | Valeur |
 |---|---|
@@ -45,12 +45,12 @@ Le design de Leo prévoit des attaques de base à distance, alors que la règle 
 | `BASE_HP` | 105 |
 | `BASE_SPEED` | 195 |
 
-Le serveur applique `BASE_ATTACK` à l'attaque de tous les persos et ignore toute valeur individuelle. Chaque perso garde seulement l'**apparence** de son attaque (label, icône, visuel : le Jab de Trump reste un poing, les baguettes de Macron restent des baguettes). **Seules la défense et le super sont propres à chaque perso.** Des tests vérifient l'égalité pour chaque paire de persos (dégâts, cooldown, portée, recul, dégâts sur 5 s) et les PV/vitesse.
+Le serveur applique `BASE_ATTACK` aux coups génériques. Un `travel: true` ou un `behavior` explicite conserve son fonctionnement, sa portée et son temps de recharge. Les tests comparent les coups génériques entre eux et vérifient séparément les capacités à distance via les commandes multijoueurs.
 
 ### Règle de combat (validée)
 
-- **Attaque de base et défense : corps à corps.** L'attaque ne touche qu'un ennemi au contact (portée plafonnée à 110), la défense est un bouclier ou une charge qui frappe et pousse sur sa trajectoire.
-- **Super : peut viser à distance, avec alerte.** Il cible l'ennemi vivant le plus proche dans sa portée, pose un **cercle d'alerte** au sol (couleur d'équipe, qui se remplit puis clignote) pendant son délai, puis frappe la zone : dégâts + knockback. Sans ennemi à portée, il frappe devant le lanceur à mi-portée. **Rien ne vole à travers l'arène** et **on peut esquiver** en sortant du cercle : chaque super est réglé pour que même le perso le plus lent puisse s'échapper (rayon + 18 ≤ vitesse min × délai, vérifié par un test). Tous les supers demandent la jauge d'énergie pleine (`charge: 100`).
+- **Attaque de base : selon le kit.** Coup au contact par défaut ; projectiles pour Macron et Obama ; cône continu pour Musk. La défense est un bouclier, un mur ou une esquive/charge selon le personnage.
+- **Super : peut viser à distance, avec alerte.** Il cible l'ennemi vivant le plus proche dans sa portée, pose un **cercle d'alerte** au sol (couleur d'équipe, qui se remplit puis clignote) pendant son délai, puis frappe la zone : dégâts + knockback. Sans ennemi à portée, il frappe devant le lanceur à mi-portée. **On peut esquiver ces frappes ciblées** en sortant du cercle : chaque super est réglé pour que même le perso le plus lent puisse s'échapper (rayon + 18 ≤ vitesse min × délai, vérifié par un test). Tous les supers demandent la jauge d'énergie pleine (`charge: 100`).
 
 Champs de la brique super ciblé (`"type": "zone", "target": "enemy"`) :
 
@@ -136,8 +136,18 @@ Vérification ciblée : `node --test tests/musk-combat.test.js tests/multiplayer
 
 ### Retouches des attaques du lab
 
-Le Mic Drop cible la position de l’ennemi vivant le plus proche sur toute la carte au lancement. Sans ennemi disponible, le super reste chargé. La zone reste fixe durant les 0,85 s d’avertissement et peut être esquivée. Le micro détaillé tombe tête en avant puis rebondit ; le 49.3 utilise un tampon doré, une empreinte et des feuilles animées. Le mur reprend la texture MAGA en perspective tout en gardant les couleurs d’équipe. L’impact d’Énergie reprend le sprite tricolore ; son fonctionnement au corps à corps en multijoueur est conservé.
+Le Mic Drop cible la position de l’ennemi vivant le plus proche sur toute la carte au lancement. Sans ennemi disponible, le super reste chargé. La zone reste fixe durant les 0,85 s d’avertissement et peut être esquivée. Le micro détaillé tombe tête en avant puis rebondit ; le 49.3 utilise un tampon doré, une empreinte et des feuilles animées. Le mur reprend la texture MAGA en perspective tout en gardant les couleurs d’équipe. Énergie est un projectile tricolore qui traverse l’arène.
 
 ### Obama — projectile à longue portée
 
 Energy conserve un vrai projectile : portée de 600 unités, vitesse de 600 unités/s, 11 dégâts, délai de 0,85 s. Il traverse l’arène jusqu’à une collision ou sa limite de portée. Un bouclier le bloque ; son recul ne peut pas éjecter. Les attaques explicitement configurées `travel: true` conservent leur kit dans `standardAttack`. Les autres attaques de base suivent `CONFIG.BASE_ATTACK`.
+
+### Attaques à distance — contrat multijoueur
+
+Le lance-flammes de Musk, les baguettes de Macron et l'énergie d'Obama doivent passer par leur simulation complète. `standardAttack` applique les valeurs communes uniquement aux coups sans `travel` ni `behavior`. Les tests `ranged-kits.test.js` passent par `Game.input`, puis les ticks et les paquets STATE/VIEW ; ne pas les remplacer par des appels directs aux modules de capacités, qui masqueraient une régression du routage.
+
+- Musk : jet continu de 0,9 s, portée 240, angle total 44°, 24 dégâts/s, brûlure de 6 dégâts/s pendant 0,8 s, recharge 1,6 s. Le dessin projette la géométrie du cône serveur dans toutes les directions.
+- Macron : trois baguettes en vol, portée 400, 8 dégâts maximum par salve, recharge 0,65 s.
+- Obama : portée 600, 11 dégâts, recharge 0,85 s.
+
+Les murs, boucliers et limites de portée restent actifs. Les tirs normaux ne peuvent pas éjecter. Les supers ciblés et le Cybertruck sont aussi contrôlés à distance via les commandes du multi. Pour contrôler un tir vertical dans l'outil QA local : `?direction=up`, `down` ou `left`.
