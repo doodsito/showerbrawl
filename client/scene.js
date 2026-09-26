@@ -102,7 +102,7 @@ function drawPlayer(ctx, p, characters) {
     ctx.beginPath(); ctx.arc(p.x + p.fx / l * (R + 6), p.y + p.fy / l * (R + 6), 3, 0, Math.PI * 2); ctx.fill();
   }
   // PNG de l'equipe (en pied, pieds sur le sol) sinon crane genere au runtime.
-  const img = getImage(spriteId);
+  const img = getImage(spriteId, p.character);
   const top = img ? p.y + R - R * 3.4 : p.y - R;
   if (img) {
     const h = R * 3.4, w = h * (img.naturalWidth / img.naturalHeight);
