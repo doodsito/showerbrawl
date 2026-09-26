@@ -133,9 +133,19 @@ window.__sbStartHandler = (e) => {
   try { SFX.init(); } catch (err) {}
 };
 document.addEventListener('click', window.__sbStartHandler);
+
+// Bouton ARRETER LA MANCHE: retour lobby immediat (serveur garde les joueurs).
+if (window.__sbResetHandler) document.removeEventListener('click', window.__sbResetHandler);
+window.__sbResetHandler = (e) => {
+  if (!e.target.closest?.('#reset')) return;
+  console.log('[host] RESET clicked, emitting', socket.id);
+  socket.emit(MSG.RESET, (r) => console.log('[host] RESET ack', r));
+};
+document.addEventListener('click', window.__sbResetHandler);
 addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
 
 function loop() {
+  try { $('reset').style.display = phase === 'lobby' ? 'none' : 'block'; } catch (e) {}
   try {
     if (phase !== 'lobby') render(ctx, canvas.width, canvas.height, lobby && lobby.arena, currentState(), lobby && lobby.characters);
   } catch (e) {}

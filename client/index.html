@@ -18,6 +18,7 @@
   #teamB{background:#8a1d1d55;border:3px solid #ef4444}
   #start{font-size:32px;padding:14px 60px;border:0;border-radius:12px;background:#facc15;color:#111;font-weight:800;cursor:pointer}
   #game{position:fixed;inset:0;display:none}
+  #reset{position:fixed;top:12px;right:12px;z-index:5;display:none;font:800 18px system-ui;padding:10px 18px;border:0;border-radius:10px;background:#ef4444;color:#fff;cursor:pointer;box-shadow:0 2px 10px #0008}
   #end{position:fixed;inset:0;display:none;background:#000c;align-items:center;justify-content:center}
   #endBox{background:#141a33;padding:28px 40px;border-radius:16px;min-width:420px;text-align:center}
   #endBox table{margin:12px auto;border-collapse:collapse;font-size:18px}
@@ -37,6 +38,7 @@
   <button id="start">START</button>
 </div>
 <canvas id="game"></canvas>
+<button id="reset">ARRÊTER LA MANCHE</button>
 <div id="end"><div id="endBox"></div></div>
 <script type="module" src="./host.js"></script>
 </body>
