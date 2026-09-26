@@ -1,0 +1,36 @@
+name: Rollback
+
+# Redeploie un commit precis sur la VM (meme deploy.sh que le deploiement normal).
+# Actions > Rollback > Run workflow > sha du commit a remettre en prod.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "SHA du commit a redeployer (7 a 40 caracteres hexa, ex: 9e5d45c)"
+        required: true
+        type: string
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate sha
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          [[ "$SHA" =~ ^[0-9a-f]{7,40}$ ]] || { echo "SHA invalide: $SHA"; exit 1; }
+      # La cle de deploiement ne lance que ~/showerbrawl/deploy.sh; le sha lui arrive via SSH_ORIGINAL_COMMAND.
+      - name: Run deploy.sh <sha> on the VM
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          install -m 600 /dev/null key
+          printf '%s\n' "$DEPLOY_KEY" > key
+          ssh -i key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 "ubuntu@$DEPLOY_HOST" "~/showerbrawl/deploy.sh $SHA"
