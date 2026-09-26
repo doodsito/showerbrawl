@@ -12,6 +12,12 @@ Elle libère d'abord le port 3000 (tue le process qui l'occupe, pour éviter `EA
 
 Écran hôte : http://localhost:5173/ · Manette : scanner le QR affiché (ou http://<IP LAN>:5173/play/).
 
+## Avant le jury
+
+**Rollback en une ligne :** GitHub > Actions > **Rollback** > Run workflow > coller le SHA d'une version qui marchait (visible sur `/health` ou en bas de l'écran hôte) : la prod revient à ce commit en ~1-2 min. Le prochain push sur `main` redéploie normalement la dernière version.
+
+Chaque push lance d'abord `npm test` + `npm run build` : si ça échoue, rien n'est déployé et la prod garde la version précédente.
+
 ## Déploiement automatique
 
 **Pousser sur `main` = déploiement automatique** sur https://showerbrawl.doodsito.com, sans intervention. Délai habituel : **~1 à 2 min** après le push.

@@ -10,7 +10,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Garde-fou: si les tests ou le build echouent, rien n'est deploye et la prod garde la version precedente.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
