@@ -1,5 +1,5 @@
 // Authoritative versions of the lab abilities. Visuals consume these same world objects.
-import { wallCorners, wallContact, wallSegmentEntry, wallsOverlap } from '../shared/wall-geometry.js';
+import { wallContact, wallSegmentEntry, wallsOverlap } from '../shared/wall-geometry.js';
 
 export const isLabFighter = p => p.character === 'trump' || p.character === 'obama';
 export function effect(ctx, kind, x, y, extra = {}, duration = .6) {
@@ -134,7 +134,7 @@ export function updateMicDrop(ctx, z, dt) {
     }
     for (const target of ctx.players.values()) {
       if (!target.alive || target.team === z.team || target.launch || Math.hypot(target.x - z.x, target.y - z.y) > z.r + target.r) continue;
-      if (ctx.damage(target, z.damage, z.owner, z.x, z.y, 0, true)) {
+      if (ctx.damage(target, z.damage, z.owner, z.x, z.y, 0, true, false)) {
         const dx = target.x - z.x, dy = target.y - z.y;
         shove(target, Math.hypot(dx, dy) > 1e-6 ? dx : 1, dy, 100, .32);
       }

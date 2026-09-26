@@ -112,7 +112,7 @@ export class Game {
     this.sendLobby();
   }
 
-  damage(t, amount, srcId, fromX, fromY, kb = 0, deferKO = false) {
+  damage(t, amount, srcId, fromX, fromY, kb = 0, deferKO = false, chargeSource = true) {
     if (!t.alive || t.hp <= 0 || t.launch || this.phase !== 'playing') return false;
     if (t.protectT > 0 || t.invulnT > 0) return false;
     if (t.shieldT > 0) {
@@ -121,7 +121,7 @@ export class Game {
       return false;
     }
     t.hp = Math.max(0, t.hp - amount); t.flashT = .18;
-    charge(this.players.get(srcId), amount * 2.2); charge(t, amount);
+    if(chargeSource)charge(this.players.get(srcId), amount * 2.2); charge(t, amount);
     if (amount >= 1 || !t._hitEvT || Date.now() - t._hitEvT > 250) {
       t._hitEvT = Date.now();
       this.events.push({ k:'hit', id:t.id, x:Math.round(t.x), y:Math.round(t.y), amount:Math.round(amount*10)/10, team:t.team, lab:isLabFighter(t)||isLabFighter(this.players.get(srcId)||{}) });
