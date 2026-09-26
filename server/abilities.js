@@ -1,4 +1,4 @@
-import { charge, isLabFighter, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
+import { charge, hasLabKit, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
 // 5 briques generiques, parametrees par le JSON du pouvoir. Aucune classe en dur.
 // ctx = { players: Map, projectiles: [], zones: [], physics, damage(target, amount, src, fromX, fromY, kb), nextId() }
 
@@ -95,7 +95,7 @@ export function dashHits(ctx, p) {
 
 export function cast(ctx, p, slot) {
   const a = p.char[slot];
-  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || (isLabFighter(p) && p.dashT > 0)) return false;
+  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || (hasLabKit(p) && p.dashT > 0)) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
   const handler = a.behavior ? castLab : BRICKS[a.type];
   if (!handler || handler(ctx, p, a) === false) return false;
@@ -105,7 +105,7 @@ export function cast(ctx, p, slot) {
   p.action = slot;
   if (slot !== 'defense') p.protectT = 0;
   console.log(`[cast] ${p.name} ${slot} ${a.type} "${a.label || ''}"`);
-  ctx.events?.push({ k: 'cast', id: p.id, slot, type: a.type, label: a.label || a.type, team: p.team, x: Math.round(p.x), y: Math.round(p.y), lab:isLabFighter(p) });
+  ctx.events?.push({ k: 'cast', id: p.id, slot, type: a.type, label: a.label || a.type, team: p.team, x: Math.round(p.x), y: Math.round(p.y), lab:hasLabKit(p) });
   return true;
 }
 

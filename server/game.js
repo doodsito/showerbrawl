@@ -3,7 +3,7 @@ import { CONFIG } from '../shared/config.js';
 import { MSG } from '../shared/protocol.js';
 import { makePhysics } from './physics.js';
 import { cast, updateProjectiles, updateZones, dashHits } from './abilities.js';
-import { isLabFighter, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
+import { hasLabKit, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
 
 const SLOTS = ['attack', 'defense', 'super'];
 const END_SCREEN = 6; // s d'ecran de victoire avant retour lobby
@@ -121,14 +121,14 @@ export class Game {
     if (t.protectT > 0 || t.invulnT > 0) return false;
     if (t.shieldT > 0) {
       this.physics.push(t, fromX, fromY, kb * .3);
-      if(!t._blkT || Date.now()-t._blkT>250){t._blkT=Date.now();this.events.push({k:'block',id:t.id,x:Math.round(t.x),y:Math.round(t.y),lab:isLabFighter(t)});}
+      if(!t._blkT || Date.now()-t._blkT>250){t._blkT=Date.now();this.events.push({k:'block',id:t.id,x:Math.round(t.x),y:Math.round(t.y),lab:hasLabKit(t)});}
       return false;
     }
     t.hp = Math.max(0, t.hp - amount); t.flashT = .18;
     if(chargeSource)charge(this.players.get(srcId), amount * 2.2); charge(t, amount);
     if (amount >= 1 || !t._hitEvT || Date.now() - t._hitEvT > 250) {
       t._hitEvT = Date.now();
-      this.events.push({ k:'hit', id:t.id, x:Math.round(t.x), y:Math.round(t.y), amount:Math.round(amount*10)/10, team:t.team, lab:isLabFighter(t)||isLabFighter(this.players.get(srcId)||{}) });
+      this.events.push({ k:'hit', id:t.id, x:Math.round(t.x), y:Math.round(t.y), amount:Math.round(amount*10)/10, team:t.team, lab:hasLabKit(t)||hasLabKit(this.players.get(srcId)||{}) });
     }
     t.lastHit = srcId; t.lastHitT = 3;
     if (kb) this.physics.push(t, fromX, fromY, kb);
@@ -190,7 +190,7 @@ export class Game {
           p.dashT = Math.max(0, p.dashT - step);
         } else if (p.stunT <= 0) {
           let speed = p.char.speed;
-          if (isLabFighter(p)) {
+          if (hasLabKit(p)) {
             const near = [...this.players.values()].filter(o => o !== p && o.alive && o.team !== p.team)
               .sort((a, b) => Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
             const d = near && Math.hypot(p.x-near.x,p.y-near.y);
@@ -202,7 +202,7 @@ export class Game {
         this.physics.applyKnockback(p, dt);
       }
       for (const slot of SLOTS) {
-        const pressed = p.pending[slot] || (p.input[slot] && (slot === 'attack' || !isLabFighter(p)));
+        const pressed = p.pending[slot] || (p.input[slot] && (slot === 'attack' || !hasLabKit(p)));
         if (pressed) cast(this, p, slot);
       }
       p.pending = {};

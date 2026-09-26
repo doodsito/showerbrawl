@@ -1,7 +1,8 @@
 // Authoritative versions of the lab abilities. Visuals consume these same world objects.
 import { wallContact, wallSegmentEntry, wallsOverlap } from '../shared/wall-geometry.js';
 
-export const isLabFighter = p => p.character === 'trump' || p.character === 'obama' || p.character === 'macron';
+// Regles du kit labo activees par le champ "labKit": true du perso dans characters.json (plus d'ids en dur).
+export const hasLabKit = p => !!p?.char?.labKit;
 export function effect(ctx, kind, x, y, extra = {}, duration = .6) {
   ctx.effects.push({ id: ctx.nextId(), kind, x, y, age: 0, duration, ...extra });
 }
