@@ -1,3 +1,4 @@
+import {CLIENT_VERSION, watchVersion} from './version.js';
 import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
 import { render, pushEvents } from './scene.js';
@@ -26,6 +27,7 @@ const canvas = $('game');
 const ctx = canvas.getContext('2d');
 let lobby = null;
 let phase = 'lobby';
+const checkVersion = watchVersion({canReload: () => !!lobby && phase === 'lobby'});
 
 // Interpolation: rendu à serverTime - 70 ms, extrapolation courte (50 ms max) si le STATE suivant tarde.
 const RENDER_DELAY = 70;
@@ -110,6 +112,7 @@ addEventListener('resize', resize); resize();
 function showLobby(d) {
   try {
     lobby = d; phase = d.phase || 'lobby';
+    checkVersion();
     preloadCombatArt(d.characters);
     Music.setPhase(phase);
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
@@ -315,8 +318,5 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 
-// Version qui tourne (SHA du commit), discrete en bas de l'ecran. Rafraichie toutes les 60 s.
-function showVersion() {
-  fetch('/health', { cache: 'no-store' }).then((r) => r.json()).then((h) => { $('version').textContent = h.sha ? `v ${h.sha}` : ''; }).catch(() => {});
-}
-showVersion(); setInterval(showVersion, 60000);
+// Show the client release actually loaded, rather than the server SHA.
+$('version').textContent = `v ${CLIENT_VERSION}`;
