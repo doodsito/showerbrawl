@@ -105,7 +105,9 @@ function showEnd(d) {
   } catch (e) {}
 }
 
-const socket = io();
+// Un seul socket persistant pour HOST et START, meme apres un rechargement HMR du module.
+const socket = window.__sbHostSocket || (window.__sbHostSocket = io());
+socket.off();
 let stateLogged = false;
 const status = (t) => { try { $('url').dataset.status = t; $('start').title = t; } catch (e) {} };
 socket.on('connect', () => { console.log('[host] socket connecte', socket.id, socket.io.engine.transport.name); status(''); try { socket.emit(MSG.HOST); } catch (e) {} });
@@ -120,10 +122,18 @@ socket.on(MSG.STATE, (s) => {
   } catch (e) {}
 });
 socket.on(MSG.END, showEnd);
+if (socket.connected) socket.emit(MSG.HOST); // module recharge: redemande le lobby
 
-$('start').addEventListener('click', () => { try { SFX.init(); console.log('[host] START envoye, connecte =', socket.connected);
-  socket.emit(MSG.START, (r) => console.log('[host] START ack', r)); } catch (e) {} });
-addEventListener('pointerdown', () => SFX.init());
+// Delegation sur document: survit a tout re-rendu du lobby. Emit AVANT l'audio pour qu'une erreur SFX ne le bloque jamais.
+if (window.__sbStartHandler) document.removeEventListener('click', window.__sbStartHandler);
+window.__sbStartHandler = (e) => {
+  if (!e.target.closest?.('#start')) return;
+  console.log('[host] START clicked, emitting', socket.id, 'connecte =', socket.connected);
+  socket.emit(MSG.START, (r) => console.log('[host] START ack', r));
+  try { SFX.init(); } catch (err) {}
+};
+document.addEventListener('click', window.__sbStartHandler);
+addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
 
 function loop() {
   try {
