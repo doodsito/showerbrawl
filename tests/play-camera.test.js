@@ -91,11 +91,11 @@ for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
       for (let i = 0; i < 20; i++) { if (game.countdown > 0) game.countdown = 0; place(pa, pb); await wait(50); }
       for (const page of pages) {
         const r = await page.evaluate(PROBE([a, b].map((p) => ({ id: p.id, x: p.x, y: p.y }))));
-        assert.ok(Math.abs(r.zoom - 1.4) < 1e-9, 'CAMERA_ZOOM applique');
+        assert.ok(Math.abs(r.zoom - 1.75) < 1e-9, 'CAMERA_ZOOM applique');
         assert.ok(r.tx <= 0 && r.ty <= 0 && r.tx + 960 * r.scale >= r.W - 1 && r.ty + 540 * r.scale >= r.H - 1, 'jamais hors decor');
         const me = r.players.find((p) => p.id === r.me);
         if (device.startsWith('iPhone')) {
-          const bar = await page.evaluate(() => { const e = document.querySelector('#iosbar'), h = document.querySelector('.hud'); const r = e.getBoundingClientRect(), q = h.getBoundingClientRect(); return { hidden: e.hidden, top: r.top, bottom: r.bottom, l: r.left, r: r.right, hud: q.bottom }; });
+          const bar = await page.evaluate(() => { const e = document.querySelector('#a2hs'), h = document.querySelector('.hud'); const r = e.getBoundingClientRect(), q = h.getBoundingClientRect(); return { hidden: e.hidden, top: r.top, bottom: r.bottom, l: r.left, r: r.right, hud: q.bottom }; });
           assert.equal(bar.hidden, false, 'bandeau iPhone affiche');
           assert.ok(bar.top >= bar.hud && bar.bottom < r.H / 2, 'bandeau en haut, sous le HUD');
           for (const q of r.rects) assert.ok(bar.bottom <= q.t || bar.r <= q.l || bar.l >= q.r, 'bandeau ne couvre pas les controles');
