@@ -120,7 +120,6 @@ function showLobby(d) {
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
     if (phase === 'lobby') { $('end').style.display = 'none'; clearInterval(endTimer); resetState(); }
     if (d.qr) $('qr').src = d.qr;
-    if (d.url) $('url').textContent = d.url;
     renderSlots(d);
     renderRoster(d.characters || {});
   } catch (e) {}
@@ -172,12 +171,10 @@ function renderSlots(d) {
 let rosterKey = '';
 function renderRoster(chars) {
   const ids = Object.keys(chars);
-  if (ids.length) $('charCount').textContent = `${ids.length} CHARACTERS`;
   const key = ids.map((id) => id + chars[id].sprite).join('|');
   if (key === rosterKey) return;
   rosterKey = key;
   const box = $('roster'); box.innerHTML = '';
-  const t = document.createElement('span'); t.className = 't'; t.textContent = `${ids.length} CHARACTERS`; box.appendChild(t);
   for (const id of ids) {
     const r = document.createElement('div'); r.className = 'r';
     const s = document.createElement('div'); s.className = 'spr'; s.appendChild(spriteEl(chars[id], id));
@@ -234,7 +231,7 @@ function showEnd(d) {
 const socket = window.__sbHostSocket || (window.__sbHostSocket = io());
 socket.off();
 let stateLogged = false;
-const status = (t) => { try { $('url').dataset.status = t; $('start').title = t; } catch (e) {} };
+const status = (t) => { try { $('start').title = t; } catch (e) {} };
 socket.on('connect', () => { console.log('[host] socket connecte', socket.id, socket.io.engine.transport.name); status(''); try { socket.emit(MSG.HOST); } catch (e) {} });
 socket.on('connect_error', (e) => { console.warn('[host] serveur injoignable', e.message); status('server unreachable'); $('start').textContent = 'SERVER UNREACHABLE'; });
 socket.on('disconnect', (r) => console.warn('[host] deconnecte', r));
@@ -321,3 +318,5 @@ requestAnimationFrame(loop);
 
 // Show the client release actually loaded, rather than the server SHA.
 $('version').textContent = `v ${CLIENT_VERSION}`;
+// SHA visible uniquement en debug (?debug=1 ou ?fps=1) pour verifier un deploiement.
+if (SHOW_FPS || new URLSearchParams(location.search).get('debug') === '1') $('version').style.display = 'block';
