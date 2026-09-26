@@ -2,6 +2,8 @@ import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
 import { render, pushEvents } from './scene.js';
 import { SFX } from './sfx.js';
+import { createDecor, DECOR_W, DECOR_H } from './decor.js';
+import { getSprite, getImage, spriteUrl } from './sprites.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
@@ -74,27 +76,90 @@ addEventListener('resize', resize); resize();
 function showLobby(d) {
   try {
     lobby = d; phase = d.phase || 'lobby';
-    $('lobby').style.display = phase === 'lobby' ? 'flex' : 'none';
+    $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
+    $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
     if (phase === 'lobby') { $('end').style.display = 'none'; resetState(); }
     if (d.qr) $('qr').src = d.qr;
     if (d.url) $('url').textContent = d.url;
-    for (const t of ['A', 'B']) {
-      const ul = document.querySelector(`#team${t} ul`);
-      ul.innerHTML = '';
-      for (const p of (d.teams && d.teams[t]) || []) {
-        const li = document.createElement('li');
-        const ch = d.characters && d.characters[p.character];
-        li.textContent = `${p.name}${ch ? ' (' + ch.name + ')' : ''}`;
-        if (ch && /\.(png|webp|gif|jpe?g)$/i.test(ch.sprite || '')) {
-          const im = document.createElement('img'); im.src = ch.sprite.startsWith('/') ? ch.sprite : '/' + ch.sprite;
-          im.style.cssText = 'height:28px;vertical-align:middle;margin-left:8px;image-rendering:pixelated';
-          im.onerror = () => im.remove(); li.appendChild(im);
-        }
-        ul.appendChild(li);
-      }
-    }
+    renderSlots(d);
+    renderRoster(d.characters || {});
   } catch (e) {}
+}
+
+// Sprite deja configure pour le perso: PNG si sprite est un chemin (ou sprites/<id>.png), sinon crane runtime.
+function spriteEl(ch, id) {
+  const url = spriteUrl(ch && ch.sprite, id);
+  const im = document.createElement('img'); im.alt = '';
+  const skull = () => { try { const c = getSprite(id); if (!c) return null; const k = document.createElement('canvas'); k.width = c.width; k.height = c.height; k.getContext('2d').drawImage(c, 0, 0); k.style.height = '70%'; return k; } catch (e) { return null; } };
+  if (!url) return skull() || im;
+  im.onerror = () => { const k = skull(); if (k) im.replaceWith(k); else im.remove(); };
+  im.src = url; getImage(ch && ch.sprite, id);
+  return im;
+}
+
+const SLOTS_PER_TEAM = 4;
+function renderSlots(d) {
+  for (const t of ['A', 'B']) {
+    const ul = document.querySelector(`#team${t} ul`);
+    ul.innerHTML = '';
+    const players = (d.teams && d.teams[t]) || [];
+    const n = Math.max(SLOTS_PER_TEAM, players.length); // au-dela de 4, on ajoute des slots (limite joueurs inchangee)
+    ul.style.gap = n > SLOTS_PER_TEAM ? '.4vh' : '';
+    for (let i = 0; i < n; i++) {
+      const p = players[i];
+      const li = document.createElement('li');
+      if (n > SLOTS_PER_TEAM) li.style.height = `min(8.4vh, ${Math.floor(56 / n)}vh)`;
+      if (!p) {
+        li.className = 'slot empty';
+        li.innerHTML = '<span class="plus">+</span><span>WAITING FOR PLAYER...</span>';
+      } else {
+        const ch = d.characters && d.characters[p.character];
+        li.className = 'slot on';
+        const spr = document.createElement('span'); spr.className = 'spr'; spr.appendChild(spriteEl(ch, p.character));
+        const txt = document.createElement('span'); txt.className = 'txt';
+        const pn = document.createElement('span'); pn.className = 'pn'; pn.textContent = p.name || '?';
+        const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = ch ? ch.name : p.character;
+        txt.append(pn, cn);
+        if (t === 'B') { li.style.flexDirection = 'row-reverse'; txt.style.alignItems = 'flex-end'; }
+        li.append(spr, txt);
+      }
+      ul.appendChild(li);
+    }
+  }
+}
+
+// Bande roster non interactive: les persos de characters.json (le choix reste sur /play/).
+let rosterKey = '';
+function renderRoster(chars) {
+  const ids = Object.keys(chars);
+  const key = ids.map((id) => id + chars[id].sprite).join('|');
+  if (key === rosterKey) return;
+  rosterKey = key;
+  const box = $('roster'); box.innerHTML = '';
+  const t = document.createElement('span'); t.className = 't'; t.textContent = `${ids.length} CHARACTERS`; box.appendChild(t);
+  for (const id of ids) {
+    const r = document.createElement('div'); r.className = 'r';
+    const s = document.createElement('div'); s.className = 'spr'; s.appendChild(spriteEl(chars[id], id));
+    const n = document.createElement('span'); n.textContent = chars[id].name || id;
+    r.append(s, n); box.appendChild(r);
+  }
+}
+
+// Fond du lobby: decor Maison Blanche (client/decor.js), anime, en "cover".
+let lobbyDecor = null;
+function drawLobbyBg() {
+  const c = $('lobbyBg');
+  if (c.width !== innerWidth || c.height !== innerHeight) { c.width = innerWidth; c.height = innerHeight; }
+  const g = c.getContext('2d');
+  if (!lobbyDecor) lobbyDecor = createDecor();
+  const k = Math.max(c.width / DECOR_W, c.height / DECOR_H);
+  g.setTransform(k, 0, 0, k, (c.width - DECOR_W * k) / 2, (c.height - DECOR_H * k) / 2);
+  g.imageSmoothingEnabled = false;
+  g.drawImage(lobbyDecor.background, 0, 0);
+  lobbyDecor.animate(g, performance.now() / 1000);
+  lobbyDecor.foreground(g);
+  g.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function showEnd(d) {
@@ -122,7 +187,7 @@ const status = (t) => { try { $('url').dataset.status = t; $('start').title = t;
 socket.on('connect', () => { console.log('[host] socket connecte', socket.id, socket.io.engine.transport.name); status(''); try { socket.emit(MSG.HOST); } catch (e) {} });
 socket.on('connect_error', (e) => { console.warn('[host] serveur injoignable', e.message); status('serveur injoignable'); $('start').textContent = 'SERVEUR INJOIGNABLE'; });
 socket.on('disconnect', (r) => console.warn('[host] deconnecte', r));
-socket.on(MSG.LOBBY, (d) => { console.log('[host] LOBBY', d.phase, (d.teams?.A?.length || 0) + (d.teams?.B?.length || 0), 'joueurs'); if (socket.connected) $('start').textContent = 'START'; showLobby(d); });
+socket.on(MSG.LOBBY, (d) => { console.log('[host] LOBBY', d.phase, (d.teams?.A?.length || 0) + (d.teams?.B?.length || 0), 'joueurs'); if (socket.connected) $('start').textContent = 'START MATCH'; showLobby(d); });
 socket.on(MSG.STATE, (s) => {
   if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
@@ -154,6 +219,7 @@ document.addEventListener('click', window.__sbResetHandler);
 addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
 
 function loop() {
+  try { if (phase === 'lobby') drawLobbyBg(); } catch (e) {}
   try { $('reset').style.display = phase === 'lobby' ? 'none' : 'block'; } catch (e) {}
   try {
     if (phase !== 'lobby') render(ctx, canvas.width, canvas.height, lobby && lobby.arena, currentState(), lobby && lobby.characters);
