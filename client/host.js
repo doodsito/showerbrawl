@@ -12,37 +12,49 @@ const ctx = canvas.getContext('2d');
 let lobby = null;
 let phase = 'lobby';
 
+<<<<<<< HEAD
 // Interpolation: rendu à serverTime - 70 ms, extrapolation courte (50 ms max) si le STATE suivant tarde.
 const RENDER_DELAY = 70;
 const MAX_EXTRAPOLATION = 50;
-let updates = [], firstT = 0, start = 0;
-function resetState() { updates = []; firstT = 0; start = 0; }
-function serverTime() { return firstT + (Date.now() - start) - RENDER_DELAY; }
+let updates = [], clockOffset = null;
+function resetState() { updates = []; clockOffset = null; }
+// Horloge serveur estimee, recalee en douceur a chaque STATE (derive d'horloge et gigue lissees, jamais de saut).
+function serverTime() { return performance.now() + clockOffset - RENDER_DELAY; }
 function baseIndex() {
   const t = serverTime();
   for (let i = updates.length - 1; i >= 0; i--) if (updates[i].t <= t) return i;
   return -1;
 }
 function pushUpdate(u) {
-  if (!firstT) { firstT = u.t; start = Date.now(); }
+  const off = u.t - performance.now();
+  if (clockOffset === null || Math.abs(off - clockOffset) > 500) clockOffset = off;
+  else if (off > clockOffset) clockOffset += (off - clockOffset) * 0.1; // paquet en avance: on rattrape vite
+  else clockOffset += (off - clockOffset) * 0.02; // paquet en retard (gigue): on recule lentement
   updates.push(u);
   const b = baseIndex();
   if (b > 1) updates.splice(0, b - 1); // garde le snapshot precedent pour pouvoir extrapoler
+  if (updates.length > 30) updates.splice(0, updates.length - 30);
 }
 const lerp = (a, b, r) => a + (b - a) * r;
+const LERP_KEYS = ['age', 'ttl', 'pose', 'recoil'], LERP_SUB = ['launch', 'shove'];
+const byId = new Map();
 function lerpList(l1, l2, r) {
-  const m = new Map((l2 || []).map((o) => [o.id, o]));
-  return (l1 || []).map((o) => {
-    const n = m.get(o.id);
-    if(!n)return o;
-    const result={...o,x:lerp(o.x,n.x,r),y:lerp(o.y,n.y,r)};
-    for(const key of ['age','ttl','pose','recoil'])if(Number.isFinite(o[key])&&Number.isFinite(n[key]))result[key]=lerp(o[key],n[key],r);
-    for(const key of ['launch','shove'])if(o[key]&&n[key])result[key]={...o[key],progress:lerp(o[key].progress,n[key].progress,r)};
-    return result;
-  });
+  if (!l1) return [];
+  byId.clear();
+  if (l2) for (let i = 0; i < l2.length; i++) byId.set(l2[i].id, l2[i]);
+  const out = new Array(l1.length);
+  for (let i = 0; i < l1.length; i++) {
+    const o = l1[i], n = byId.get(o.id);
+    if (!n) { out[i] = o; continue; }
+    const result = { ...o, x: lerp(o.x, n.x, r), y: lerp(o.y, n.y, r) };
+    for (const key of LERP_KEYS) if (Number.isFinite(o[key]) && Number.isFinite(n[key])) result[key] = lerp(o[key], n[key], r);
+    for (const key of LERP_SUB) if (o[key] && n[key]) result[key] = { ...o[key], progress: lerp(o[key].progress, n[key].progress, r) };
+    out[i] = result;
+  }
+  return out;
 }
 function currentState() {
-  if (!firstT || !updates.length) return null;
+  if (clockOffset === null || !updates.length) return null;
   const b = baseIndex();
   if (b < 0) return updates[updates.length - 1];
   if (b === updates.length - 1) {
@@ -53,8 +65,8 @@ function currentState() {
     return { ...last, players: lerpList(prev.players, last.players, 1 + ahead / (last.t - prev.t)) };
   }
   const a = updates[b], n = updates[b + 1];
-  const r = (serverTime() - a.t) / ((n.t - a.t) || 1);
-  return { ...n, players: lerpList(a.players, n.players, r), projectiles: lerpList(a.projectiles, n.projectiles, r), zones: lerpList(a.zones, n.zones, r), walls: lerpList(a.walls,n.walls,r), effects: lerpList(a.effects,n.effects,r) };
+  const r = Math.min(1, Math.max(0, (serverTime() - a.t) / ((n.t - a.t) || 1)));
+  return { ...n, players: lerpList(a.players, n.players, r), projectiles: lerpList(a.projectiles, n.projectiles, r), zones: lerpList(a.zones, n.zones, r), walls: lerpList(a.walls, n.walls, r), effects: lerpList(a.effects, n.effects, r) };
 }
 
 // Sons déclenchés par diff des snapshots
