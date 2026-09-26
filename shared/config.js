@@ -11,4 +11,7 @@ export const CONFIG = {
   TEAMS: ['A', 'B'],
   PLAYER_RADIUS: 18,
   KNOCKBACK: 1.0, // multiplicateur de recul sur impact
+  KILL_HEAL: 25, // PV rendus au tueur a chaque kill (plafonne a maxHp), comme le siphon de magic-arena
+  REGEN_PER_SEC: 1, // regeneration passive en PV/s...
+  REGEN_DELAY: 3, // ...seulement apres N secondes hors combat (ni coup donne ni coup recu)
 };

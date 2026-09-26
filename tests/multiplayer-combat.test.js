@@ -125,3 +125,22 @@ test('countdown 3-2-1: players frozen, inputs ignored and match timer stopped un
     assert.ok(game.timeLeft<t0,'timer demarre apres FIGHT');
   } finally { game.dispose(); }
 });
+
+test('kill: soin au tueur plafonne a maxHp, evenement kill avec le nom du tueur', t => {
+ const {game,p,q}=setup(t,'biden','musk');
+ p.hp=50;q.hp=0;game.kill(q,p.id);
+ assert.equal(p.hp,50+25);assert.equal(p.kills,1);
+ const ev=game.events.find(e=>e.k==='kill');assert.equal(ev.killerName,p.name);assert.equal(ev.name,q.name);assert.equal(ev.fell,false);
+ p.hp=p.maxHp-5;game.spawn(q);game.kill(q,p.id);assert.equal(p.hp,p.maxHp,'plafonne');
+});
+test('regeneration passive: 1 PV/s seulement apres 3 s hors combat', t => {
+ const {game,p,q}=setup(t,'biden','musk');Object.assign(q,{x:700});
+ p.hp=50;p.combatAt=game.clock;
+ for(let i=0;i<20;i++)game.tick(.1);assert.equal(p.hp,50,'pas de regen avant 3 s');
+ for(let i=0;i<20;i++)game.tick(.1);assert.ok(p.hp>50.5&&p.hp<52,'~1 PV/s ensuite');
+ game.damage(p,5,q.id,q.x,q.y);const hp=p.hp;for(let i=0;i<10;i++)game.tick(.1);assert.equal(p.hp,hp,'coup recu: regen coupee');
+});
+test('chute hors du toit: evenement kill marque fell', t => {
+ const {game,q}=setup(t,'biden','musk');q.x=-50;game.tick(.05);
+ const ev=game.events.find(e=>e.k==='kill');assert.ok(ev);assert.equal(ev.fell,true);
+});
