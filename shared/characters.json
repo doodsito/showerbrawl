@@ -20,7 +20,7 @@
   },
   "obama": {
     "name": "Obama", "hp": 105, "speed": 195, "sprite": "sprites/obama.png", "labKit": true, "fullBody": true,
-    "attack": {"type": "projectile", "label": "Energy", "icon": "sprites/obama_attack.png", "visual": "energy"},
+    "attack": {"type": "projectile", "travel": true, "range": 600, "speed": 600, "damage": 11, "knockback": 200, "cooldown": 0.85, "recovery": 0.19, "label": "Energy", "icon": "sprites/obama_attack.png", "visual": "energy"},
     "defense": {"type": "dash", "distance": 238, "duration": 0.28, "away": true, "invulnerable": false, "cooldown": 4, "label": "Dodge", "icon": "sprites/obama.png"},
     "super":  {"type": "zone", "behavior": "micDrop", "damage": 30, "radius": 110, "delay": 0.85, "cooldown": 5, "charge": 100, "label": "Mic Drop", "icon": "sprites/obama_super.png"}
   },

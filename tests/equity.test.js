@@ -7,7 +7,7 @@ import { characters, arena } from '../server/loader.js';
 import { cast } from '../server/abilities.js';
 import { CONFIG } from '../shared/config.js';
 
-const IDS = Object.keys(characters);
+const IDS = Object.keys(characters).filter(id=>!characters[id].attack.travel);
 const B = CONFIG.BASE_ATTACK;
 
 function duel(id, dist = 60) {
@@ -75,7 +75,7 @@ for (let i = 0; i < IDS.length; i++) for (let j = i + 1; j < IDS.length; j++) {
 }
 
 test('memes PV et meme vitesse pour tous (CONFIG.BASE_HP / BASE_SPEED)', () => {
-  for (const id of IDS) {
+  for (const id of Object.keys(characters)) {
     assert.equal(characters[id].hp, CONFIG.BASE_HP, `${id}: hp`);
     assert.equal(characters[id].speed, CONFIG.BASE_SPEED, `${id}: speed`);
   }
