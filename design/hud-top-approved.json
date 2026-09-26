@@ -1,0 +1,186 @@
+{
+  "id": "showerbrawl-hud-top-approved-v1",
+  "status": "approved",
+  "approvedAt": "2026-09-26",
+
+  "scope": {
+    "screen": "host-game",
+    "changeOnly": [
+      "top scoreboard HUD",
+      "match timer",
+      "stop-match button",
+      "player nameplate styling"
+    ],
+    "doNotChange": [
+      "White House arena background",
+      "arena geometry",
+      "crowd",
+      "lighting",
+      "fighter sprites",
+      "fighter scale",
+      "fighter positions",
+      "gameplay",
+      "networking",
+      "physics"
+    ]
+  },
+
+  "visualDirection": {
+    "style": "retro 16-bit pixel-art fighting game HUD",
+    "match": "existing White House arena visual language",
+    "keywords": [
+      "arcade",
+      "fight night",
+      "pixel art",
+      "dark navy",
+      "red corner",
+      "blue corner",
+      "hard outlines",
+      "small highlights",
+      "no SaaS styling"
+    ]
+  },
+
+  "scoreboard": {
+    "position": "top-center",
+    "referenceViewport": {
+      "width": 960,
+      "height": 540
+    },
+
+    "container": {
+      "width": 520,
+      "height": 58,
+      "y": 8,
+      "background": "#08111f",
+      "outline": "#030812",
+      "outlineWidth": 4,
+      "innerBorder": "#34445d",
+      "innerBorderWidth": 2,
+      "shape": "angular arcade frame",
+      "pixelCorners": true
+    },
+
+    "blueSection": {
+      "position": "left",
+      "label": "BLEUS",
+      "accent": "#2f7de1",
+      "accentLight": "#60a5fa",
+      "text": "#ddebff",
+      "scoreFormat": "BLEUS {scoreA}",
+      "decoration": [
+        "white star",
+        "red-white stripe motif"
+      ]
+    },
+
+    "timer": {
+      "position": "center",
+      "width": 132,
+      "height": 48,
+      "background": "#111a2b",
+      "border": "#65758a",
+      "borderWidth": 2,
+      "text": "#f4f1e8",
+      "fontStyle": "bold blocky pixel / monospace",
+      "fontSizeReference": 34,
+      "format": "MM:SS"
+    },
+
+    "redSection": {
+      "position": "right",
+      "label": "ROUGES",
+      "accent": "#e0413a",
+      "accentLight": "#f87171",
+      "text": "#ffe2df",
+      "scoreFormat": "{scoreB} ROUGES",
+      "decoration": [
+        "white star",
+        "red stripe motif"
+      ]
+    }
+  },
+
+  "stopButton": {
+    "elementId": "reset",
+    "position": "top-right",
+    "label": "ARRÊTER LA MANCHE",
+
+    "size": {
+      "width": 190,
+      "height": 48
+    },
+
+    "style": {
+      "background": "#df3737",
+      "backgroundHighlight": "#f35454",
+      "outline": "#54131c",
+      "outlineWidth": 4,
+      "innerBorder": "#ff7878",
+      "innerBorderWidth": 2,
+      "text": "#fff3e9",
+      "fontStyle": "bold pixel / arcade",
+      "angularCorners": true,
+      "shadow": "dark pixel offset"
+    }
+  },
+
+  "fighterNameplate": {
+    "enabled": true,
+    "position": "below fighter",
+    "style": {
+      "background": "#10182a",
+      "outline": "#050a12",
+      "teamAccent": true,
+      "blueAccent": "#2f7de1",
+      "redAccent": "#e0413a",
+      "text": "#ffffff",
+      "fontStyle": "bold pixel / monospace",
+      "compact": true
+    }
+  },
+
+  "typography": {
+    "direction": "blocky pixel arcade",
+    "fallback": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    "uppercase": true,
+    "avoid": [
+      "system-ui dashboard appearance",
+      "thin fonts",
+      "rounded SaaS typography"
+    ]
+  },
+
+  "responsive": {
+    "scoreboard": "stay centered horizontally",
+    "stopButton": "stay aligned top-right with safe margin",
+    "priority": [
+      "timer readability",
+      "scores readability",
+      "stop button visibility"
+    ]
+  },
+
+  "runtimeBindings": {
+    "scoreBlue": "state.score.A",
+    "scoreRed": "state.score.B",
+    "timeLeft": "state.timeLeft",
+    "stopButton": "#reset"
+  },
+
+  "implementationTargets": {
+    "canvasHud": "client/scene.js",
+    "stopButtonMarkup": "client/index.html"
+  },
+
+  "acceptanceCriteria": [
+    "The old plain black scoreboard is completely gone.",
+    "The scoreboard visually belongs to the White House pixel-art arena.",
+    "Blue score is clearly identified on the left.",
+    "Red score is clearly identified on the right.",
+    "Timer is isolated in a central dark arcade panel.",
+    "ARRÊTER LA MANCHE uses the same pixel-art language.",
+    "The arena and existing fighter sprites remain visually unchanged.",
+    "No gameplay or network behavior changes."
+  ]
+}
