@@ -10,7 +10,8 @@ function loadCharacters() {
   const out = {};
   for (const [id, c] of Object.entries(raw)) {
     if (id.startsWith('_') || !c || typeof c !== 'object') continue;
-    const ch = { id, name: c.name || id, hp: c.hp || 100, speed: c.speed || 200, sprite: c.sprite || id };
+    // Tous les champs du perso sont transmis (labKit, fullBody, hint...): un nouveau perso marche sans toucher au code.
+    const ch = { ...c, id, name: c.name || id, hp: c.hp || 100, speed: c.speed || 200, sprite: c.sprite || id };
     for (const s of SLOTS) {
       const a = c[s];
       if (a && ABILITY_TYPES.includes(a.type)) ch[s] = { cooldown: 1, ...a };
