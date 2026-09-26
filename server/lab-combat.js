@@ -55,10 +55,10 @@ function launch(ctx, p, target) {
 export function castLab(ctx, p, a) {
   if (a.behavior === 'wall') {
     const len = Math.hypot(p.fx, p.fy) || 1, ux = p.fx / len, uy = p.fy / len;
-    const wall = { id: ctx.nextId(), owner: p.id, team: p.team, x: p.x + ux * 76, y: p.y + uy * 76,
-      ux, uy, width: 24, depth: 150, slant: .2, hp: 36, maxHp: 36, age: 0, ttl: a.duration };
+    const wall = { id: ctx.nextId(), owner: p.id, team: p.team, x: p.x + ux * 52, y: p.y + uy * 52,
+      ux, uy, width: 20, depth: 90, slant: .2, hp: 36, maxHp: 36, age: 0, ttl: a.duration };
     // Check the whole footprint against grid edges and static obstacles.
-    for (let x = -12; x <= 12; x += 4) for (let y = -75; y <= 75; y += 5) {
+    for (let x = -10; x <= 10; x += 4) for (let y = -45; y <= 45; y += 5) {
       const lx = x + y * wall.slant;
       if (ctx.physics.collidesWithWall(wall.x + ux * lx - uy * y, wall.y + uy * lx + ux * y, 3, false)) return false;
     }

@@ -8,24 +8,28 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
   const poly=(points,color,stroke)=>{g.beginPath();points.forEach(([x,y],i)=>i?g.lineTo(Math.round(x),Math.round(y)):g.moveTo(Math.round(x),Math.round(y)));g.closePath();g.fillStyle=color;g.fill();if(stroke){g.strokeStyle=stroke;g.lineWidth=2;g.stroke();}};
   const line=(x,y,x2,y2,c,width=1)=>{g.strokeStyle=c;g.lineWidth=width;g.beginPath();g.moveTo(Math.round(x),Math.round(y));g.lineTo(Math.round(x2),Math.round(y2));g.stroke();};
   const label=(text,x,y,size,color,align='center')=>{g.fillStyle=color;g.font=`900 ${size}px monospace`;g.textAlign=align;g.fillText(text,Math.round(x),Math.round(y));};
+  // Couleurs du mur selon l'equipe du lanceur (plus de dalle grise neutre).
+  const WALL_COLORS={A:{face:'#2c5a9e',edge:'#10233f',top:'#7fb0f0',bricks:['#3a6fbf','#2f62ad','#4a80d0']},
+    B:{face:'#9e2f2c',edge:'#3f1010',top:'#f09a8f',bricks:['#bf423a','#ad342f','#d05a4f']}};
   function wall(obstacle) {
+    const WC=WALL_COLORS[obstacle.team]||WALL_COLORS.A;
     const floor=wallCorners(obstacle).map(p=>project(p.x,p.y));
-    const h=52*(reducedMotion?1:Math.min(1,obstacle.age/.24)), top=floor.map(([x,y])=>[x,y-h]);
+    const h=30*(reducedMotion?1:Math.min(1,obstacle.age/.24)), top=floor.map(([x,y])=>[x,y-h]);
     g.save();g.globalAlpha=obstacle.ttl<1?.65+obstacle.ttl*.35:1;
     poly(floor.map(([x,y])=>[x+10,y+4]),'#10203155');
     for(let i=0;i<4;i++){
       const j=(i+1)%4,a=floor[i],b=floor[j];
       if(b[0]>=a[0])continue;
-      const face=[top[i],top[j],b,a];poly(face,'#657489','#29384c');
+      const face=[top[i],top[j],b,a];poly(face,WC.face,WC.edge);
       g.save();g.beginPath();face.forEach(([x,y],n)=>n?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.clip();
       g.transform((b[0]-a[0])/80,(b[1]-a[1])/80,0,1,a[0],a[1]-h);
-      for(let row=0;row<6;row++)for(let col=-1;col<5;col++)rect(col*20+(row%2?10:0)+1,row*10+1,18,8,['#788697','#67768a','#8793a1'][(row+col+6)%3]);
-      if(i%2===1 && obstacle.age>.18){g.save();g.translate(80,0);g.scale(-1,1);label('MAGA',40,32,16,'#ea7467');g.restore();}
+      for(let row=0;row<6;row++)for(let col=-1;col<5;col++)rect(col*20+(row%2?10:0)+1,row*10+1,18,8,WC.bricks[(row+col+6)%3]);
+      if(i%2===1 && obstacle.age>.18){g.save();g.translate(80,0);g.scale(-1,1);label('MAGA',40,20,12,'#fff4d8');g.restore();}
       if(obstacle.hp<36){line(48,0,38,20,'#273245',2);line(38,20,47,38,'#273245',2);}
       if(obstacle.hp<=12)line(15,20,27,50,'#273245',3);
       g.restore();
     }
-    poly(top,'#abb4bf','#465569');
+    poly(top,WC.top,WC.edge);
     const [x]=project(obstacle.x,obstacle.y), y=Math.min(...top.map(p=>p[1]))-8;
     rect(x-20,y,40,4,'#172331');rect(x-19,y+1,38*obstacle.hp/36,2,obstacle.team==='A'?'#70a6ed':'#fa6970');g.restore();
   }
