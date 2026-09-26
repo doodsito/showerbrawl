@@ -94,6 +94,12 @@ function setupPad() {
   if(st.character==='trump')$('#kit-hint').textContent='Direct au contact · Mur devant toi · Super chargé en combat';
   if(st.character==='macron')$('#kit-hint').textContent='Baguettes : +25 % par impact · Lunettes : bouclier · 49.3 ciblé';
   document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : 'var(--b)');
+  document.body.dataset.team = st.team || '';
+  const nm = ($('#name').value || '').trim() || 'JOUEUR', img = $('#meImg');
+  $('#meName').textContent = nm; $('#meChar').textContent = ch.name || st.character || '--';
+  $('#meTeam').textContent = st.team === 'A' ? 'ÉQUIPE BLEUE' : 'ÉQUIPE ROUGE';
+  $('#meInit').textContent = (ch.name || st.character || '?')[0].toUpperCase();
+  img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = '/' + ch.sprite; img.onerror = () => { img.hidden = true; }; }
   if (stick) return;
   try {
     stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', color: 'white', size: 130 });
@@ -141,8 +147,15 @@ function cdLoop() {
       b.querySelector('.cd').style.setProperty('--p', charged&&st.energy<100?1-st.energy/100:total ? left / total : 0);
       b.querySelector('em').textContent = charged&&st.energy<100?`${Math.floor(st.energy)}%`:left > 0 ? `${Math.ceil(left / 1000)}s` : charged?'PRÊT':'';
       b.disabled=!st.joined||st.phase!=='playing'||!st.alive;
+      b.classList.toggle('cool',left>0||(!!charged&&st.energy<100));
       b.classList.toggle('ready',!!charged&&st.energy>=100&&left===0);
     });
+  } catch (e) {}
+    try {
+    const ph = st.phase, alive = st.alive, bd = document.body.dataset;
+    bd.phase = ph; bd.alive = alive ? '1' : '0';
+    $('#meStatus').textContent = !socket.connected ? 'HORS LIGNE' : ph === 'playing' ? (alive ? 'IN MATCH' : 'ÉLIMINÉ') : ph === 'ended' ? 'FIN' : 'READY';
+    $('#wait').hidden = ph === 'playing';
   } catch (e) {}
   requestAnimationFrame(cdLoop);
 }
@@ -192,7 +205,7 @@ socket.on(MSG.ME, (me) => {
     if (st.lastHp != null && me.hp < st.lastHp) { try { navigator.vibrate?.(60); } catch (e) {} }
     st.lastHp = me.hp;
     const r = $('#respawn');
-    if (me.alive === false) { r.hidden = false; r.textContent = `Respawn dans ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}s`; }
+    if (me.alive === false) { r.hidden = false; r.innerHTML = `<b>ÉLIMINÉ</b><span>RESPAWN DANS ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}S</span>`; }
     else r.hidden = true;
   } catch (e) {}
 });

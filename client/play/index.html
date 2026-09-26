@@ -3,34 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#101820">
+<meta name="theme-color" content="#0b1020">
 <title>Shower Brawl Manette</title>
 <link rel="stylesheet" href="./play.css">
 </head>
 <body>
 <section id="select">
-  <h1>Shower Brawl</h1>
+  <h1 class="logo">SHOWER<br><b>BRAWL</b></h1>
+  <p class="sub">CHOISIS TON CAMP</p>
   <input id="name" maxlength="16" placeholder="Ton pseudo (optionnel)" autocomplete="off">
   <div class="teams">
     <button class="team A" data-team="A">Équipe Bleue</button>
     <button class="team B" data-team="B">Équipe Rouge</button>
   </div>
   <div id="chars" class="chars"></div>
-  <button id="join" class="join" disabled>Rejoindre</button>
+  <button id="join" class="join" disabled>REJOINDRE LE COMBAT</button>
   <p id="err" class="err"></p>
 </section>
 <section id="pad" hidden>
-  <header class="hud"><span id="hp">PV --</span><span id="score"><b class="a">0</b> - <b class="b">0</b></span><span id="timer">--:--</span></header>
+  <header class="band">
+    <div class="chip"><img id="meImg" alt="" hidden><b id="meInit">?</b></div>
+    <div class="who"><b id="meName">JOUEUR</b><span id="meChar">--</span><i id="meTeam" class="tag">ÉQUIPE</i></div>
+    <div id="meStatus" class="status">CONNECTÉ</div>
+  </header>
+  <div class="hud"><span id="hp">PV --</span><span id="score"><b class="a">0</b> - <b class="b">0</b></span><span id="timer">--:--</span></div>
   <p id="kit-hint" class="kit-hint"></p>
+  <div id="wait" class="wait"><small>YOU ARE IN</small><strong>PRÊT</strong><span>WAIT FOR THE MATCH TO START</span></div>
   <div id="respawn" class="respawn" hidden></div>
-  <div id="stick" class="stick"></div>
+  <div id="stick" class="stick"><div class="ring"><div class="ring2"><div class="puck"></div></div></div><small>MOVE</small></div>
   <div class="btns">
-    <button class="btn" data-k="super"><img alt="" hidden><span></span><i class="cd"></i><em></em></button>
-    <button class="btn" data-k="defense"><img alt="" hidden><span></span><i class="cd"></i><em></em></button>
-    <button class="btn big" data-k="attack"><img alt="" hidden><span></span><i class="cd"></i><em></em></button>
+    <button class="btn" data-k="super" data-l="S"><img alt="" hidden><span></span><i class="cd"></i><em></em></button>
+    <button class="btn" data-k="defense" data-l="D"><img alt="" hidden><span></span><i class="cd"></i><em></em></button>
+    <button class="btn big" data-k="attack" data-l="A"><img alt="" hidden><span></span><i class="cd"></i><em></em></button>
   </div>
+  <p class="hints">POUCE GAUCHE = BOUGER · BOUTONS = ATTAQUE / DÉFENSE / SUPER</p>
 </section>
-<section id="end" hidden><h2 id="endTitle"></h2><p id="endScore"></p><p id="endMvp"></p><p>En attente de la prochaine manche...</p></section>
+<section id="end" hidden><div class="endcard"><small>FIN DE MANCHE</small><h2 id="endTitle"></h2><p id="endScore"></p><p id="endMvp"></p><p>En attente de la prochaine manche...</p></div></section>
 <script type="module" src="./play.js"></script>
 </body>
 </html>
