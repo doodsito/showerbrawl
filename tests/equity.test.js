@@ -1,3 +1,4 @@
+// Regle d'equipe: ne pas assouplir ces tests, changer BASE_ATTACK dans config.js a la place.
 // Equite: attaque de base, PV et vitesse identiques pour tous les persos (CONFIG.BASE_*).
 // Seules la defense et le super different. Mesures faites en jeu (cast + ticks), pas seulement sur la config.
 import test from 'node:test';
@@ -104,5 +105,16 @@ test('deplacement identique pour un perso labKit et un perso standard, avec ou s
   for (const id of [lab, std]) for (const near of [false, true]) {
     // s'eloigner de l'ennemi (ancien bonus de fuite) et avancer normalement
     assert.equal(run2s(id, near, 1), ref, `${id} ennemi proche=${near}`);
+  }
+});
+
+test('aucune attaque de base ne cree de projectile (coup au contact pour tous)', () => {
+  for (const id of IDS) {
+    assert.equal(characters[id].attack.travel, undefined, `${id}: attack.travel interdit`);
+    const { game: g, p } = duel(id, 400);
+    assert(cast(g, p, 'attack'), `${id}: cast`);
+    for (let i = 0; i < 5; i++) g.tick(0.05);
+    assert.equal(g.projectiles.length, 0, `${id}: projectile cree par l attaque de base`);
+    g.dispose();
   }
 });
