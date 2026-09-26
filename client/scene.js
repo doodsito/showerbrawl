@@ -161,8 +161,8 @@ function drawFx(ctx, state, b) {
     } else if (e.k === 'cast') {
       // nom du pouvoir au-dessus du lanceur
       ctx.globalAlpha = Math.min(1, 2 - 2 * k); ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
-      ctx.fillStyle = '#000c'; const w = ctx.measureText(e.label).width + 10; ctx.fillRect(x - w / 2, y - 84 - age * 0.02, w, 16);
-      ctx.fillStyle = SLOT_COL[e.slot] || '#fff'; ctx.fillText(e.label, x, y - 72 - age * 0.02);
+      ctx.fillStyle = '#000c'; const w = ctx.measureText(e.label).width + 10; ctx.fillRect(x - w / 2, y - 104 - age * 0.02, w, 16);
+      ctx.fillStyle = SLOT_COL[e.slot] || '#fff'; ctx.fillText(e.label, x, y - 92 - age * 0.02);
       // onde de choc pour burst et zone
       if ((e.type === 'burst' || e.type === 'zone') && age < 500) {
         ctx.globalAlpha = 1 - age / 500; ctx.strokeStyle = TEAM_COL[e.team] || '#fff'; ctx.lineWidth = 4;
@@ -222,7 +222,8 @@ function drawPlayer(ctx, p, characters, time) {
   const hp=Math.max(0,Math.min(1,p.hp/p.maxHp));
   ctx.fillStyle='#000a';ctx.fillRect(p.x-20,top-9,40,4);ctx.fillStyle=hp>.5?'#22c55e':hp>.25?'#facc15':'#ef4444';ctx.fillRect(p.x-20,top-9,40*hp,4);
   if(characters?.[p.character]?.super?.charge){ctx.fillStyle='#26314c';ctx.fillRect(p.x-20,top-3,40,2);ctx.fillStyle='#edcb80';ctx.fillRect(p.x-20,top-3,40*(p.energy||0)/100,2);}
-  ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillStyle='#000';ctx.fillText(p.name||'',p.x+1,p.y+7);ctx.fillStyle='#fff';ctx.fillText(p.name||'',p.x,p.y+6);
+  // Nom une seule fois, au-dessus de la barre de vie (plus sous les pieds, ou il semblait detache du perso).
+  ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle='#000';ctx.fillText(p.name||'',p.x+1,top-11);ctx.fillStyle='#fff';ctx.fillText(p.name||'',p.x,top-12);ctx.textBaseline='top';
   if(p.alive===false&&p.respawnIn>0){ctx.globalAlpha=1;ctx.font='bold 14px monospace';ctx.fillText(String(Math.ceil(p.respawnIn)),p.x,p.y-30);}
   ctx.restore();
 }
