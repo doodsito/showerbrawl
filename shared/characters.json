@@ -20,9 +20,9 @@
   },
   "obama": {
     "name": "Obama", "hp": 100, "speed": 205, "sprite": "sprites/obama.png", "labKit": true, "fullBody": true,
-    "attack": {"type": "projectile", "damage": 11, "range": 75, "knockback": 240, "cooldown": 0.42, "label": "Énergie", "icon": "sprites/obama_attack.png"},
+    "attack": {"type": "projectile", "damage": 11, "range": 75, "knockback": 240, "cooldown": 0.42, "label": "Énergie", "icon": "sprites/obama_attack.png", "visual": "energy"},
     "defense": {"type": "dash", "distance": 238, "duration": 0.28, "away": true, "invulnerable": false, "cooldown": 3.5, "label": "Esquive", "icon": "sprites/obama.png"},
-    "super":  {"type": "zone", "behavior": "micDrop", "damage": 28, "radius": 110, "range": 0, "delay": 0.85, "cooldown": 1.1, "charge": 100, "label": "Mic Drop", "icon": "sprites/obama_super.png"}
+    "super":  {"type": "zone", "behavior": "micDrop", "damage": 28, "radius": 110, "delay": 0.85, "cooldown": 1.1, "charge": 100, "label": "Mic Drop", "icon": "sprites/obama_super.png"}
   },
   "harris": {
     "name": "Harris", "hp": 98, "speed": 198, "sprite": "harris",

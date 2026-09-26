@@ -22,3 +22,7 @@ Toutes les images du jeu, au même endroit. Servies à `/sprites/<fichier>.png`.
 
 
 Macron : `macron_baguettes.svg` et `macron_sunglasses.svg` sont les icônes dessinées en code dans le labo. Le sprite existant `macron.png` et l’icône `macron_super.png` sont conservés. Les projectiles et le tampon sont dessinés en Canvas.
+
+## Objets d’attaque du lab
+
+`mic_object_v1.png` et `stamp_object_v1.png` sont dérivés des illustrations de l’équipe via l’outil intégré image_gen. Sources : `mic_drop.png` et `macron_super.png` du lab local. Les prompts sont dans `attack-art-prompts.json`. PNG RGBA conservés intacts ; le moteur cadre les objets lors du rendu.
