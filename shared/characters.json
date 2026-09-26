@@ -67,10 +67,10 @@
     "super":  {"type": "zone", "target": "enemy", "range": 480, "radius": 75, "delay": 0.65, "damage": 24, "knockback": 280, "cooldown": 6, "charge": 100, "label": "Venn Diagram"}
   },
   "maduro": {
-    "name": "Maduro", "hp": 105, "speed": 195, "sprite": "maduro", "hint": "Crude Oil: standard hit up close · Rigged Election: long shield · Hyperinflation: wide, slow targeted strike, charges in combat",
-    "attack": {"type": "projectile", "label": "Crude Oil"},
+    "name": "Maduro", "hp": 105, "speed": 195, "sprite": "sprites/maduro.png", "fullBody": true, "hint": "Crude Oil: standard hit up close · Rigged Election: long shield · Hyperinflation: wide, slow targeted strike, charges in combat",
+    "attack": {"type": "projectile", "label": "Crude Oil", "icon": "sprites/maduro_attack.png"},
     "defense": {"type": "shield", "duration": 1.8, "cooldown": 8.5, "label": "Rigged Election"},
-    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 115, "delay": 0.9, "damage": 30, "knockback": 300, "cooldown": 6, "charge": 100, "label": "Hyperinflation"}
+    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 115, "delay": 0.9, "damage": 30, "knockback": 300, "cooldown": 6, "charge": 100, "label": "Hyperinflation", "icon": "sprites/maduro_super.png"}
   },
   "schwarzenegger": {
     "name": "Schwarzenegger", "hp": 105, "speed": 195, "sprite": "schwarzenegger", "hint": "Hasta La Vista: standard hit up close · Get To The Choppa: shoving charge · I'll Be Back: targeted strike with huge knockback, charges in combat",
