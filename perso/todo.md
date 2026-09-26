@@ -113,7 +113,7 @@ Le `server/index.js` actuel est le squelette infra (test de latence), pas le ser
 Objectif : un pipeline de déploiement validé de bout en bout avant le jour J, sur lequel l'équipe n'a plus qu'à pousser son code.
 
 ### État de la VM (vérifié)
-- Ubuntu 24.04 aarch64, 4 cœurs, 24 Go RAM, 36 Go libres, Docker 29 installé
+- Région `eu-paris-1` (Paris), pas les US. Ubuntu 24.04 aarch64, 4 cœurs, 24 Go RAM, 36 Go libres, Docker 29 installé
 - Déjà en place : nginx (80/443) avec cert Cloudflare Origin wildcard `*.doodsito.com`, n8n (5678), eivom-api (127.0.0.1:8000)
 - DNS `doodsito.com` sur Cloudflare
 - Donc on réutilise ce pattern au lieu de cloudflared : `showerbrawl.doodsito.com` -> nginx (TLS) -> app Docker sur `127.0.0.1:3000`. URL fixe pour le QR code.
@@ -143,6 +143,11 @@ Objectif : un pipeline de déploiement validé de bout en bout avant le jour J, 
 - [ ] Secrets GitHub `DEPLOY_HOST` et `DEPLOY_KEY` ajoutés
 - [ ] Adapter `Dockerfile` / `deploy.sh` à la structure du moteur d'Axel dès qu'il pousse
 - [ ] Refaire le loadtest avec le vrai jeu
+
+### Latence - à trancher plus tard
+Mesuré depuis la Californie vers la VM à Paris : ~200 ms réseau, ~350-400 ms entre l'appui manette et l'affichage sur l'écran hôte.
+- [ ] Décider selon le lieu du hackathon : VPS côte ouest (Hetzner Hillsboro, Fly.io sjc ; Oracle gratuit bloqué sur Paris) ou serveur sur le laptop hôte en LAN. Si le hackathon est en France, garder Paris.
+- [ ] Code (Axel) : envoyer l'input à l'appui au lieu de toutes les 50 ms, `RENDER_DELAY` 100 -> ~60 ms
 
 
 ## Jeu v1 (moteur) - Responsable : Axel
@@ -178,5 +183,5 @@ Base : les contrats d'Axel dans `shared/` (`protocol.js`, `config.js`, `characte
 - Prédiction locale du déplacement du joueur (le serveur reste l'autorité)
 
 ## Risques
-1. Latence depuis les US (100-150 ms) : compensée par l'auto-aim et l'interpolation, à valider au test de charge.
+1. Latence : VM à Paris, ~200 ms depuis la Californie (voir "Latence - à trancher plus tard") : compensée par l'auto-aim et l'interpolation, à valider au test de charge.
 2. Volume de contenu (30 capacités, 10 sprites) : tient uniquement si tout passe par les 5 briques.
