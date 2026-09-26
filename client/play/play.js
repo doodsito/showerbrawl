@@ -5,6 +5,11 @@ import { MSG } from '../../shared/protocol.js';
 import { createView } from './view.js';
 import { preloadCombatArt } from '../combat-assets.js';
 
+// Zoom camera de la vue de jeu (1 = decor entier en hauteur). Plus petite valeur (pas de 0.05 depuis 1.4) ou le perso colle
+// a chaque mur reste hors du joystick et des boutons sur iPhone 15 et Pixel 7 paysage (tests/play-camera.test.js).
+// Si tu changes cette valeur, ajuste VIEW_HALF_WIDTH dans server/game.js (meme proportion inverse).
+const CAMERA_ZOOM = 1.75;
+
 const $ = (s) => document.querySelector(s);
 const socket = io();
 let stateLogged = false;
@@ -196,6 +201,7 @@ let viewEnabled = true;
 const SHOW_FPS = new URLSearchParams(location.search).get('fps') === '1';
 if (SHOW_FPS) $('#fps').hidden = false;
 const view = createView($('#view'), { getArena: () => st.arena, getCharacters: () => st.characters, myId: () => socket.id, fpsEl: SHOW_FPS ? $('#fps') : null });
+view.camera.zoom = CAMERA_ZOOM;
 function syncView() {
   const on = viewEnabled && st.joined && st.phase === 'playing' && !$('#pad').hidden;
   view.setActive(on);

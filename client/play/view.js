@@ -65,10 +65,10 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     cam.me = myId();
     if (me) {
       const [tx, ty] = decorPoint(arena, me.x, me.y);
-      if (!cam.ready) { cam.x = tx + 55; cam.y = ty - 30; cam.ready = true; }
+      if (!cam.ready) { cam.x = tx + 55; cam.y = ty + 10; cam.ready = true; }
       const k = 1 - Math.exp(-FOLLOW * dt);
       // perso un peu a gauche du centre (zone libre entre joystick et boutons), un peu au-dessus des pieds
-      cam.x += (tx + 55 - cam.x) * k; cam.y += (ty - 30 - cam.y) * k;
+      cam.x += (tx + 55 - cam.x) * k; cam.y += (ty + 10 - cam.y) * k;
     }
     ctx.imageSmoothingEnabled = false;
     render(ctx, canvas.width, canvas.height, arena, st, getCharacters(), cam);
