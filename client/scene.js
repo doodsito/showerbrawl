@@ -124,7 +124,7 @@ export function render(ctx, W, H, arena, state, characters) {
     for (const z of state.zones || []) {
       if(z.kind==='flamethrower'||z.kind==='cybertruck')continue;
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
-      if(z.kind==='strike'){fx.strikeZone(z);continue;}
+      if(z.kind==='strike'){if(z.visual==='decree')fx.decree(z);else fx.strikeZone(z);continue;}
       if(z.kind==='decree'){fx.decree(z);continue;}
       const [x, y] = worldToScreen(z.x, z.y, b);
       const rx = z.r * kx, ry = z.r * ky, pulse = 0.5 + 0.5 * Math.sin(now / 90);
@@ -163,7 +163,7 @@ export function render(ctx, W, H, arena, state, characters) {
     }
   }
   if(state)for(const z of state.zones||[])if(z.kind==='micDrop')fx.micDrop(z,true);
-  if(state)for(const z of state.zones||[])if(z.kind==='decree')fx.decree(z,true);
+  if(state)for(const z of state.zones||[])if(z.kind==='decree'||(z.kind==='strike'&&z.visual==='decree'))fx.decree(z,true);
   if(state)for(const z of state.zones||[])if(z.kind==='flamethrower')musk.flame(z);
   if(state)drawFx(ctx,state,b);
   if(state)drawKOs(ctx,b);
