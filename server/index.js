@@ -48,7 +48,7 @@ io.on('connection', (socket) => {
   // Client measures round-trip time with the ack callback
   socket.on(MSG.LATENCY, (ack) => typeof ack === 'function' && ack());
 
-  socket.on(MSG.HOST, () => { console.log(`[host] ${socket.id}`); socket.data.host = true; socket.join('hosts'); game.sendLobby(socket); });
+  socket.on(MSG.HOST, () => { console.log(`[host] ${socket.id}`); socket.data.host = true; socket.join('hosts'); game.sendLobby(); });
   socket.on(MSG.JOIN, (data, ack) => {
     let res;
     try { res = game.join(socket, data); } catch { res = { ok: false, error: 'erreur' }; }
@@ -70,6 +70,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     game.leave(socket.id);
+    if (socket.data.host) game.sendLobby(); // plus d'ecran hote: le premier joueur recupere le bouton START
     io.emit(MSG.COUNT, io.engine.clientsCount);
   });
 });
