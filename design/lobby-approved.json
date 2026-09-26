@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "id": "showerbrawl-lobby-approved-v1",
+  "status": "approved",
+  "approvedAt": "2026-09-26",
+  "purpose": "Source of truth for the host lobby visual implementation. Presentation only; game/network behavior stays unchanged.",
+  "target": {
+    "route": "/",
+    "screen": "host",
+    "players": 8,
+    "teams": 2,
+    "slotsPerTeam": 4,
+    "referenceViewport": {
+      "width": 960,
+      "height": 540,
+      "aspectRatio": "16:9"
+    }
+  },
+  "direction": {
+    "style": [
+      "retro 16-bit / pixel-art arcade",
+      "fight-night / arena broadcast",
+      "White House at sunset",
+      "dark navy UI panels with red/blue team accents",
+      "high readability over decorative density"
+    ],
+    "mustFeelLike": "The existing White House arena, not a SaaS lobby and not glossy mobile-cartoon art.",
+    "doNotUse": [
+      "large realistic or glossy portraits",
+      "generic rounded SaaS cards",
+      "independent art direction different from the in-game arena",
+      "new politician illustrations when an existing game sprite is available"
+    ]
+  },
+  "visualSources": {
+    "arena": {
+      "module": "client/decor.js",
+      "export": "createDecor",
+      "size": {
+        "width": 960,
+        "height": 540
+      },
+      "reuse": "mandatory",
+      "usage": "Render the existing White House sunset decor as the lobby background. Darken only as much as needed for UI readability."
+    },
+    "arenaSourceLab": "laboratoire/maison-blanche/src/renderer.js",
+    "characters": {
+      "config": "shared/characters.json",
+      "assetRoot": "client/public/sprites/",
+      "runtimeFallback": "client/sprites.js",
+      "rule": "Always render the sprite already configured for the selected character. If character.sprite is a PNG path, use that PNG. Do not redraw the character for the lobby.",
+      "knownConvention": "<id>.png plus optional <id>_attack.png, <id>_defense.png, <id>_super.png and fx_<name>.png"
+    }
+  },
+  "layout": {
+    "background": {
+      "source": "visualSources.arena",
+      "position": "full-bleed",
+      "overlay": "subtle dark navy overlay behind UI only; preserve sunset, White House, crowd and cage visibility"
+    },
+    "brand": {
+      "position": "top-center",
+      "title": "SHOWER BRAWL",
+      "subtitle": "THE WHITE HOUSE",
+      "treatment": "pixel-arcade lockup, white title with restrained red/blue accents",
+      "maxHeightPercent": 18
+    },
+    "meta": {
+      "topLeft": "8 PLAYERS",
+      "topRight": "10 CHARACTERS · 1 WINNER",
+      "treatment": "small pixel/monospace uppercase, low visual priority"
+    },
+    "joinPanel": {
+      "position": "center",
+      "widthPercent": 26,
+      "title": "SCAN TO JOIN",
+      "qrElementId": "qr",
+      "urlElementId": "url",
+      "panel": "dark navy rectangular arcade frame, square corners or very small radius, thin inner highlight",
+      "qr": "white square, no decorative obstruction"
+    },
+    "blueTeam": {
+      "position": "left-center",
+      "elementId": "teamA",
+      "label": "BLUE CORNER",
+      "accent": "#2f7de1",
+      "slots": 4,
+      "slotContent": [
+        "character sprite",
+        "player name",
+        "character name"
+      ],
+      "emptySlot": "plus icon + WAITING FOR PLAYER..."
+    },
+    "redTeam": {
+      "position": "right-center",
+      "elementId": "teamB",
+      "label": "RED CORNER",
+      "accent": "#e0413a",
+      "slots": 4,
+      "slotContent": [
+        "character sprite",
+        "player name",
+        "character name"
+      ],
+      "emptySlot": "plus icon + WAITING FOR PLAYER..."
+    },
+    "startButton": {
+      "position": "center-below-join-panel",
+      "elementId": "start",
+      "label": "START MATCH",
+      "treatment": "large yellow/gold arcade button with dark outline; strongest CTA on screen"
+    },
+    "rosterStrip": {
+      "position": "bottom-center",
+      "enabled": true,
+      "interactive": false,
+      "title": "10 CHARACTERS",
+      "source": "shared/characters.json",
+      "content": "Show existing character sprites only as a visual roster/status strip; character choice remains on /play/."
+    }
+  },
+  "palette": {
+    "backgroundNavy": "#0b1020",
+    "panelNavy": "#101a31",
+    "panelNavy2": "#162642",
+    "blue": "#2f7de1",
+    "blueLight": "#60a5fa",
+    "red": "#e0413a",
+    "redLight": "#f87171",
+    "gold": "#f6c343",
+    "offWhite": "#f2efe4",
+    "mutedText": "#9aa7b8",
+    "black": "#08111f"
+  },
+  "typography": {
+    "direction": "pixel/arcade or blocky monospace; uppercase for headings",
+    "fallback": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+  },
+  "playerSlotStates": {
+    "empty": {
+      "sprite": null,
+      "primary": "WAITING FOR PLAYER...",
+      "secondary": null
+    },
+    "occupied": {
+      "sprite": "characters[player.character].sprite",
+      "primary": "player.name",
+      "secondary": "characters[player.character].name",
+      "teamAccent": true
+    }
+  },
+  "runtimeBindings": {
+    "existingElements": {
+      "lobby": "lobby",
+      "qr": "qr",
+      "url": "url",
+      "teams": "teams",
+      "blueTeam": "teamA",
+      "redTeam": "teamB",
+      "start": "start",
+      "gameCanvas": "game",
+      "endOverlay": "end"
+    },
+    "existingData": {
+      "teams": "MSG.LOBBY payload teams.A / teams.B",
+      "characters": "MSG.LOBBY payload characters",
+      "qr": "MSG.LOBBY payload qr",
+      "url": "MSG.LOBBY payload url"
+    },
+    "preserveBehavior": [
+      "Do not change Socket.IO protocol.",
+      "Do not change join/start/reset game logic.",
+      "Do not change player limits.",
+      "Do not make the host roster interactive.",
+      "Visual work must continue to use live lobby data."
+    ]
+  },
+  "responsive": {
+    "primary": "16:9 desktop / projector",
+    "minimum": "Keep QR, both team panels and START visible at 1366x768 without page scrolling.",
+    "fallback": "At narrower widths, shrink decorative meta/roster before shrinking QR or player names."
+  },
+  "acceptanceCriteria": [
+    "Lobby immediately looks like the same game as the White House arena.",
+    "Existing character sprites are used in occupied team slots.",
+    "Blue and red teams are readable from several meters away.",
+    "QR code remains large and scannable.",
+    "START MATCH is always visible on the primary 16:9 host screen.",
+    "No game/network logic is altered by this visual implementation."
+  ]
+}
