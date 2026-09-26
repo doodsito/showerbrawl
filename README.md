@@ -1,5 +1,17 @@
 # showerbrawl
 
+## Lancer le jeu en local
+
+Une seule commande :
+
+```sh
+npm run dev:all
+```
+
+Elle libère d'abord le port 3000 (tue le process qui l'occupe, pour éviter `EADDRINUSE`), puis lance ensemble le serveur node (port 3000) et Vite (port 5173) dans le même terminal. Ctrl+C arrête les deux. `npm run start:all` fait la même chose.
+
+Écran hôte : http://localhost:5173/ · Manette : scanner le QR affiché (ou http://<IP LAN>:5173/play/).
+
 ## Arène Maison Blanche — prototype pixel art
 
 [Présentation et commandes](laboratoire/maison-blanche/README.md). Décor Canvas, combat local contre une IA, commandes clavier et tactiles.
