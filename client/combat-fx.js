@@ -284,6 +284,26 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       rect(-7,-5,5,10,'#4781d4');rect(-2,-5,5,10,'#f5e9c8');rect(3,-5,5,10,'#d15c62');g.restore();return true;
     },
     micDrop(drop,front=false){const [x,y]=project(drop.x,drop.y);micDrop({...drop,x,y},front);},
+    // Super cible a distance: alerte au sol couleur d'equipe qui se remplit pendant le delai, puis eclair d'impact.
+    strikeZone(z){
+      const [x,y]=project(z.x,z.y),rx=z.r*kx,ry=z.r*ky,col=z.team==='B'?'#e0413a':'#2f7de1',light=z.team==='B'?'#f87171':'#60a5fa';
+      g.save();
+      if(z.age<z.delay){
+        const t=Math.max(0,z.age/z.delay),blink=t>.75&&!motionOptions.reducedMotion&&Math.floor(z.age*16)%2;
+        g.globalAlpha=.22;g.fillStyle=col;g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fill();
+        g.globalAlpha=.5;g.fillStyle=blink?'#ffffff':light;g.beginPath();g.ellipse(x,y,rx*t,ry*t,0,0,Math.PI*2);g.fill();
+        g.globalAlpha=1;g.strokeStyle=blink?'#ffffff':col;g.lineWidth=3;g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.stroke();
+        g.strokeStyle='#030812';g.lineWidth=1;g.beginPath();g.ellipse(x,y,rx+2,ry+1,0,0,Math.PI*2);g.stroke();
+        // viseur
+        line(x-rx*.35,y,x-rx*.12,y,'#ffffff',2);line(x+rx*.12,y,x+rx*.35,y,'#ffffff',2);
+        line(x,y-ry*.35,x,y-ry*.12,'#ffffff',2);line(x,y+ry*.12,x,y+ry*.35,'#ffffff',2);
+      }else{
+        const t=Math.min(1,(z.age-z.delay)/.4);
+        g.globalAlpha=1-t;g.fillStyle='#fff6d8';g.beginPath();g.ellipse(x,y,rx*(.6+t*.5),ry*(.6+t*.5),0,0,Math.PI*2);g.fill();
+        g.strokeStyle=light;g.lineWidth=4;g.beginPath();g.ellipse(x,y,rx*(1+t*.3),ry*(1+t*.3),0,0,Math.PI*2);g.stroke();
+      }
+      g.restore();
+    },
     effect(e,front=false){const [x,y]=project(e.x,e.y);
       if(e.kind==='strike'&&e.visual==='energy'){if(front){
         const art=getImage('sprites/obama_attack.png');

@@ -1,6 +1,6 @@
 {
   "_schema": {
-    "note": "Un objet par perso. type DOIT etre dans: projectile, burst, zone, dash, shield. Rien d'autre. L'equipe persos remplit ce fichier, ne touche pas au code.",
+    "note": "Un objet par perso. REGLE DE COMBAT: attack et defense = corps a corps (au contact); super = peut viser a distance (frappe ciblee avec alerte au sol, esquivable). type DOIT etre dans: projectile, burst, zone, dash, shield. Rien d'autre.",
     "fields": {
       "name": "affiche a l'ecran",
       "hp": "points de vie",
@@ -11,7 +11,8 @@
       "fullBody": "optionnel, true = sprite PNG dessine en pied (grande taille) au lieu du format tete",
       "shieldStyle": "optionnel, 'sunglasses' = bulle bleue + lunettes de soleil sur le sprite pendant le bouclier",
       "hint": "optionnel, texte d'aide affiche sur la manette sous les boutons",
-      "behavior (dans un pouvoir)": "optionnel, un pouvoir avec behavior passe par le code labo (server/lab-combat.js), sinon par les 5 briques"
+      "behavior (dans un pouvoir)": "optionnel, un pouvoir avec behavior passe par le code labo (server/lab-combat.js), sinon par les 5 briques",
+      "super cible (type zone + target:enemy)": "vise l'ennemi vivant le plus proche dans range, alerte au sol pendant delay (s) puis frappe: range (portee), radius (rayon), delay (0.5 a 0.9), damage, knockback, hits (impacts successifs, defaut 1), spread (ecart entre impacts), gap (s entre impacts), charge (energie requise, 100). Sans ennemi a portee: frappe devant a mi-portee."
     }
   },
   "trump": {
@@ -75,13 +76,16 @@
       "invulnerable": false
     },
     "super": {
-      "type": "burst",
-      "radius": 140,
+      "type": "zone",
+      "target": "enemy",
+      "range": 420,
+      "radius": 90,
+      "delay": 0.75,
       "damage": 26,
-      "knockback": 360,
-      "cooldown": 8,
-      "label": "Executive Order",
-      "charge": 100
+      "knockback": 320,
+      "cooldown": 6,
+      "charge": 100,
+      "label": "Executive Order"
     }
   },
   "musk": {
@@ -191,13 +195,15 @@
     },
     "super": {
       "type": "zone",
-      "radius": 135,
-      "damage": 26,
-      "duration": 2.5,
-      "knockback": 50,
-      "cooldown": 8,
-      "label": "Diagramme de Venn",
-      "charge": 100
+      "target": "enemy",
+      "range": 480,
+      "radius": 75,
+      "delay": 0.65,
+      "damage": 24,
+      "knockback": 280,
+      "cooldown": 6,
+      "charge": 100,
+      "label": "Diagramme de Venn"
     }
   },
   "maduro": {
@@ -222,13 +228,15 @@
     },
     "super": {
       "type": "zone",
-      "radius": 160,
-      "damage": 32,
-      "duration": 3.5,
-      "knockback": 55,
-      "cooldown": 10,
-      "label": "Hyperinflation",
-      "charge": 100
+      "target": "enemy",
+      "range": 420,
+      "radius": 115,
+      "delay": 0.9,
+      "damage": 30,
+      "knockback": 300,
+      "cooldown": 6,
+      "charge": 100,
+      "label": "Hyperinflation"
     }
   },
   "sanders": {
@@ -252,13 +260,16 @@
       "label": "Je Suis Encore La"
     },
     "super": {
-      "type": "burst",
-      "radius": 170,
+      "type": "zone",
+      "target": "enemy",
+      "range": 440,
+      "radius": 110,
+      "delay": 0.85,
       "damage": 22,
-      "knockback": 380,
-      "cooldown": 9,
-      "label": "Redistribution",
-      "charge": 100
+      "knockback": 330,
+      "cooldown": 6,
+      "charge": 100,
+      "label": "Redistribution"
     }
   },
   "schwarzenegger": {
@@ -286,13 +297,16 @@
       "invulnerable": false
     },
     "super": {
-      "type": "projectile",
-      "damage": 32,
-      "range": 100,
+      "type": "zone",
+      "target": "enemy",
+      "range": 420,
+      "radius": 95,
+      "delay": 0.8,
+      "damage": 34,
       "knockback": 440,
-      "cooldown": 9,
-      "label": "I'll Be Back",
-      "charge": 100
+      "cooldown": 6,
+      "charge": 100,
+      "label": "I'll Be Back"
     }
   },
   "macron": {
@@ -322,14 +336,17 @@
       "icon": "sprites/macron_sunglasses.svg"
     },
     "super": {
-      "type": "burst",
-      "radius": 150,
-      "damage": 26,
-      "knockback": 520,
+      "type": "zone",
+      "target": "enemy",
+      "range": 520,
+      "radius": 65,
+      "delay": 0.6,
+      "damage": 28,
+      "knockback": 360,
       "cooldown": 6,
+      "charge": 100,
       "label": "49.3",
-      "icon": "sprites/macron_super.png",
-      "charge": 100
+      "icon": "sprites/macron_super.png"
     }
   },
   "zelensky": {
@@ -357,13 +374,19 @@
       "invulnerable": false
     },
     "super": {
-      "type": "burst",
-      "radius": 150,
-      "damage": 24,
-      "knockback": 360,
-      "cooldown": 8,
-      "label": "Aide Militaire",
-      "charge": 100
+      "type": "zone",
+      "target": "enemy",
+      "range": 600,
+      "radius": 70,
+      "delay": 0.65,
+      "damage": 13,
+      "knockback": 200,
+      "hits": 3,
+      "spread": 70,
+      "gap": 0.2,
+      "cooldown": 6,
+      "charge": 100,
+      "label": "Aide Militaire"
     }
   }
 }

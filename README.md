@@ -33,7 +33,25 @@ Chaque push lance d'abord `npm test` + `npm run build` : si ça échoue, rien n'
 | Obama | Défense | aucune | « Esquive », dash 238 en arrière |
 | Obama | Super | « Mic Drop Strike », ciblé à distance, portée 560, rayon 76, dégâts 55, knockback 220 | « Mic Drop », centré sur Obama (portée 0), rayon 110, dégâts 28, poussée 100, charge 100 |
 
-Le design de Leo prévoit des attaques à distance, alors que le jeu est désormais 100 % corps à corps.
+Le design de Leo prévoit des attaques de base à distance, alors que la règle du jeu les veut au corps à corps (seul le super peut viser à distance, voir ci-dessous).
+
+### Règle de combat (validée)
+
+- **Attaque de base et défense : corps à corps.** L'attaque ne touche qu'un ennemi au contact (portée plafonnée à 110), la défense est un bouclier ou une charge qui frappe et pousse sur sa trajectoire.
+- **Super : peut viser à distance, avec alerte.** Il cible l'ennemi vivant le plus proche dans sa portée, pose un **cercle d'alerte** au sol (couleur d'équipe, qui se remplit puis clignote) pendant son délai, puis frappe la zone : dégâts + knockback. Sans ennemi à portée, il frappe devant le lanceur à mi-portée. **Rien ne vole à travers l'arène** et **on peut esquiver** en sortant du cercle : chaque super est réglé pour que même le perso le plus lent puisse s'échapper (rayon + 18 ≤ vitesse min × délai, vérifié par un test). Tous les supers demandent la jauge d'énergie pleine (`charge: 100`).
+
+Champs de la brique super ciblé (`"type": "zone", "target": "enemy"`) :
+
+| Champ | Rôle |
+|---|---|
+| `range` | portée de ciblage (300 à 600) |
+| `radius` | rayon du cercle d'impact |
+| `delay` | durée de l'alerte avant l'impact (0,5 à 0,9 s) |
+| `damage`, `knockback` | dégâts et recul à l'impact |
+| `hits`, `spread`, `gap` | impacts multiples décalés (ex : Aide Militaire de Zelensky, 3 impacts) |
+| `charge` | énergie requise (100) |
+
+Trump (You're fired!, saisie au contact), Obama (Mic Drop, modèle de cette brique) et Musk (Cybertruck) gardent leur kit dédié.
 
 ### Ajouter un perso sans toucher au code
 

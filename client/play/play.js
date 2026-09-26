@@ -182,8 +182,12 @@ try { vibOn = localStorage.getItem('sb_vib') !== '0'; } catch (e) {}
 const vibBtn = $('#vib');
 const renderVib = () => { vibBtn.classList.toggle('off', !vibOn); vibBtn.setAttribute('aria-pressed', String(vibOn)); };
 renderVib();
+// Bascule sur pointerup (le click peut etre perdu par le passage plein ecran au premier toucher).
+let vibT = 0;
+const toggleVib = (e) => { e.preventDefault(); e.stopPropagation(); const now = performance.now(); if (now - vibT < 300) return; vibT = now; vibOn = !vibOn; renderVib(); try { localStorage.setItem('sb_vib', vibOn ? '1' : '0'); } catch (e) {} if (vibOn) buzz(40); };
 vibBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
-vibBtn.addEventListener('click', () => { vibOn = !vibOn; renderVib(); try { localStorage.setItem('sb_vib', vibOn ? '1' : '0'); } catch (e) {} if (vibOn) buzz(40); });
+vibBtn.addEventListener('pointerup', toggleVib);
+vibBtn.addEventListener('click', (e) => { if (e.detail === 0) toggleVib(e); else e.preventDefault(); });
 const canVibrate = typeof navigator.vibrate === 'function';
 const hap = $('#hap'), hapLbl = $('#hapLbl');
 // iOS 18: basculer un <input switch> via son label declenche un tic haptique. Safari peut l'ignorer hors geste:
