@@ -193,3 +193,10 @@ test('Aide Militaire: 3 impacts decales',t=>{
   const {game,p}=duel(t,'zelensky');p.energy=100;cast(game,p,'super');
   const zs=game.zones.filter(z=>z.kind==='strike');assert.equal(zs.length,3);assert.ok(new Set(zs.map(z=>Math.round(z.y))).size===3);
 });
+test('chaque super cible laisse le temps d\'esquiver au perso le plus lent (rayon + corps <= vitesse min x delai)', () => {
+  const minSpeed=Math.min(...Object.values(characters).map(c=>c.speed));
+  for(const [id,c] of Object.entries(characters)){
+    const s=c.super;if(!(s.target==='enemy'||s.behavior==='micDrop'))continue;
+    assert.ok(s.radius+18<=minSpeed*s.delay,`${id}: rayon ${s.radius} trop grand pour un delai de ${s.delay}s`);
+  }
+});

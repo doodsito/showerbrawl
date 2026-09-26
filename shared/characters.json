@@ -10,7 +10,7 @@
     "name": "Biden", "hp": 110, "speed": 180, "sprite": "biden",
     "attack": {"type": "projectile", "damage": 12, "range": 75, "knockback": 260, "cooldown": 0.45, "label": "Aviateurs"},
     "defense": {"type": "dash", "distance": 150, "duration": 0.32, "damage": 6, "knockback": 260, "cooldown": 5, "label": "Nap Time"},
-    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 100, "delay": 0.75, "damage": 26, "knockback": 420, "cooldown": 1.1, "charge": 100, "label": "Executive Order"}
+    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 90, "delay": 0.75, "damage": 26, "knockback": 420, "cooldown": 1.1, "charge": 100, "label": "Executive Order"}
   },
   "musk": {
     "name": "Musk", "hp": 95, "speed": 210, "sprite": "sprites/musk.png", "labKit": true, "fullBody": true, "hint": "Lance-flammes : recul et brûlure · Hyperloop : esquive · Cybertruck chargé en combat",
@@ -28,19 +28,19 @@
     "name": "Harris", "hp": 98, "speed": 198, "sprite": "harris",
     "attack": {"type": "projectile", "damage": 11, "range": 80, "knockback": 240, "cooldown": 0.32, "label": "Rire Nucleaire"},
     "defense": {"type": "shield", "duration": 1.6, "cooldown": 6.5, "label": "Soutien des Donateurs"},
-    "super":  {"type": "zone", "target": "enemy", "range": 480, "radius": 110, "delay": 0.6, "damage": 24, "knockback": 380, "cooldown": 1.1, "charge": 100, "label": "Diagramme de Venn"}
+    "super":  {"type": "zone", "target": "enemy", "range": 480, "radius": 75, "delay": 0.65, "damage": 24, "knockback": 380, "cooldown": 1.1, "charge": 100, "label": "Diagramme de Venn"}
   },
   "maduro": {
     "name": "Maduro", "hp": 120, "speed": 170, "sprite": "maduro",
     "attack": {"type": "burst", "radius": 85, "damage": 9, "knockback": 300, "cooldown": 0.85, "label": "Petrole Brut"},
     "defense": {"type": "shield", "duration": 2.5, "cooldown": 8, "label": "Election Truquee"},
-    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 170, "delay": 0.9, "damage": 30, "knockback": 360, "cooldown": 1.1, "charge": 100, "label": "Hyperinflation"}
+    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 115, "delay": 0.9, "damage": 30, "knockback": 360, "cooldown": 1.1, "charge": 100, "label": "Hyperinflation"}
   },
   "sanders": {
     "name": "Sanders", "hp": 110, "speed": 175, "sprite": "sanders",
     "attack": {"type": "projectile", "damage": 15, "range": 70, "knockback": 320, "cooldown": 0.55, "label": "Mitaines"},
     "defense": {"type": "shield", "duration": 1.4, "cooldown": 5, "label": "Je Suis Encore La"},
-    "super":  {"type": "zone", "target": "enemy", "range": 440, "radius": 140, "delay": 0.7, "damage": 22, "knockback": 460, "cooldown": 1.1, "charge": 100, "label": "Redistribution"}
+    "super":  {"type": "zone", "target": "enemy", "range": 440, "radius": 110, "delay": 0.85, "damage": 22, "knockback": 460, "cooldown": 1.1, "charge": 100, "label": "Redistribution"}
   },
   "schwarzenegger": {
     "name": "Schwarzenegger", "hp": 118, "speed": 178, "sprite": "schwarzenegger",
@@ -52,7 +52,7 @@
     "name": "Macron", "hp": 100, "speed": 200, "sprite": "sprites/macron.png", "labKit": true, "fullBody": true, "shieldStyle": "sunglasses", "hint": "Baguettes : +25 % par impact · Lunettes : bouclier · 49.3 ciblé",
     "attack": {"type": "projectile", "damage": 6, "range": 80, "knockback": 180, "cooldown": 0.3, "label": "Triple baguette", "icon": "sprites/macron_baguettes.svg"},
     "defense": {"type": "shield", "duration": 1.6, "cooldown": 6, "label": "Lunettes de soleil", "icon": "sprites/macron_sunglasses.svg"},
-    "super":  {"type": "zone", "target": "enemy", "range": 520, "radius": 90, "delay": 0.55, "damage": 28, "knockback": 480, "cooldown": 1.1, "charge": 100, "label": "49.3", "icon": "sprites/macron_super.png"}
+    "super":  {"type": "zone", "target": "enemy", "range": 520, "radius": 65, "delay": 0.6, "damage": 28, "knockback": 480, "cooldown": 1.1, "charge": 100, "label": "49.3", "icon": "sprites/macron_super.png"}
   },
   "zelensky": {
     "name": "Zelensky", "hp": 105, "speed": 192, "sprite": "zelensky",
