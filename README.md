@@ -37,7 +37,7 @@ Ce tableau est un historique des écarts de design. Les règles actuelles ci-des
 
 ### Équité (validée)
 
-**PV et vitesse sont identiques pour les 10 persos.** `BASE_ATTACK` définit les coups au contact sans kit explicite. Les projectiles et le lance-flammes conservent les paramètres de `shared/characters.json` :
+**PV et vitesse sont identiques pour tous les persos.** `BASE_ATTACK` définit les coups au contact sans kit explicite. Les projectiles et le lance-flammes conservent les paramètres de `shared/characters.json` :
 
 | Réglage | Valeur |
 |---|---|
@@ -60,7 +60,7 @@ Champs de la brique super ciblé (`"type": "zone", "target": "enemy"`) :
 | `radius` | rayon du cercle d'impact |
 | `delay` | durée de l'alerte avant l'impact (0,5 à 0,9 s) |
 | `damage`, `knockback` | dégâts et recul à l'impact |
-| `hits`, `spread`, `gap` | impacts multiples décalés (ex : Aide Militaire de Zelensky, 3 impacts) |
+| `hits`, `spread`, `gap` | impacts multiples décalés |
 | `charge` | énergie requise (100) |
 
 Trump (You're fired!, saisie au contact), Obama (Mic Drop, modèle de cette brique) et Musk (Cybertruck) gardent leur kit dédié.
