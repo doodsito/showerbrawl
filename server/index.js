@@ -42,14 +42,19 @@ io.on('connection', (socket) => {
   // Client measures round-trip time with the ack callback
   socket.on(MSG.LATENCY, (ack) => typeof ack === 'function' && ack());
 
-  socket.on(MSG.HOST, () => { socket.data.host = true; game.sendLobby(socket); });
+  socket.on(MSG.HOST, () => { console.log(`[host] ${socket.id}`); socket.data.host = true; game.sendLobby(socket); });
   socket.on(MSG.JOIN, (data, ack) => {
     let res;
     try { res = game.join(socket, data); } catch { res = { ok: false, error: 'erreur' }; }
+    console.log(`[join] ${socket.id} team=${data?.team} char=${data?.character} ->`, res.ok ? 'ok' : res.error);
     if (typeof ack === 'function') ack(res);
   });
   socket.on(MSG.INPUT, (d) => { try { game.input(socket.id, d); } catch {} });
-  socket.on(MSG.START, () => { try { game.start(); } catch {} });
+  socket.on(MSG.START, (ack) => {
+    try { game.start(); } catch (e) { console.warn('[start] erreur', e.message); }
+    console.log(`[start] recu de ${socket.id}, phase=${game.phase}, joueurs=${game.players.size}`);
+    if (typeof ack === 'function') ack({ ok: game.phase === 'playing', phase: game.phase, players: game.players.size });
+  });
 
   socket.on('disconnect', () => {
     game.leave(socket.id);

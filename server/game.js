@@ -110,6 +110,8 @@ export class Game {
     if (this.phase !== 'playing') return;
 
     this.timeLeft -= dt;
+    if ((this._ticks = (this._ticks || 0) + 1) % (CONFIG.TICK_RATE * 10) === 0)
+      console.log(`[tick] ${Math.ceil(this.timeLeft)}s restantes, ${this.players.size} joueurs, score A${this.score.A}-B${this.score.B}`);
     if (this.timeLeft <= 0) return this.end();
 
     for (const p of this.players.values()) {
