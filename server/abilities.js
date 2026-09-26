@@ -1,3 +1,4 @@
+import { isLabFighter, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
 // 5 briques generiques, parametrees par le JSON du pouvoir. Aucune classe en dur.
 // ctx = { players: Map, projectiles: [], zones: [], physics, damage(target, amount, src, fromX, fromY, kb), nextId() }
 
@@ -30,7 +31,7 @@ function spawnProjectile(ctx, p, a, ux, uy) {
     x: p.x + ux * (p.r + r), y: p.y + uy * (p.r + r),
     vx: ux * speed, vy: uy * speed, r,
     damage: a.damage ?? 10, knockback: a.knockback ?? 250,
-    ttl: (a.range || 400) / speed,
+    ttl: (a.range || 400) / speed, visual: a.visual, pushDistance: a.pushDistance,
   });
 }
 
@@ -61,11 +62,15 @@ const BRICKS = {
   dash(ctx, p, a) {
     const t = a.duration || 0.15;
     let ux = p.dx, uy = p.dy;
-    if (!ux && !uy) { ux = p.fx; uy = p.fy; }
+    if (!ux && !uy) {
+      const enemy = a.away && nearestEnemy(ctx, p);
+      ux = enemy ? p.x - enemy.x : (a.away ? -p.fx : p.fx);
+      uy = enemy ? p.y - enemy.y : (a.away ? -p.fy : p.fy);
+    }
     const d = Math.hypot(ux, uy) || 1;
     const v = (a.distance || 180) / t;
     p.dashVx = (ux / d) * v; p.dashVy = (uy / d) * v; p.dashT = t;
-    p.invulnT = Math.max(p.invulnT, t);
+    if (a.invulnerable !== false) p.invulnT = Math.max(p.invulnT, t);
   },
   shield(ctx, p, a) {
     p.shieldT = Math.max(p.shieldT, a.duration || 1.5);
@@ -74,30 +79,46 @@ const BRICKS = {
 
 export function cast(ctx, p, slot) {
   const a = p.char[slot];
-  if (!a || p.cd[slot] > 0 || !p.alive) return false;
-  try { BRICKS[a.type]?.(ctx, p, a); } catch { return false; }
+  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || (isLabFighter(p) && p.dashT > 0)) return false;
+  if (a.charge && (p.energy || 0) < a.charge) return false;
+  const handler = a.behavior ? castLab : BRICKS[a.type];
+  if (!handler || handler(ctx, p, a) === false) return false;
+  if (a.charge) p.energy = 0;
   p.cd[slot] = a.cooldown || 1;
+  p.poseT = slot === 'super' ? .4 : slot === 'attack' ? .2 : 0;
+  p.action = slot;
+  if (slot !== 'defense') p.protectT = 0;
   return true;
 }
 
 export function updateProjectiles(ctx, dt) {
   const { physics } = ctx;
   ctx.projectiles = ctx.projectiles.filter((pr) => {
-    pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.ttl -= dt;
-    if (pr.ttl <= 0 || pr.x < -200 || pr.y < -200 || pr.x > physics.width + 200 || pr.y > physics.height + 200) return false;
-    for (const o of ctx.players.values()) {
-      if (!o.alive || o.team === pr.team) continue;
-      if (physics.circlesOverlap(pr, pr.r, o, o.r)) {
-        ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * 0.01, pr.y - pr.vy * 0.01, pr.knockback);
-        return false;
+    const stepTime = Math.min(dt, pr.ttl), steps = Math.max(1, Math.ceil(Math.hypot(pr.vx, pr.vy) * stepTime / 4));
+    for (let i = 0; i < steps; i++) {
+      const dx = pr.vx * stepTime / steps, dy = pr.vy * stepTime / steps;
+      const wall = firstWall(ctx, pr, dx, dy);
+      if (wall) { hitWall(ctx, wall, 12, pr.owner); return false; }
+      pr.x += dx; pr.y += dy;
+      if (physics.collidesWithWall(pr.x, pr.y, pr.r, false)) return false;
+      for (const o of ctx.players.values()) {
+        if (!o.alive || o.hp <= 0 || o.team === pr.team || o.launch) continue;
+        if (physics.circlesOverlap(pr, pr.r, o, o.r)) {
+          const hit = ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * .01, pr.y - pr.vy * .01, pr.pushDistance ? 0 : pr.knockback, !!pr.pushDistance);
+          if (hit && pr.pushDistance) shove(o, pr.vx, pr.vy, pr.pushDistance);
+          return false;
+        }
       }
     }
+    pr.ttl -= dt;
+    if (pr.ttl <= 0) return false;
     return true;
   });
 }
 
 export function updateZones(ctx, dt) {
   ctx.zones = ctx.zones.filter((z) => {
+    if (z.kind === 'micDrop') return updateMicDrop(ctx, z, dt);
     z.ttl -= dt;
     if (z.follow) {
       const f = ctx.players.get(z.follow);

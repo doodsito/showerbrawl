@@ -1,7 +1,8 @@
 // Collisions grille + cercles + knockback. Adapte de magic-arena (collidesWithWall).
+import { wallContact } from '../shared/wall-geometry.js';
 import { CONFIG } from '../shared/config.js';
 
-export function makePhysics(arena) {
+export function makePhysics(arena, dynamicWalls = () => []) {
   const TILE = arena.cellSize;
   const map = arena.grid;
   const rows = map.length, cols = map[0]?.length || 0;
@@ -14,7 +15,7 @@ export function makePhysics(arena) {
   };
 
   // Vrai si le cercle touche une case '#' (bord du toit) ou un obstacle.
-  function collidesWithWall(cx, cy, radius) {
+  function collidesWithWall(cx, cy, radius, dynamic = true) {
     const minCol = Math.floor((cx - radius) / TILE), maxCol = Math.floor((cx + radius) / TILE);
     const minRow = Math.floor((cy - radius) / TILE), maxRow = Math.floor((cy + radius) / TILE);
     for (let row = minRow; row <= maxRow; row++) {
@@ -37,21 +38,30 @@ export function makePhysics(arena) {
         if ((cx - clx) ** 2 + (cy - cly) ** 2 < radius * radius) return true;
       }
     }
+    if (dynamic && dynamicWalls().some(w => wallContact({x: cx, y: cy}, w, radius))) return true;
     return false;
   }
 
   // Deplacement volontaire: glisse le long des bords, ne tombe jamais tout seul.
-  function moveWithWalls(p, dx, dy, radius) {
-    const nx = p.x + dx, ny = p.y + dy;
-    if (!collidesWithWall(nx, p.y, radius)) p.x = nx;
-    if (!collidesWithWall(p.x, ny, radius)) p.y = ny;
+  function moveWithWalls(p, dx, dy, radius, blocked = null) {
+    const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 4));
+    for (let i = 0; i < steps; i++) {
+      const nx = p.x + dx / steps, ny = p.y + dy / steps;
+      if (blocked && blocked(nx, ny)) break;
+      if (!collidesWithWall(nx, p.y, radius)) p.x = nx;
+      if (!collidesWithWall(p.x, ny, radius)) p.y = ny;
+    }
   }
 
   // Knockback: ignore les bords (on peut etre ejecte du toit).
   function applyKnockback(p, dt) {
     if (!p.kbVx && !p.kbVy) return;
-    p.x += p.kbVx * dt;
-    p.y += p.kbVy * dt;
+    const steps = Math.max(1, Math.ceil(Math.hypot(p.kbVx, p.kbVy) * dt / 4));
+    for (let i = 0; i < steps; i++) {
+      const next = {x: p.x + p.kbVx * dt / steps, y: p.y + p.kbVy * dt / steps};
+      if (dynamicWalls().some(w => wallContact(next, w, p.r))) { p.kbVx = 0; p.kbVy = 0; break; }
+      p.x = next.x; p.y = next.y;
+    }
     const decay = Math.pow(0.02, dt);
     p.kbVx *= decay; p.kbVy *= decay;
     if (Math.abs(p.kbVx) < 5) p.kbVx = 0;

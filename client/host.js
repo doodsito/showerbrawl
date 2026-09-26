@@ -30,7 +30,11 @@ function lerpList(l1, l2, r) {
   const m = new Map((l2 || []).map((o) => [o.id, o]));
   return (l1 || []).map((o) => {
     const n = m.get(o.id);
-    return n ? { ...o, x: lerp(o.x, n.x, r), y: lerp(o.y, n.y, r) } : o;
+    if(!n)return o;
+    const result={...o,x:lerp(o.x,n.x,r),y:lerp(o.y,n.y,r)};
+    for(const key of ['age','ttl','pose','recoil'])if(Number.isFinite(o[key])&&Number.isFinite(n[key]))result[key]=lerp(o[key],n[key],r);
+    for(const key of ['launch','shove'])if(o[key]&&n[key])result[key]={...o[key],progress:lerp(o[key].progress,n[key].progress,r)};
+    return result;
   });
 }
 function currentState() {
@@ -39,7 +43,7 @@ function currentState() {
   if (b < 0 || b === updates.length - 1) return updates[updates.length - 1];
   const a = updates[b], n = updates[b + 1];
   const r = (serverTime() - a.t) / ((n.t - a.t) || 1);
-  return { ...n, players: lerpList(a.players, n.players, r), projectiles: lerpList(a.projectiles, n.projectiles, r), zones: lerpList(a.zones, n.zones, r) };
+  return { ...n, players: lerpList(a.players, n.players, r), projectiles: lerpList(a.projectiles, n.projectiles, r), zones: lerpList(a.zones, n.zones, r), walls: lerpList(a.walls,n.walls,r), effects: lerpList(a.effects,n.effects,r) };
 }
 
 // Sons déclenchés par diff des snapshots

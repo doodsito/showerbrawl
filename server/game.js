@@ -3,16 +3,18 @@ import { CONFIG } from '../shared/config.js';
 import { MSG } from '../shared/protocol.js';
 import { makePhysics } from './physics.js';
 import { cast, updateProjectiles, updateZones } from './abilities.js';
+import { isLabFighter, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
 
 const SLOTS = ['attack', 'defense', 'super'];
 const END_SCREEN = 10; // s avant retour lobby
 
 export class Game {
-  constructor(io, { characters, arena, lobbyExtra = {} }) {
+  constructor(io, { characters, arena, lobbyExtra = {}, autoTick = true }) {
     this.io = io;
     this.characters = characters;
     this.arena = arena;
-    this.physics = makePhysics(arena);
+    this.walls = []; this.effects = [];
+    this.physics = makePhysics(arena, () => this.walls);
     this.lobbyExtra = lobbyExtra;
     this.players = new Map();
     this.projectiles = [];
@@ -24,9 +26,13 @@ export class Game {
     this.nextId = () => this._id++;
     this.damage = this.damage.bind(this);
     this.last = Date.now();
-    setInterval(() => { try { this.tick(); } catch (e) { console.warn('[tick]', e.message); } }, 1000 / CONFIG.TICK_RATE);
-    setInterval(() => { try { this.broadcast(); } catch {} }, 1000 / CONFIG.BROADCAST_RATE);
+    this.timers = autoTick ? [
+      setInterval(() => { try { this.tick(); } catch (e) { console.warn('[tick]', e.message); } }, 1000 / CONFIG.TICK_RATE),
+      setInterval(() => this.broadcast(), 1000 / CONFIG.BROADCAST_RATE),
+    ] : [];
   }
+
+  dispose() { for (const timer of this.timers) clearInterval(timer); clearTimeout(this.endTimer); }
 
   lobbyPayload() {
     const teams = { A: [], B: [] };
@@ -62,6 +68,7 @@ export class Game {
     const p = this.players.get(id);
     if (!p) return;
     const n = (v) => (Number.isFinite(+v) ? Math.max(-1, Math.min(1, +v)) : 0);
+    for (const slot of SLOTS) if (d[slot] && !p.input[slot]) p.pending[slot] = true;
     p.input = { dx: n(d.dx), dy: n(d.dy), attack: !!d.attack, defense: !!d.defense, super: !!d.super };
     const moving = p.input.dx !== 0 || p.input.dy !== 0, now = Date.now();
     if ((moving || p._wasMoving) && now - (p._inLog || 0) > 1000) {
@@ -79,7 +86,8 @@ export class Game {
       p.x = s[0]; p.y = s[1];
     }
     Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
-      shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
+      energy: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
+      input: {dx: 0, dy: 0}, pending: {}, shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
       fx: p.team === 'A' ? 1 : -1, fy: 0, cd: { attack: 0, defense: 0, super: 0 } });
   }
 
@@ -88,7 +96,7 @@ export class Game {
     this.phase = 'playing';
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
-    this.projectiles = []; this.zones = [];
+    this.projectiles = []; this.zones = []; this.walls = []; this.effects = [];
     for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
     this.sendLobby();
   }
@@ -98,19 +106,21 @@ export class Game {
     this.phase = 'lobby';
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
-    this.projectiles = []; this.zones = [];
+    this.projectiles = []; this.zones = []; this.walls = []; this.effects = [];
     for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
     this.sendLobby();
   }
 
-  damage(t, amount, srcId, fromX, fromY, kb = 0) {
-    if (!t.alive || this.phase !== 'playing') return;
-    if (t.protectT > 0 || t.invulnT > 0) return;
-    if (t.shieldT > 0) { this.physics.push(t, fromX, fromY, kb * 0.3); return; }
-    t.hp -= amount;
+  damage(t, amount, srcId, fromX, fromY, kb = 0, deferKO = false) {
+    if (!t.alive || t.hp <= 0 || t.launch || this.phase !== 'playing') return false;
+    if (t.protectT > 0 || t.invulnT > 0) return false;
+    if (t.shieldT > 0) { this.physics.push(t, fromX, fromY, kb * 0.3); return false; }
+    t.hp = Math.max(0, t.hp - amount); t.flashT = .18;
+    charge(this.players.get(srcId), amount * 2.2); charge(t, amount);
     t.lastHit = srcId; t.lastHitT = 3;
     if (kb) this.physics.push(t, fromX, fromY, kb);
-    if (t.hp <= 0) this.kill(t, srcId);
+    if (t.hp <= 0 && !deferKO) this.kill(t, srcId);
+    return true;
   }
 
   kill(t, srcId) {
@@ -121,9 +131,9 @@ export class Game {
     else { const other = CONFIG.TEAMS.find((x) => x !== t.team); if (other) this.score[other]++; }
   }
 
-  tick() {
+  tick(elapsed) {
     const now = Date.now();
-    const dt = Math.min(0.1, (now - this.last) / 1000);
+    const dt = Math.max(0, Math.min(0.1, elapsed ?? (now - this.last) / 1000));
     this.last = now;
     if (this.phase !== 'playing') return;
 
@@ -132,13 +142,14 @@ export class Game {
       console.log(`[tick] ${Math.ceil(this.timeLeft)}s restantes, ${this.players.size} joueurs, score A${this.score.A}-B${this.score.B}`);
     if (this.timeLeft <= 0) return this.end();
 
+    updateLab(this, dt);
     for (const p of this.players.values()) {
       if (!p.alive) {
         p.respawnT -= dt;
         if (p.respawnT <= 0) this.spawn(p);
         continue;
       }
-      for (const k of ['protectT', 'shieldT', 'invulnT', 'lastHitT']) if (p[k] > 0) p[k] -= dt;
+      for (const k of ['protectT', 'shieldT', 'invulnT', 'lastHitT', 'stunT', 'poseT', 'recoilT', 'flashT']) if (p[k] > 0) p[k] -= dt;
       if (p.lastHitT <= 0) p.lastHit = null;
       for (const s of SLOTS) if (p.cd[s] > 0) p.cd[s] = Math.max(0, p.cd[s] - dt);
 
@@ -147,21 +158,35 @@ export class Game {
       p.dx = m > 1 ? dx / m : dx; p.dy = m > 1 ? dy / m : dy;
       if (m > 0.15) { p.fx = dx / m; p.fy = dy / m; }
 
-      if (p.dashT > 0) {
-        p.dashT -= dt;
-        this.physics.moveWithWalls(p, p.dashVx * dt, p.dashVy * dt, p.r);
-      } else {
-        this.physics.moveWithWalls(p, p.dx * p.char.speed * dt, p.dy * p.char.speed * dt, p.r);
+      const forced = advanceForcedMovement(this, p, dt);
+      if (!forced && p.alive) {
+        if (p.dashT > 0) {
+          const step = Math.min(dt, p.dashT); p.dashT = Math.max(0, p.dashT - step);
+          this.physics.moveWithWalls(p, p.dashVx * step, p.dashVy * step, p.r, (x, y) =>
+            [...this.players.values()].some(o => o !== p && o.alive && !o.launch && Math.hypot(o.x - x, o.y - y) < o.r + p.r));
+        } else if (p.stunT <= 0) {
+          let speed = p.char.speed;
+          if (isLabFighter(p)) {
+            const near = [...this.players.values()].filter(o => o !== p && o.alive && o.team !== p.team)
+              .sort((a, b) => Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
+            const d = near && Math.hypot(p.x-near.x,p.y-near.y);
+            if (p.cd.attack > 0 || p.cd.super > 0) speed *= .45;
+            else if (d > 0 && d < 160 && p.dx*(p.x-near.x)+p.dy*(p.y-near.y) > d*.35) speed = 300;
+          }
+          this.physics.moveWithWalls(p, p.dx * speed * dt, p.dy * speed * dt, p.r);
+        }
+        this.physics.applyKnockback(p, dt);
       }
-      this.physics.applyKnockback(p, dt);
-
-      for (const s of SLOTS) if (p.input[s]) cast(this, p, s);
-      if (p.input.attack && p.protectT > 0 && p.cd.attack > 0) p.protectT = 0; // tirer annule la protection
+      for (const slot of SLOTS) {
+        const pressed = p.pending[slot] || (p.input[slot] && (slot === 'attack' || !isLabFighter(p)));
+        if (pressed) cast(this, p, slot);
+      }
+      p.pending = {};
     }
 
     const alive = [...this.players.values()].filter((p) => p.alive);
     for (let i = 0; i < alive.length; i++)
-      for (let j = i + 1; j < alive.length; j++) this.physics.separate(alive[i], alive[j], CONFIG.PLAYER_RADIUS);
+      for (let j = i + 1; j < alive.length; j++) if (!alive[i].launch && !alive[j].launch) this.physics.separate(alive[i], alive[j], CONFIG.PLAYER_RADIUS);
 
     updateProjectiles(this, dt);
     updateZones(this, dt);
@@ -172,7 +197,7 @@ export class Game {
   end() {
     this.phase = 'ended';
     this.timeLeft = 0;
-    this.projectiles = []; this.zones = [];
+    this.projectiles = []; this.zones = []; this.walls = []; this.effects = [];
     const list = [...this.players.values()];
     const mvpP = list.sort((a, b) => b.kills - a.kills || a.deaths - b.deaths)[0];
     const winner = this.score.A === this.score.B ? 'draw' : this.score.A > this.score.B ? 'A' : 'B';
@@ -182,7 +207,7 @@ export class Game {
       players: list.map((p) => ({ name: p.name, team: p.team, character: p.character, kills: p.kills, deaths: p.deaths })),
     });
     this.sendLobby();
-    setTimeout(() => { if (this.phase === 'ended') { this.phase = 'lobby'; this.sendLobby(); } }, END_SCREEN * 1000);
+    this.endTimer = setTimeout(() => { if (this.phase === 'ended') { this.phase = 'lobby'; this.sendLobby(); } }, END_SCREEN * 1000);
   }
 
   broadcast() {
@@ -196,10 +221,18 @@ export class Game {
         shield: p.shieldT > 0 || p.invulnT > 0, protected: p.protectT > 0,
         fx: r(p.fx), fy: r(p.fy), respawnIn: p.alive ? 0 : Math.max(0, Math.ceil(p.respawnT)),
         kills: p.kills, deaths: p.deaths,
+        energy: r(p.energy), pose: r(p.poseT), action: p.action, flash: p.flashT > 0,
+        moving: Math.hypot(p.dx,p.dy) > .1 && p.stunT <= 0 && !p.dashT,
+        dash: p.dashT > 0 ? {x:p.dashVx,y:p.dashVy,remaining:p.dashT} : null,
+        shove: p.shove ? {ux:p.shove.ux,uy:p.shove.uy,progress:1-p.shove.remaining/p.shove.duration} : null,
+        launch: p.launch ? {ux:p.launch.ux,uy:p.launch.uy,progress:p.launch.age/p.launch.duration} : null,
+        recoil: p.recoilT,
+
         cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
       })),
-      projectiles: this.projectiles.map((p) => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, team: p.team })),
-      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team })),
+      projectiles: this.projectiles.map((p) => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, team: p.team, visual:p.visual, vx:p.vx, vy:p.vy })),
+      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit })),
+      walls: this.walls.map(w => ({...w})), effects: this.effects.map(e => ({...e})),
       score: this.score,
       timeLeft: Math.max(0, Math.ceil(this.timeLeft)),
     });

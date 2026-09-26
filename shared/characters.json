@@ -1,10 +1,36 @@
 {
   "_schema": {"note": "Un objet par perso. type DOIT etre dans: projectile, burst, zone, dash, shield. Rien d'autre. L'equipe persos remplit ce fichier, ne touche pas au code.", "fields": {"name": "affiche a l'ecran", "hp": "points de vie", "speed": "vitesse px/s", "sprite": "chemin d'un PNG servi par Vite (ex: sprites/trump.png, fichier dans client/public/sprites/) OU id de crane genere au runtime (client/sprites.js) si pas de PNG", "attack/defense/super": "un pouvoir chacun, parametre une des 5 briques"}},
   "trump": {
-    "name": "Trump", "hp": 100, "speed": 200, "sprite": "sprites/trump.png",
-    "attack": {"type": "projectile", "damage": 15, "cooldown": 0.4, "range": 400, "label": "Tweet"},
-    "defense": {"type": "shield", "duration": 1.5, "cooldown": 6, "label": "Le Mur"},
-    "super":  {"type": "zone", "radius": 150, "damage": 30, "cooldown": 15, "label": "Tariffs"}
+    "name": "Trump",
+    "hp": 100,
+    "speed": 200,
+    "sprite": "sprites/trump.png",
+    "attack": {
+      "type": "zone",
+      "behavior": "punch",
+      "damage": 9,
+      "range": 85,
+      "cooldown": 0.42,
+      "label": "Direct",
+      "icon": "sprites/fx_punch.png"
+    },
+    "defense": {
+      "type": "shield",
+      "behavior": "wall",
+      "duration": 6,
+      "cooldown": 9,
+      "label": "Mur MAGA",
+      "icon": "sprites/trump_defense.png"
+    },
+    "super": {
+      "type": "zone",
+      "behavior": "fired",
+      "damage": 30,
+      "range": 130,
+      "cooldown": 1.1,
+      "charge": 100,
+      "label": "You’re fired!"
+    }
   },
   "biden": {
     "name": "Biden", "hp": 110, "speed": 180, "sprite": "biden",
@@ -19,10 +45,43 @@
     "super":  {"type": "burst", "count": 10, "damage": 9, "cooldown": 14, "label": "Lancement Starlink"}
   },
   "obama": {
-    "name": "Obama", "hp": 105, "speed": 195, "sprite": "sprites/obama.png",
-    "attack": {"type": "projectile", "damage": 13, "cooldown": 0.38, "range": 400, "label": "Yes We Can"},
-    "defense": {"type": "shield", "duration": 1.8, "cooldown": 7, "label": "Obamacare"},
-    "super":  {"type": "zone", "radius": 140, "damage": 35, "duration": 1.5, "cooldown": 15, "label": "Mic Drop"}
+    "name": "Obama",
+    "hp": 100,
+    "speed": 200,
+    "sprite": "sprites/obama.png",
+    "attack": {
+      "type": "projectile",
+      "visual": "energy",
+      "damage": 10,
+      "speed": 440,
+      "range": 340,
+      "pushDistance": 125,
+      "cooldown": 0.42,
+      "label": "Énergie",
+      "icon": "sprites/obama_attack.png"
+    },
+    "defense": {
+      "type": "dash",
+      "distance": 238,
+      "duration": 0.28,
+      "away": true,
+      "invulnerable": false,
+      "cooldown": 3.5,
+      "label": "Esquive",
+      "icon": "sprites/obama.png"
+    },
+    "super": {
+      "type": "zone",
+      "behavior": "micDrop",
+      "damage": 28,
+      "radius": 110,
+      "range": 300,
+      "delay": 0.85,
+      "cooldown": 1.1,
+      "charge": 100,
+      "label": "Mic Drop",
+      "icon": "sprites/obama_super.png"
+    }
   },
   "harris": {
     "name": "Harris", "hp": 100, "speed": 200, "sprite": "harris",

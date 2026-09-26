@@ -11,7 +11,7 @@ socket.on('connect', () => {
   if (st.wantJoin && st.team && st.character) doJoin();
 });
 socket.on('connect_error', (e) => console.warn('[play] serveur injoignable', e.message));
-const st = { phase: 'lobby', teams: { A: [], B: [] }, characters: {}, team: null, character: null, joined: false, lastHp: null };
+const st = { phase: 'lobby', teams: { A: [], B: [] }, characters: {}, team: null, character: null, joined: false, lastHp: null, energy: 0, alive: false };
 const input = { dx: 0, dy: 0, attack: false, defense: false, super: false };
 const cds = { attack: 0, defense: 0, super: 0 };
 
@@ -44,6 +44,7 @@ function renderSelect() {
     const b = document.createElement('button');
     b.className = 'char' + (id === st.character ? ' on' : '');
     b.disabled = !!(st.team && taken(st.team, id));
+    if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src='/'+c.sprite;img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
     const s = document.createElement('small'); s.textContent = `PV ${c.hp ?? '?'} · ${c.attack?.label || ''}`; b.appendChild(s);
     b.onclick = () => { st.character = id; renderSelect(); };
@@ -85,8 +86,12 @@ function setupPad() {
   const ch = st.characters[st.character] || {};
   document.querySelectorAll('.btn').forEach((b) => {
     const k = b.dataset.k;
+    const icon=b.querySelector('img');icon.hidden=!ch[k]?.icon;if(ch[k]?.icon)icon.src='/'+ch[k].icon;
+    b.title=k==='super'&&ch[k]?.charge?'Se charge en infligeant et en recevant des dégâts':ch[k]?.label||k;
     b.querySelector('span').textContent = ch[k]?.label || { attack: 'Attaque', defense: 'Défense', super: 'Super' }[k];
   });
+  $('#kit-hint').textContent=ch.super?.charge?'Le super se charge en combat · Esquive : joystick + bouton':'Maintiens une direction et utilise tes capacités';
+  if(st.character==='trump')$('#kit-hint').textContent='Direct au contact · Mur devant toi · Super chargé en combat';
   document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : 'var(--b)');
   if (stick) return;
   try {
@@ -113,14 +118,13 @@ function setupPad() {
 
 document.querySelectorAll('.btn').forEach((b) => {
   const k = b.dataset.k;
-  const up = (e) => { input[k] = false; b.classList.remove('down'); };
+  const up = () => { input[k] = false; b.classList.remove('down'); sendInput(); };
   b.addEventListener('pointerdown', (e) => {
     try { e.preventDefault(); b.setPointerCapture?.(e.pointerId); } catch (_) {}
     input[k] = true; b.classList.add('down');
-    const now = performance.now();
-    const cd = Number(st.characters[st.character]?.[k]?.cooldown) || 0;
-    if (cd > 0 && now >= cds[k]) cds[k] = now + (cd > 50 ? cd : cd * 1000);
+    sendInput();
   });
+  b.addEventListener('click',e=>{if(e.detail===0&&!b.disabled){input[k]=true;sendInput();up();}});
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
 });
 
@@ -131,25 +135,29 @@ function cdLoop() {
       const k = b.dataset.k;
       const cdRaw = Number(st.characters[st.character]?.[k]?.cooldown) || 0;
       const total = cdRaw > 50 ? cdRaw : cdRaw * 1000;
-      const left = Math.max(0, cds[k] - now);
-      b.querySelector('.cd').style.setProperty('--p', total ? left / total : 0);
-      b.querySelector('em').textContent = left > 0 ? Math.ceil(left / 1000) : '';
+      const left = Math.max(0, cds[k] - now),charged=k==='super'&&st.characters[st.character]?.super?.charge;
+      b.querySelector('.cd').style.setProperty('--p', charged&&st.energy<100?1-st.energy/100:total ? left / total : 0);
+      b.querySelector('em').textContent = charged&&st.energy<100?`${Math.floor(st.energy)}%`:left > 0 ? `${Math.ceil(left / 1000)}s` : charged?'PRÊT':'';
+      b.disabled=!st.joined||st.phase!=='playing'||!st.alive;
+      b.classList.toggle('ready',!!charged&&st.energy>=100&&left===0);
     });
   } catch (e) {}
   requestAnimationFrame(cdLoop);
 }
 requestAnimationFrame(cdLoop);
 
-setInterval(() => {
-  if (!st.joined || st.phase === 'ended') return;
-  try { socket.emit(MSG.INPUT, { ...input }); } catch (e) {}
-}, 50);
+function sendInput(){if(st.joined&&socket.connected)socket.emit(MSG.INPUT,{...input});}
+function clearInput(){Object.assign(input,{dx:0,dy:0,attack:false,defense:false,super:false});document.querySelectorAll('.down').forEach(b=>b.classList.remove('down'));sendInput();}
+window.addEventListener('blur',clearInput);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();});
+setInterval(sendInput,50);
 
 socket.on(MSG.LOBBY, (d) => {
   console.log('[play] LOBBY', d.phase);
   try {
     const prev = st.phase;
     st.phase = d?.phase || 'lobby';
+    if(st.phase!=='playing'){clearInput();st.energy=0;st.alive=false;for(const k of Object.keys(cds))cds[k]=0;}
     st.teams = d?.teams || { A: [], B: [] };
     if (d?.characters) st.characters = d.characters;
     const inTeam = ['A', 'B'].some((t) => (st.teams[t] || []).some((p) => p.id === socket.id));
@@ -170,6 +178,8 @@ socket.on(MSG.STATE, (s) => {
     const t = Math.max(0, Math.ceil(s?.timeLeft ?? 0));
     $('#timer').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
     if (!me) return;
+    st.alive=me.alive;st.energy=me.energy||0;
+    for(const k of Object.keys(cds))cds[k]=performance.now()+Math.max(0,me.cd?.[k]||0)*1000;
     $('#hp').textContent = `PV ${Math.max(0, Math.round(me.hp))}/${me.maxHp ?? '?'}`;
     if (st.lastHp != null && me.hp < st.lastHp) { try { navigator.vibrate?.(60); } catch (e) {} }
     st.lastHp = me.hp;
@@ -192,5 +202,5 @@ socket.on(MSG.END, (d) => {
   } catch (e) {}
 });
 
-socket.on('disconnect', () => { st.joined = false; /* wantJoin garde: re-JOIN auto a la reconnexion */ });
+socket.on('disconnect', () => { clearInput();st.joined = false;st.alive=false; /* wantJoin garde: re-JOIN auto a la reconnexion */ });
 renderSelect();
