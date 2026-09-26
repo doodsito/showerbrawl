@@ -74,6 +74,7 @@ function doJoin() {
   const name = ($('#name').value || '').trim().slice(0, 16);
   socket.emit(MSG.JOIN, { team: st.team, character: st.character, name }, (res) => {
     console.log('[play] JOIN ack', res);
+    if (res && res.repick) { st.character = null; try { localStorage.removeItem('sb_char'); } catch (e) {} }
     if (res && res.ok === false) { st.joined = false; st.wantJoin = false; $('#err').textContent = res.error || 'Could not join'; renderSelect(); show('select'); return; }
     st.joined = true; st.wantJoin = true; st.lastHp = null;
     setupPad(); if (st.phase !== 'ended') show('pad');
@@ -232,6 +233,12 @@ socket.on(MSG.LOBBY, (d) => {
     $('#startMatch').hidden = !(st.phase === 'lobby' && d?.hasHost === false && d?.firstPlayer === socket.id);
     const inTeam = ['A', 'B'].some((t) => (st.teams[t] || []).some((p) => p.id === socket.id));
     if (st.phase === 'lobby' && prev === 'ended') { st.joined = false; }
+    // Perso retire du jeu (deploiement): retour propre au choix de perso.
+    if (!inTeam && st.character && Object.keys(st.characters).length && !st.characters[st.character]) {
+      if (st.joined || st.wantJoin) $('#err').textContent = 'Your character left the game, pick another one';
+      st.joined = false; st.wantJoin = false; st.character = null;
+      try { localStorage.removeItem('sb_char'); } catch (e) {}
+    }
     // Le serveur fait foi: si on est dans une equipe, on est en manette (y compris en cours de manche).
     if (inTeam && st.phase !== 'ended') { st.joined = true; st.wantJoin = true; setupPad(); show('pad'); }
     if (!st.joined) { renderSelect(); show('select'); } else renderSelect();
