@@ -20,7 +20,7 @@ Chaque push lance d'abord `npm test` + `npm run build` : si ça échoue, rien n'
 
 ## Personnages : design vs jeu (à trancher)
 
-`shared/characters.json` est la **seule source de vérité** du jeu. `client/personnages/trump.design.json` et `client/personnages/obama.design.json` (Leo) sont des documents de design **non branchés**. Écarts chiffrés :
+`shared/characters.json` est la **seule source de vérité** du jeu. `client/personnages/trump.design.json`, `client/personnages/obama.design.json` et `client/personnages/musk.design.json` (Leo) sont des documents de design **non branchés** (champ `_status`). Écarts chiffrés :
 
 | Perso | Élément | Design (Leo) | Jeu (`characters.json`) |
 |---|---|---|---|
