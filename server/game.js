@@ -8,9 +8,10 @@ import { hasLabKit, charge, updateLab, advanceForcedMovement } from './lab-comba
 
 const SLOTS = ['attack', 'defense', 'super'];
 const RECOVERY_MOVE_SCALE = 0.65; // ralentissement post-attaque, identique pour tous
-// Vue manette: zoom ~2x sur le decor => ~465 unites monde visibles en largeur; x1.5 de marge => +-360 autour du joueur.
-// L'arene tient entierement en hauteur a ce zoom: on ne filtre que sur x.
-const VIEW_HALF_WIDTH = 360;
+// Vue manette (CAMERA_ZOOM=1.4, client/play/play.js): en paysage large l'ecran montre 960/1.4 = 686 px decor = ~665 unites
+// monde (640 unites <-> 660 px). Pire cas: camera bloquee au bord du decor, perso colle au mur (x~90), bord oppose
+// de l'ecran a x~584 + ~30 de sprite => ~525. Arrondi a +-540.
+const VIEW_HALF_WIDTH = 540;
 const VIEW_DROP = new Set(['cd', 'kills', 'deaths']);
 const VIEW_KEEP = new Set(['x', 'y', 'hp', 'alive', 'maxHp']); // jamais omis, meme a 0/false
 // Objet allege pour le VIEW: sans champs vides (false/null/undefined) ni champs deja envoyes par ME.
