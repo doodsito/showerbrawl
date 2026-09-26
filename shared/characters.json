@@ -1,0 +1,24 @@
+{
+  "_schema": {
+    "note": "Un objet par perso. type DOIT etre dans: projectile, burst, zone, dash, shield. Rien d'autre. L'equipe persos remplit ce fichier, ne touche pas au code.",
+    "fields": {
+      "name": "affiche a l'ecran",
+      "hp": "points de vie",
+      "speed": "vitesse px/s",
+      "sprite": "id du sprite (equipe arene/art)",
+      "attack/defense/super": "un pouvoir chacun, parametre une des 5 briques"
+    }
+  },
+  "trump": {
+    "name": "Trump", "hp": 100, "speed": 200, "sprite": "trump",
+    "attack":  { "type": "projectile", "damage": 15, "cooldown": 0.4, "range": 400, "label": "Tweet" },
+    "defense": { "type": "shield", "duration": 1.5, "cooldown": 6, "label": "Le Mur" },
+    "super":   { "type": "zone", "radius": 150, "damage": 30, "cooldown": 15, "label": "Tariffs" }
+  },
+  "biden": {
+    "name": "Biden", "hp": 110, "speed": 180, "sprite": "biden",
+    "attack":  { "type": "projectile", "damage": 12, "cooldown": 0.35, "range": 380, "label": "Aviateurs" },
+    "defense": { "type": "dash", "distance": 180, "cooldown": 5, "label": "Nap Time" },
+    "super":   { "type": "burst", "count": 8, "damage": 10, "cooldown": 14, "label": "Executive Order" }
+  }
+}
