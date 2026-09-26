@@ -77,6 +77,8 @@ export function cast(ctx, p, slot) {
   if (!a || p.cd[slot] > 0 || !p.alive) return false;
   try { BRICKS[a.type]?.(ctx, p, a); } catch { return false; }
   p.cd[slot] = a.cooldown || 1;
+  console.log(`[cast] ${p.name} ${slot} ${a.type} "${a.label || ''}"`);
+  ctx.events?.push({ k: 'cast', id: p.id, slot, type: a.type, label: a.label || a.type, team: p.team, x: Math.round(p.x), y: Math.round(p.y) });
   return true;
 }
 
