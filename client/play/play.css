@@ -264,3 +264,10 @@ body[data-phase=playing] .hero{display:none!important}
 .a2hs button{min-width:32px;min-height:32px;border:0;background:none;color:var(--fg);font-size:20px;line-height:1;touch-action:manipulation}
 /* Bandeau en haut, sous le HUD: ne recouvre aucun bouton */
 .a2hs{top:calc(42px + var(--st));bottom:auto}
+
+/* Vue de jeu paysage: boutons en colonne au bord droit, ATTACK en bas (inchange), DEFENSE puis SUPER au-dessus, meme marge droite */
+@media (orientation:landscape){
+  body.viewing .btns{flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:8px}
+  body.viewing .btns .btn{align-self:flex-end;margin:0}
+  body.viewing .btns .btn:not(.big){width:64px;height:64px}
+}
