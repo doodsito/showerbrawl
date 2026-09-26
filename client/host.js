@@ -226,11 +226,30 @@ function paintMute() { try { const b = $('mute'); const m = Music.isMuted(); b.t
 try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); Music.unlock(); Music.toggleMute(); paintMute(); }); } catch (e) {}
 paintMute();
 
+// Compte a rebours au START: 3, 2, 1 pilotes par state.countdown (serveur), puis FIGHT! 1 s.
+let cdShown = '', fightUntil = 0, lastCd = 0;
+function updateCountdown(st) {
+  const el = $('countdown'), span = el.firstElementChild;
+  const cd = phase === 'playing' && st ? st.countdown || 0 : 0;
+  const now = performance.now();
+  if (lastCd > 0 && cd === 0 && phase === 'playing') fightUntil = now + 1000;
+  lastCd = cd;
+  const txt = cd > 2 ? '3' : cd > 1 ? '2' : cd > 0 ? '1' : now < fightUntil ? 'FIGHT!' : '';
+  if (txt === cdShown) return;
+  cdShown = txt;
+  el.style.display = txt ? 'flex' : 'none';
+  span.textContent = txt;
+  span.className = txt === 'FIGHT!' ? 'fight' : '';
+  void span.offsetWidth; span.classList.add('pop'); // relance l'animation a chaque chiffre
+}
+
 function loop() {
   try { if (phase === 'lobby') drawLobbyBg(); } catch (e) {}
   try { $('reset').style.display = phase === 'lobby' ? 'none' : 'block'; } catch (e) {}
   try {
-    if (phase !== 'lobby') render(ctx, canvas.width, canvas.height, lobby && lobby.arena, currentState(), lobby && lobby.characters);
+    const st = phase !== 'lobby' ? currentState() : null;
+    if (phase !== 'lobby') render(ctx, canvas.width, canvas.height, lobby && lobby.arena, st, lobby && lobby.characters);
+    updateCountdown(st);
   } catch (e) {}
   requestAnimationFrame(loop);
 }

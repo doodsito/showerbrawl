@@ -59,6 +59,13 @@
   #mute{position:fixed;top:10px;left:10px;z-index:7;width:34px;height:34px;padding:0;border:2px solid #ffffff22;border-radius:4px;background:#08111fb0;color:#f2efe4;font-size:16px;line-height:1;cursor:pointer;opacity:.55}
   #mute:hover{opacity:1}
   #reset{position:fixed;top:12px;right:12px;z-index:5;display:none;font:800 18px system-ui;padding:10px 18px;border:0;border-radius:10px;background:#ef4444;color:#fff;cursor:pointer;box-shadow:0 2px 10px #0008}
+  /* Compte a rebours 3-2-1-FIGHT! (style arcade du lobby) */
+  #countdown{position:fixed;inset:0;z-index:6;display:none;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(ellipse at center,#08111f66,#08111f00 70%)}
+  #countdown span{font:900 min(34vh,30vw)/1 var(--mono);color:var(--white);letter-spacing:.04em;
+    text-shadow:.06em 0 0 var(--red),-.06em 0 0 var(--blue),0 .08em 0 var(--black),0 0 .3em #000a}
+  #countdown span.fight{font-size:min(20vh,17vw);color:var(--gold)}
+  #countdown span.pop{animation:cdpop .9s ease-out both}
+  @keyframes cdpop{0%{transform:scale(1.9);opacity:0}18%{transform:scale(1);opacity:1}80%{transform:scale(1);opacity:1}100%{transform:scale(.85);opacity:0}}
   #end{position:fixed;inset:0;display:none;background:#000c;align-items:center;justify-content:center}
   #endBox{background:#141a33;padding:28px 40px;border-radius:16px;min-width:420px;text-align:center}
   #endBox table{margin:12px auto;border-collapse:collapse;font-size:18px}
@@ -86,6 +93,7 @@
 <div id="version"></div>
 <button id="mute" aria-label="Musique" aria-pressed="false">🔊</button>
 <button id="reset">ARRÊTER LA MANCHE</button>
+<div id="countdown"><span></span></div>
 <div id="end"><div id="endBox"></div></div>
 <script type="module" src="./host.js"></script>
 </body>
