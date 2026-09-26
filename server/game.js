@@ -65,6 +65,7 @@ export class Game {
   join(socket, data = {}) {
     const team = CONFIG.TEAMS.includes(data.team) ? data.team : null;
     const char = this.characters[data.character];
+    if (team && data.character && !char) return { ok: false, error: 'character no longer available', repick: true };
     if (!team || !char) return { ok: false, error: 'invalid team or character' };
     const existing = this.players.get(socket.id);
     if (!existing && this.players.size >= CONFIG.MAX_PLAYERS) return { ok: false, error: 'room is full' };
@@ -82,6 +83,13 @@ export class Game {
   }
 
   leave(id) { if (this.players.delete(id)) this.sendLobby(); }
+  // Perso retire de characters.json: ses joueurs quittent la partie et retournent au choix de perso.
+  dropMissingCharacters() {
+    const gone = [...this.players.values()].filter((p) => !this.characters[p.character]).map((p) => p.id);
+    for (const id of gone) this.players.delete(id);
+    if (gone.length) this.sendLobby();
+    return gone;
+  }
 
   input(id, d = {}) {
     const p = this.players.get(id);

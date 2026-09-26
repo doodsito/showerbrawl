@@ -230,3 +230,10 @@ test('VIEW: chaque joueur recoit le combat filtre autour de lui, compact (< 1 Ko
   }finally{game.dispose();}
 });
 
+test('perso retire du jeu: le joueur est renvoye au choix de perso, sans crash',t=>{
+  const chars={...characters};const game=new Game({emit(){}},{characters:chars,arena,autoTick:false});t.after(()=>game.dispose());
+  game.join({id:'a'},{team:'A',character:'trump'});game.join({id:'b'},{team:'B',character:'obama'});game.start();game.countdown=0;
+  delete chars.obama;assert.deepEqual(game.dropMissingCharacters(),['b']);assert.ok(!game.players.has('b'));
+  advance(game,.5);assert.ok(game.players.has('a'));
+  const res=game.join({id:'c'},{team:'B',character:'obama'});assert.equal(res.ok,false);assert.equal(res.repick,true);
+});

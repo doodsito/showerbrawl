@@ -41,7 +41,7 @@ let qr = null;
 try { qr = await QRCode.toDataURL(PLAY_URL, { width: 512, margin: 1 }); } catch {}
 
 const game = new Game(io, { characters, arena, lobbyExtra: { url: PLAY_URL, qr } });
-watchCharacters(() => game.sendLobby());
+watchCharacters(() => { game.dropMissingCharacters(); game.sendLobby(); });
 
 io.on('connection', (socket) => {
   io.emit(MSG.COUNT, io.engine.clientsCount);
