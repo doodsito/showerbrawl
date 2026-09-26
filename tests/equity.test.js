@@ -1,5 +1,5 @@
-// Equite: attaque de base, PV et vitesse identiques pour tous les persos (CONFIG.BASE_*).
-// Seules la defense et le super different. Mesures faites en jeu (cast + ticks), pas seulement sur la config.
+// Equite des coups generiques; les kits a distance sont testes via Game.input dans ranged-kits.test.js.
+// PV/vitesse communs. Mesures de contact faites en jeu (cast + ticks).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../server/game.js';
@@ -104,5 +104,16 @@ test('deplacement identique pour un perso labKit et un perso standard, avec ou s
   for (const id of [lab, std]) for (const near of [false, true]) {
     // s'eloigner de l'ennemi (ancien bonus de fuite) et avancer normalement
     assert.equal(run2s(id, near, 1), ref, `${id} ennemi proche=${near}`);
+  }
+});
+
+test('les coups generiques au contact ne creent pas de projectile', () => {
+  for (const id of IDS) {
+    assert.equal(characters[id].attack.travel, undefined, `${id}: attack.travel interdit`);
+    const { game: g, p } = duel(id, 400);
+    assert(cast(g, p, 'attack'), `${id}: cast`);
+    for (let i = 0; i < 5; i++) g.tick(0.05);
+    assert.equal(g.projectiles.length, 0, `${id}: projectile cree par l attaque de base`);
+    g.dispose();
   }
 });
