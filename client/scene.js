@@ -124,6 +124,7 @@ export function render(ctx, W, H, arena, state, characters) {
     for (const z of state.zones || []) {
       if(z.kind==='flamethrower'||z.kind==='cybertruck')continue;
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
+      if(z.kind==='strike'){fx.strikeZone(z);continue;}
       if(z.kind==='decree'){fx.decree(z);continue;}
       const [x, y] = worldToScreen(z.x, z.y, b);
       const rx = z.r * kx, ry = z.r * ky, pulse = 0.5 + 0.5 * Math.sin(now / 90);
@@ -225,7 +226,7 @@ function drawFx(ctx, state, b) {
       ctx.fillStyle = '#000c'; const w = ctx.measureText(e.label).width + 10; ctx.fillRect(x - w / 2, y - 104 - age * 0.02, w, 16);
       ctx.fillStyle = SLOT_COL[e.slot] || '#fff'; ctx.fillText(e.label, x, y - 92 - age * 0.02);
       // onde de choc pour burst et zone
-      if ((e.type === 'burst' || e.type === 'zone') && age < 500) {
+      if (e.type === 'burst' && age < 500) { // onde au lanceur: seulement le burst (le super cible frappe a distance)
         ctx.globalAlpha = 1 - age / 500; ctx.strokeStyle = TEAM_COL[e.team] || '#fff'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.ellipse(x, y, 10 + age * 0.25, (10 + age * 0.25) * 0.35, 0, 0, Math.PI * 2); ctx.stroke();
       }
