@@ -16,6 +16,10 @@ export default defineConfig({
   server: {
     host: true,
     fs: { allow: ['..'] },
-    proxy: { '/socket.io': { target: 'http://localhost:3000', ws: true } },
+    // Dev: les clients font io() sur 5173, Vite relaie vers le serveur node (3000).
+    proxy: {
+      '/socket.io': { target: 'http://127.0.0.1:3000', ws: true, changeOrigin: true },
+      '/health': { target: 'http://127.0.0.1:3000', changeOrigin: true },
+    },
   },
 });
