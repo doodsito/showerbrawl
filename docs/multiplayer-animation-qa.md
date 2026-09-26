@@ -1,5 +1,19 @@
 # QA des animations du multijoueur — 26 septembre 2026
 
+## Correctif des projectiles après retour en production
+
+Le contrôle initial ci-dessous validait des effets de contact, pas les projectiles attendus. Il ne prouvait donc pas le fonctionnement de Triple Baguette et Energy.
+
+La configuration n'engendrait plus de projectiles et le tri de rendu excluait tous les projectiles sauf ceux de Musk. Le correctif restaure trois baguettes et une boule d'énergie qui se déplacent réellement, avec collision, durée de vie, boucliers et recul limité aux bords. Les trois baguettes se partagent les 8 dégâts d'une salve ; elles sont séparées visuellement en hauteur. Obama conserve 11 dégâts. La portée et le délai entre tirs sont maintenant respectivement 185 / 0,45 s et 180 / 0,85 s pour tenir compte du tir à distance.
+
+Les états VIEW conservaient mal les zéros (âge initial, direction verticale). Ils les conservent maintenant. L'audit compare les états complets et VIEW : 30 capacités × 91 images × 2 écrans, avec détection des coordonnées non finies que Canvas ignore normalement sans erreur.
+
+Les nouveaux tests échouaient avant correction (5 échecs), puis passent : déplacement avant impact, dégâts totaux, expiration, bouclier, mur, absence d'éjection et conservation des zéros. Après intégration de `bab9618` : 131 tests passent et le build réussit. Contrôle visuel des trois baguettes et de l'énergie dans le module compilé partagé par l'arène et les téléphones. Les autres capacités conservent leur rendu actuel ; les personnages sans sprite dédié restent génériques.
+
+Diagnostic d'équilibrage : 720 duels simulés avec le moteur multi et la portée réelle des projectiles. Macron 58,7 %, Obama 45,8 % ; ces scores de bots ne prédisent pas les résultats humains. Les détails sont dans `balance/projectile-fix.json`.
+
+## Audit initial (historique)
+
 Statut : **DONE_WITH_CONCERNS**. Correctifs vérifiés localement et réunis avec la branche d’équilibrage `codex/roster-balance`. Aucun de ces correctifs n’a été déployé pendant cet audit.
 
 ## Production observée
