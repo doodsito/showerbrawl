@@ -153,9 +153,8 @@ export function dashHits(ctx, p) {
 }
 
 // Attaque de base standard (CONFIG.BASE_ATTACK) pour tous: coup au contact, memes degats, cooldown, portee, recul et recovery.
-// Les attaques au contact gardent leur label, icone et visuel. Un projectile travel explicite conserve son kit.
+// Le perso garde seulement son label, son icone et son visuel; ses valeurs et comportements individuels sont ignores.
 export function standardAttack(own = {}) {
-  if (own.type === 'projectile' && own.travel === true) return { ...CONFIG.BASE_ATTACK, ...own };
   return { type: 'projectile', ...CONFIG.BASE_ATTACK, label: own.label, icon: own.icon, visual: own.visual };
 }
 
