@@ -1,0 +1,375 @@
+{
+  "_status": "Document de design (Leo), NON branche au moteur. La source de verite du jeu est shared/characters.json. Differences chiffrees listees dans le README (section Personnages: design vs jeu).",
+  "format_version": 2,
+  "asset_name": "obama",
+  "schemaVersion": "1.0.0",
+  "visual": {
+    "style": "16-bit pixel-art arcade",
+    "perspective": "top_down_3_4",
+    "description": "Chemise aux manches retroussées, silhouette athlétique et posture détendue, prête au combat.",
+    "assetRequirements": {
+      "frameSource": "sprite_atlas",
+      "frameIndexing": "zero_based",
+      "note": "Les images sources disponibles sont des illustrations fixes, pas des spritesheets. Les indices frames ci-dessous sont des emplacements logiques à relier à un atlas animé avant intégration moteur."
+    }
+  },
+  "physics": {
+    "speed": {
+      "value": 175,
+      "unit": "pixels_per_second"
+    },
+    "pivot": {
+      "x": 0.5,
+      "y": 0.9,
+      "anchor": "feet"
+    },
+    "hitbox": {
+      "shape": "rectangle",
+      "width": 24,
+      "height": 13,
+      "unit": "pixels",
+      "offset": {
+        "x": 0,
+        "y": -2
+      },
+      "anchor": "pivot"
+    },
+    "movement": {
+      "mode": "pixel_perfect_grid",
+      "diagonalNormalization": true
+    },
+    "depth": {
+      "sortBy": "pivot.y"
+    }
+  },
+  "animationStateMachine": {
+    "initialState": "idle",
+    "states": {
+      "idle": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "frameRate": 8,
+        "loop": true,
+        "nextState": null
+      },
+      "walk": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "frameRate": 12,
+        "loop": true,
+        "nextState": "idle"
+      },
+      "attack_light": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "frameRate": 14,
+        "loop": false,
+        "nextState": "recovery"
+      },
+      "ultimate": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "frameRate": 18,
+        "loop": false,
+        "nextState": "idle",
+        "events": [
+          {
+            "frame": 4,
+            "event": "drop_microphone"
+          },
+          {
+            "frame": 18,
+            "event": "show_drone_reticle"
+          },
+          {
+            "frame": 42,
+            "event": "detonate_target"
+          }
+        ]
+      },
+      "hit": {
+        "frames": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "frameRate": 12,
+        "loop": false,
+        "nextState": "idle"
+      },
+      "death": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "frameRate": 10,
+        "loop": false,
+        "nextState": null
+      },
+      "recovery": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "frameRate": 12,
+        "loop": false,
+        "nextState": "idle"
+      },
+      "taunt": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "frameRate": 8,
+        "loop": true,
+        "nextState": null
+      }
+    },
+    "transitions": [
+      {
+        "from": "idle",
+        "to": "walk",
+        "when": "movement_input"
+      },
+      {
+        "from": "walk",
+        "to": "idle",
+        "when": "movement_stopped"
+      },
+      {
+        "from": "idle|walk",
+        "to": "attack_light",
+        "when": "light_attack_pressed"
+      },
+      {
+        "from": "attack_light",
+        "to": "recovery",
+        "when": "animation_complete"
+      },
+      {
+        "from": "recovery",
+        "to": "idle",
+        "when": "recovery_complete"
+      },
+      {
+        "from": "idle|walk",
+        "to": "ultimate",
+        "when": "ultimate_pressed"
+      },
+      {
+        "from": "any_non_death",
+        "to": "hit",
+        "when": "damage_received"
+      },
+      {
+        "from": "any_non_death",
+        "to": "death",
+        "when": "health_zero"
+      },
+      {
+        "from": "idle|walk",
+        "to": "taunt",
+        "when": "taunt_pressed"
+      }
+    ],
+    "statePriority": [
+      "death",
+      "hit",
+      "ultimate",
+      "attack_light",
+      "taunt",
+      "walk",
+      "idle"
+    ]
+  },
+  "attacks": {
+    "light": {
+      "name": "Hope Burst",
+      "type": "projectile",
+      "triggerFrame": 4,
+      "projectile": {
+        "shape": "orb",
+        "speed": 520,
+        "unit": "pixels_per_second",
+        "range": 380,
+        "damage": 14,
+        "radius": 8,
+        "visual": {
+          "style": "tricolor_hadoken",
+          "colors": [
+            "blue",
+            "white",
+            "red"
+          ]
+        }
+      },
+      "impact": {
+        "shape": "circle",
+        "radius": 14,
+        "damage": 14
+      },
+      "boundary_clamp": {
+        "enabled": true,
+        "mode": "despawn_at_arena_edge"
+      }
+    },
+    "ultimate": {
+      "name": "Mic Drop Strike",
+      "type": "targeted_aoe",
+      "damage": 55,
+      "events": [
+        {
+          "triggerFrame": 4,
+          "event": "drop_microphone",
+          "asset": "mic_drop",
+          "position": "player_feet"
+        },
+        {
+          "triggerFrame": 18,
+          "event": "show_drone_reticle",
+          "target": "nearest_enemy",
+          "reticleDurationMs": 900
+        },
+        {
+          "triggerFrame": 42,
+          "event": "detonate_target",
+          "text": "MIC DROP!"
+        }
+      ],
+      "range": 560,
+      "unit": "pixels",
+      "impact": {
+        "shape": "circle",
+        "radius": 76,
+        "damage": 55,
+        "knockback": 220,
+        "vfx": "mic_drop"
+      },
+      "boundary_clamp": {
+        "enabled": true,
+        "mode": "clamp_target_and_aoe_to_arena",
+        "margin": 8
+      }
+    }
+  },
+  "assets": {
+    "character": "sprites/obama.png",
+    "lightAttackVfx": "sprites/obama_attack.png",
+    "ultimateVfx": "sprites/obama_super.png"
+  },
+  "arena": {
+    "coordinateSpace": "world_pixels",
+    "boundaryClamp": true
+  },
+  "meta": {
+    "displayName": "Barack Obama",
+    "entityType": "player_character",
+    "style": "16-bit pixel-art arcade",
+    "perspective": "top_down_3_4",
+    "description": "Chemise aux manches retroussées, silhouette athlétique et posture détendue, prête au combat.",
+    "id": "obama"
+  },
+  "runtimeIntegration": {
+    "runtimeFile": "shared/characters.json",
+    "supportedAbilityTypes": [
+      "projectile",
+      "burst",
+      "zone",
+      "dash",
+      "shield"
+    ],
+    "note": "Les animations et capacités décrites ici documentent le design. Le moteur actuel ne lit pas encore cette machine à états ni les comportements de cône continu et de véhicule."
+  }
+}
