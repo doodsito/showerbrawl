@@ -16,8 +16,23 @@ const FX_DELAY = 100;
 let fx = [];
 const hitUntil = new Map();
 const trails = new Map();
+// Impact: hit-stop (perso touche fige 60 ms), tremblement proportionnel aux degats, KO! geant 1 s.
+const HIT_STOP_MS = 60, KO_MS = 1000;
+const hitStops = new Map();
+let shake = { t0: 0, until: 0, force: 0 };
+let kos = [];
 export function pushEvents(events) {
   const t0 = performance.now() + FX_DELAY;
+  for (const e of events || []) {
+    if (e.k === 'hit') {
+      hitStops.set(e.id, { from: t0, until: t0 + HIT_STOP_MS, x: null, y: null });
+      const force = Math.min(10, 1.5 + (e.amount || 0) * 0.35);
+      if (force >= shake.force * Math.max(0, (shake.until - t0) / 260)) shake = { t0, until: t0 + 260, force };
+    } else if (e.k === 'kill') {
+      kos.push({ ...e, t0 });
+      shake = { t0, until: t0 + 380, force: 11 };
+    }
+  }
   for (const e of events || []) if(!e.lab) fx.push({ ...e, t0 });
   if (fx.length > 200) fx = fx.slice(-200);
 }
@@ -90,9 +105,13 @@ export function render(ctx, W, H, arena, state, characters) {
   const project=fxCache.project, fx=fxCache.fx, musk=fxCache.musk;
   const impact=(state?.effects||[]).find(e=>e.kind==='impact'&&e.age<.38);
   const drop=(state?.zones||[]).find(z=>(z.kind==='micDrop'||z.kind==='decree')&&z.age>=z.delay&&z.age-z.delay<.38);
-  if(!reducedMotion.matches&&(impact||drop)){
-    const age=drop?drop.age-drop.delay:impact.age,force=(1-age/.38)*(drop?9:6);
-    ctx.translate(Math.sin(age*97)*force,Math.cos(age*79)*force*.55);
+  if(!reducedMotion.matches){
+    // Tremblement generalise: le plus fort entre impact/Mic Drop (serveur) et coups/KO (evenements).
+    let age=0,force=0;
+    if(impact||drop){age=drop?drop.age-drop.delay:impact.age;force=(1-age/.38)*(drop?9:6);}
+    const nowMs=performance.now();
+    if(nowMs>=shake.t0&&nowMs<shake.until){const a=(nowMs-shake.t0)/1000,f=shake.force*(1-(nowMs-shake.t0)/(shake.until-shake.t0));if(f>force){force=f;age=a;}}
+    if(force>0)ctx.translate(Math.sin(age*97)*force,Math.cos(age*79)*force*.55);
   }
   ctx.drawImage(decor.background, 0, 0);
   decor.animate(ctx, time);
@@ -135,13 +154,18 @@ export function render(ctx, W, H, arena, state, characters) {
         const img=it.o.visual==='energy'&&getImage('sprites/obama_attack.png');
         if(img){ctx.save();ctx.translate(x,y-36);ctx.rotate(Math.atan2(it.o.vy*ky,it.o.vx*kx));ctx.drawImage(img,-28,-14,48,28);ctx.restore();continue;}
         drawProjectile(ctx,it.o,x,y-18,kx,ky);
-      } else drawPlayer(ctx, { ...it.o, x, y }, characters, time);
+      } else {
+        const hs=hitStops.get(it.o.id),nowMs=performance.now();
+        if(hs&&nowMs>=hs.from&&nowMs<hs.until){if(hs.x==null){hs.x=x;hs.y=y;}drawPlayer(ctx,{...it.o,x:hs.x,y:hs.y,flash:true},characters,hs.from/1000);}
+        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);drawPlayer(ctx, { ...it.o, x, y }, characters, time);}
+      }
     }
   }
   if(state)for(const z of state.zones||[])if(z.kind==='micDrop')fx.micDrop(z,true);
   if(state)for(const z of state.zones||[])if(z.kind==='decree')fx.decree(z,true);
   if(state)for(const z of state.zones||[])if(z.kind==='flamethrower')musk.flame(z);
   if(state)drawFx(ctx,state,b);
+  if(state)drawKOs(ctx,b);
   decor.foreground(ctx);
   if(state)for(const e of state.effects||[])if(e.kind==='truckWreck')musk.wreck(e);else fx.effect(e,true);
   ctx.restore();
@@ -151,6 +175,7 @@ export function render(ctx, W, H, arena, state, characters) {
     ctx.save();
     ctx.setTransform(k, 0, 0, k, (W - DECOR_W * k) / 2, (H - DECOR_H * k) / 2); // meme echelle que l'arene, sans tremblement
     drawHud(ctx, state);
+    drawLeaders(ctx, state, characters);
     ctx.restore();
   }
 }
@@ -250,6 +275,51 @@ function drawHud(g, state) {
   pixelFrame(g, tX, Y + 5, tW, 48, { background: '#111a2b', outline: '#030812', outlineWidth: 2, inner: '#65758a', innerWidth: 2, cut: 2 });
   g.font = `900 34px ${HUD_FONT}`; g.textAlign = 'center';
   g.fillStyle = '#030812'; g.fillText(time, cx, Y + 5 + 26); g.fillStyle = '#f4f1e8'; g.fillText(time, cx, Y + 5 + 24);
+}
+
+// KO! enorme 1 s au point de chute (ramene dans l'ecran si la chute est hors toit) + nom du tueur.
+function drawKOs(g, b) {
+  const now = performance.now();
+  kos = kos.filter((k) => now - k.t0 < KO_MS);
+  for (const k of kos) {
+    const age = now - k.t0; if (age < 0) continue;
+    let [x, y] = worldToScreen(k.x, k.y, b);
+    x = Math.max(110, Math.min(850, x)); y = Math.max(170, Math.min(470, y - 40));
+    const pop = age < 140 ? 1.8 - (age / 140) * 0.8 : 1, fade = age > KO_MS - 250 ? (KO_MS - age) / 250 : 1;
+    g.save(); g.globalAlpha = fade; g.translate(Math.round(x), Math.round(y)); g.scale(pop, pop);
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `900 64px ${HUD_FONT}`;
+    g.fillStyle = '#030812'; for (const [dx, dy] of [[-4,0],[4,0],[0,-4],[0,4],[4,5]]) g.fillText('KO!', dx, dy);
+    g.fillStyle = '#e0413a'; g.fillText('KO!', 3, 0); g.fillStyle = '#2f7de1'; g.fillText('KO!', -3, 0); g.fillStyle = '#f6c343'; g.fillText('KO!', 0, 0);
+    const who = k.killerName ? `PAR ${String(k.killerName).toUpperCase()}` : k.fell ? 'CHUTE DU TOIT' : '';
+    if (who) {
+      g.font = `900 14px ${HUD_FONT}`; const tw = Math.ceil(g.measureText(who).width) + 14;
+      g.fillStyle = '#050a12'; g.fillRect(-tw / 2 - 2, 34, tw + 4, 22);
+      g.fillStyle = '#10182a'; g.fillRect(-tw / 2, 36, tw, 18);
+      g.fillStyle = k.killerTeam === 'B' ? '#e0413a' : k.killerTeam === 'A' ? '#2f7de1' : '#65758a'; g.fillRect(-tw / 2, 52, tw, 2);
+      g.fillStyle = '#ffffff'; g.fillText(who, 0, 45);
+    }
+    g.restore();
+  }
+}
+
+// Classement en direct: top 3 par kills, compact, coin haut gauche (sous le bouton son).
+function drawLeaders(g, state, characters) {
+  const top = [...(state.players || [])].sort((a, c) => (c.kills || 0) - (a.kills || 0) || (a.deaths || 0) - (c.deaths || 0)).slice(0, 3);
+  if (!top.length) return;
+  const X = 8, Y = 38, W = 150, row = 20, H = 16 + top.length * row;
+  pixelFrame(g, X, Y, W, H, { background: '#08111fe6', outline: '#030812', outlineWidth: 2, inner: '#34445d', innerWidth: 1, cut: 2 });
+  g.font = `900 8px ${HUD_FONT}`; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = '#f6c343'; g.fillText('TOP KILLS', X + 6, Y + 8);
+  top.forEach((p, i) => {
+    const y = Y + 16 + i * row, cfg = characters?.[p.character] || {};
+    g.fillStyle = p.team === 'B' ? '#e0413a' : '#2f7de1'; g.fillRect(X + 3, y + 2, 3, row - 4);
+    g.fillStyle = '#9aa7b8'; g.font = `900 9px ${HUD_FONT}`; g.fillText(String(i + 1), X + 10, y + row / 2);
+    const img = getImage(cfg.sprite || p.character, p.character);
+    if (img) { const h = 16, w = Math.min(18, h * img.naturalWidth / img.naturalHeight); g.drawImage(img, X + 20, y + 2, w, h); }
+    else { const spr = getSprite(p.character); if (spr) g.drawImage(spr, X + 20, y + 2, 16, 16); }
+    g.fillStyle = '#ffffff'; g.font = `900 9px ${HUD_FONT}`;
+    const name = String(p.name || '?').toUpperCase(); g.fillText(name.length > 12 ? name.slice(0, 11) + '.' : name, X + 42, y + row / 2);
+    g.textAlign = 'right'; g.fillStyle = '#f6c343'; g.fillText(String(p.kills || 0), X + W - 6, y + row / 2); g.textAlign = 'left';
+  });
 }
 
 function drawPlayer(ctx, p, characters, time) {
