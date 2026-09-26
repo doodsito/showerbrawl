@@ -4,7 +4,25 @@ const cache = {};
 const LOOKS = {
   trump: { skin: '#f2a25c', hair: '#ffb52e', hairStyle: 'swoop', glasses: false },
   biden: { skin: '#f1d2b8', hair: '#f4f4f4', hairStyle: 'thin', glasses: true },
+  musk: { skin: '#f0c9a8', hair: '#3a2a1e', hairStyle: 'swoop', glasses: false },
+  obama: { skin: '#8a5a3c', hair: '#2a2a2a', hairStyle: 'thin', glasses: false },
+  harris: { skin: '#b27a55', hair: '#1f1a17', hairStyle: 'swoop', glasses: false },
+  maduro: { skin: '#c79270', hair: '#1c1c1c', hairStyle: 'thin', glasses: false },
+  sanders: { skin: '#f2cfb4', hair: '#ececec', hairStyle: 'thin', glasses: true },
+  schwarzenegger: { skin: '#d9a07a', hair: '#6b4a2e', hairStyle: 'thin', glasses: false },
+  macron: { skin: '#f0cdb0', hair: '#5a4632', hairStyle: 'swoop', glasses: false },
+  zelensky: { skin: '#e3b999', hair: '#3b3b36', hairStyle: 'thin', glasses: false },
 };
+const images = {};
+const isImage = (id) => typeof id === 'string' && /\.(png|webp|gif|jpe?g)$/i.test(id);
+
+// PNG de l'equipe si le champ sprite est un chemin et que l'image est chargee, sinon null.
+export function getImage(src) {
+  if (!isImage(src)) return null;
+  let im = images[src];
+  if (!im) { im = images[src] = new Image(); im.onerror = () => { im.failed = true; }; im.src = src.startsWith('/') ? src : '/' + src; }
+  return im.complete && im.naturalWidth && !im.failed ? im : null;
+}
 function px(ctx, x, y, c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
 function rect(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
 

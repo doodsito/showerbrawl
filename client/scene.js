@@ -1,4 +1,4 @@
-import { getSprite } from './sprites.js';
+import { getSprite, getImage } from './sprites.js';
 
 const TEAM_COL = { A: '#3b82f6', B: '#ef4444' };
 import { createDecor, DECOR_W, DECOR_H } from './decor.js';
@@ -101,12 +101,20 @@ function drawPlayer(ctx, p, characters) {
     ctx.fillStyle = col;
     ctx.beginPath(); ctx.arc(p.x + p.fx / l * (R + 6), p.y + p.fy / l * (R + 6), 3, 0, Math.PI * 2); ctx.fill();
   }
-  const spr = getSprite(spriteId);
-  if (spr) { ctx.imageSmoothingEnabled = false; ctx.drawImage(spr, p.x - R, p.y - R, R * 2, R * 2); }
+  // PNG de l'equipe (en pied, pieds sur le sol) sinon crane genere au runtime.
+  const img = getImage(spriteId);
+  const top = img ? p.y + R - R * 3.4 : p.y - R;
+  if (img) {
+    const h = R * 3.4, w = h * (img.naturalWidth / img.naturalHeight);
+    ctx.imageSmoothingEnabled = false; ctx.drawImage(img, p.x - w / 2, p.y + R - h, w, h);
+  } else {
+    const spr = getSprite(p.character);
+    if (spr) { ctx.imageSmoothingEnabled = false; ctx.drawImage(spr, p.x - R, p.y - R, R * 2, R * 2); }
+  }
   const bw = 34, hp = Math.max(0, Math.min(1, (p.hp || 0) / (p.maxHp || 1)));
-  ctx.fillStyle = '#000a'; ctx.fillRect(p.x - bw / 2, p.y - R - 10, bw, 4);
+  ctx.fillStyle = '#000a'; ctx.fillRect(p.x - bw / 2, top - 10, bw, 4);
   ctx.fillStyle = hp > 0.5 ? '#22c55e' : hp > 0.25 ? '#facc15' : '#ef4444';
-  ctx.fillRect(p.x - bw / 2, p.y - R - 10, bw * hp, 4);
+  ctx.fillRect(p.x - bw / 2, top - 10, bw * hp, 4);
   ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
   ctx.fillStyle = '#000'; ctx.fillText(p.name || '', p.x + 1, p.y + R + 5);
   ctx.fillStyle = '#fff'; ctx.fillText(p.name || '', p.x, p.y + R + 4);
