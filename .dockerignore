@@ -4,3 +4,10 @@ client/dist
 perso
 tasks
 references
+laboratoire
+design
+tests
+scripts
+infra
+*.md
+.github

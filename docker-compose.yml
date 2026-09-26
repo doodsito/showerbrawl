@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
     restart: unless-stopped
     # Local only: nginx on the host is the single public entry point
     ports:
