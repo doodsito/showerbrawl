@@ -356,7 +356,7 @@ function drawPlayer(ctx, p, characters, time) {
   if(!pose){pose={x:p.x,y:p.y,t:time,phase:0,walk:0};poses.set(p.id,pose);}
   const dt=Math.min(.1,Math.max(0,time-pose.t)),distance=Math.hypot(p.x-pose.x,(p.y-pose.y)*3);
   const walking=p.moving&&!p.launch&&!p.shove&&!p.dash&&p.alive;
-  pose.walk+=(Number(walking&&distance>.01)-pose.walk)*(1-Math.exp(-22*dt));
+  pose.walk+=(Number(!!(walking&&distance>.01))-pose.walk)*(1-Math.exp(-22*dt));
   if(walking)pose.phase+=Math.min(20,distance)/64*Math.PI*2;
   Object.assign(pose,{x:p.x,y:p.y,t:time});
   const face=p.fx>=0?1:-1, attack=(p.pose||0)/(p.action==='super'?.4:.2);
