@@ -12,6 +12,7 @@ export const MSG = {
   // Serveur -> tous
   LOBBY: 'lobby', // { teams: { A: [{id,name,character}], B: [...] } }
   STATE: 'state', // { t, players[], projectiles[], zones[], score, timeLeft } a 20/s
+  ME: 'me', // { hp, maxHp, alive, respawnIn, energy, cd, score, timeLeft, countdown } a 20/s, a chaque joueur sur son socket
   END: 'end', // { score, mvp }
   // Infra (deja utilise par server/index.js actuel)
   COUNT: 'count', // nombre de connectes

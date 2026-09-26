@@ -237,7 +237,7 @@ export class Game {
   broadcast() {
     if (this.phase !== 'playing') return;
     const r = (v) => Math.round(v * 10) / 10;
-    this.io.emit(MSG.STATE, {
+    const state = {
       t: Date.now(),
       countdown: Math.round((this.countdown || 0) * 100) / 100,
       players: [...this.players.values()].map((p) => ({
@@ -261,6 +261,24 @@ export class Game {
       walls: this.walls.map(w => ({...w})), effects: this.effects.map(e => ({...e})),
       score: this.score,
       timeLeft: Math.max(0, Math.ceil(this.timeLeft)),
-    });
+    };
+    // STATE complet uniquement aux ecrans hotes (room 'hosts'); chaque joueur recoit son petit ME.
+    const rooms = typeof this.io.to === 'function';
+    (rooms ? this.io.to('hosts') : this.io).emit(MSG.STATE, state);
+    if (rooms) {
+      for (const p of this.players.values()) this.io.to(p.id).emit(MSG.ME, {
+        hp: Math.ceil(p.hp), maxHp: p.maxHp, alive: p.alive, respawnIn: p.alive ? 0 : Math.max(0, Math.ceil(p.respawnT)),
+        energy: r(p.energy || 0), cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
+        score: this.score, timeLeft: state.timeLeft, countdown: state.countdown,
+      });
+    }
+    // Mesure: taille moyenne du STATE et nombre d'ecrans hotes, toutes les 10 s.
+    const m = this._stateStats || (this._stateStats = { bytes: 0, n: 0, since: Date.now() });
+    m.bytes += JSON.stringify(state).length; m.n++;
+    if (Date.now() - m.since >= 10000) {
+      const hosts = this.io.sockets?.adapter?.rooms?.get('hosts')?.size ?? 0;
+      console.log(`[net] STATE moyen ${Math.round(m.bytes / m.n)} octets (${m.n} envois), ecrans hotes: ${hosts}`);
+      this._stateStats = { bytes: 0, n: 0, since: Date.now() };
+    }
   }
 }

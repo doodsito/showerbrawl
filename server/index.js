@@ -48,7 +48,7 @@ io.on('connection', (socket) => {
   // Client measures round-trip time with the ack callback
   socket.on(MSG.LATENCY, (ack) => typeof ack === 'function' && ack());
 
-  socket.on(MSG.HOST, () => { console.log(`[host] ${socket.id}`); socket.data.host = true; game.sendLobby(socket); });
+  socket.on(MSG.HOST, () => { console.log(`[host] ${socket.id}`); socket.data.host = true; socket.join('hosts'); game.sendLobby(socket); });
   socket.on(MSG.JOIN, (data, ack) => {
     let res;
     try { res = game.join(socket, data); } catch { res = { ok: false, error: 'erreur' }; }
