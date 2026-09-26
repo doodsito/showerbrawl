@@ -111,9 +111,10 @@ function setupPad() {
         input.dx = Math.max(-1, Math.min(1, x * k));
         input.dy = Math.max(-1, Math.min(1, -y * k));
         logStick();
+        pushInput();
       } catch (e) {}
     });
-    stick.on('end', () => { input.dx = 0; input.dy = 0; console.log('[play] joystick relache'); });
+    stick.on('end', () => { input.dx = 0; input.dy = 0; pushInput(); console.log('[play] joystick relache'); });
   } catch (e) {}
 }
 
@@ -147,11 +148,18 @@ function cdLoop() {
 }
 requestAnimationFrame(cdLoop);
 
-function sendInput(){if(st.joined&&socket.connected)socket.emit(MSG.INPUT,{...input});}
+let lastSend=0,pendingSend=null;
+function sendInput(){lastSend=performance.now();if(st.joined&&socket.connected)socket.emit(MSG.INPUT,{...input});}
+// Envoi immediat a chaque mouvement du joystick, throttle a 30 ms (le setInterval reste en filet de securite).
+function pushInput(){
+  const wait=30-(performance.now()-lastSend);
+  if(wait<=0){clearTimeout(pendingSend);pendingSend=null;sendInput();}
+  else if(!pendingSend)pendingSend=setTimeout(()=>{pendingSend=null;sendInput();},wait);
+}
 function clearInput(){Object.assign(input,{dx:0,dy:0,attack:false,defense:false,super:false});document.querySelectorAll('.down').forEach(b=>b.classList.remove('down'));sendInput();}
 window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();});
-setInterval(sendInput,50);
+setInterval(sendInput,100); // filet de securite, l'envoi principal est immediat
 
 socket.on(MSG.LOBBY, (d) => {
   console.log('[play] LOBBY', d.phase);
@@ -169,16 +177,15 @@ socket.on(MSG.LOBBY, (d) => {
   } catch (e) {}
 });
 
-socket.on(MSG.STATE, (s) => {
-  if (!stateLogged) { stateLogged = true; console.log('[play] premier STATE'); }
+// Etat perso leger envoye par le serveur a ce seul socket (le STATE complet ne va qu'a l'ecran hote).
+socket.on(MSG.ME, (me) => {
+  if (!stateLogged) { stateLogged = true; console.log('[play] premier ME'); }
   try {
-    if (!st.joined) return;
-    const me = (s?.players || []).find((p) => p.id === socket.id);
-    const sc = s?.score || {};
+    if (!st.joined || !me) return;
+    const sc = me.score || {};
     $('#score .a').textContent = sc.A ?? 0; $('#score .b').textContent = sc.B ?? 0;
-    const t = Math.max(0, Math.ceil(s?.timeLeft ?? 0));
+    const t = Math.max(0, Math.ceil(me.timeLeft ?? 0));
     $('#timer').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
-    if (!me) return;
     st.alive=me.alive;st.energy=me.energy||0;
     for(const k of Object.keys(cds))cds[k]=performance.now()+Math.max(0,me.cd?.[k]||0)*1000;
     $('#hp').textContent = `PV ${Math.max(0, Math.round(me.hp))}/${me.maxHp ?? '?'}`;
