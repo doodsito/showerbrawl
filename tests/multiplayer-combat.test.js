@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { CONFIG } from '../shared/config.js';
 import { Game } from '../server/game.js';
 import { characters, arena } from '../server/loader.js';
 import { cast } from '../server/abilities.js';
@@ -18,7 +19,7 @@ const advance=(g,seconds)=>{for(let left=seconds;left>1e-8;left-=.01)g.tick(Math
 
 test('Trump has a melee punch; misses do not damage or create a projectile',t=>{
  const {game,p,q}=setup(t);assert.equal(cast(game,p,'attack'),true);assert.equal(q.hp,q.maxHp);assert.equal(game.projectiles.length,0);
- advance(game,.5);q.x=370;cast(game,p,'attack');assert.equal(q.hp,q.maxHp-p.char.attack.damage);assert.ok(p.energy>0);advance(game,.2);assert.ok(q.x>=380);
+ advance(game,.6);q.x=370;cast(game,p,'attack');assert.equal(q.hp,q.maxHp-CONFIG.BASE_ATTACK.damage);assert.ok(p.energy>0);advance(game,.2);assert.ok(q.x>=380);
 });
 test('summoned wall blocks both teams and absorbs three punches, then frees the passage',t=>{
  const {game,p,q}=setup(t);assert.ok(cast(game,p,'defense'));const wall=game.walls[0];
@@ -35,7 +36,7 @@ test('invalid wall placement has no cooldown; a placed wall expires and reset cl
 });
 test('melee strike: misses at range, hits and pushes at contact, never spawns a projectile',t=>{
  const {game,p,q}=setup(t,'harris','trump');cast(game,p,'attack');assert.equal(game.projectiles.length,0);advance(game,.4);assert.equal(q.hp,q.maxHp);
- Object.assign(q,{x:340});p.cd.attack=0;cast(game,p,'attack');assert.equal(q.hp,q.maxHp-p.char.attack.damage);assert.equal(game.projectiles.length,0);
+ Object.assign(q,{x:340});p.cd.attack=0;cast(game,p,'attack');assert.equal(q.hp,q.maxHp-CONFIG.BASE_ATTACK.damage);assert.equal(game.projectiles.length,0);
  const atHit=q.x;advance(game,.3);assert.ok(q.x-atHit>20,'knockback pousse la cible');
  assert.ok(game.effects.some(e=>e.kind==='strike'),'effet au point d\'impact');
 });
@@ -84,7 +85,7 @@ test('a wall intercepts the super; a launched target destroys a wall further beh
  const {game,p,q}=setup(t);q.x=425;cast(game,p,'defense');p.energy=100;cast(game,p,'super');assert.equal(game.walls.length,0);assert.equal(q.hp,q.maxHp);
  p.cd.super=0;p.cd.defense=0;p.energy=100;p.x=300;q.x=380;
  game.walls.push({id:99,owner:q.id,team:'B',x:550,y:320,ux:1,uy:0,width:24,depth:150,slant:.2,hp:36,ttl:6,age:0});
- cast(game,p,'super');advance(game,.6);assert.equal(game.walls.length,0);assert.equal(q.hp,70);
+ cast(game,p,'super');advance(game,.6);assert.equal(game.walls.length,0);assert.equal(q.hp,q.maxHp-30);
 });
 test('short mobile taps survive between server ticks, defense does not recast while held',t=>{
  const {game,p}=setup(t);game.input(p.id,{defense:true});game.input(p.id,{defense:false});game.tick(.05);assert.equal(game.walls.length,1);
@@ -93,15 +94,15 @@ test('short mobile taps survive between server ticks, defense does not recast wh
 });
 test('snapshots carry authoritative wall, charge, dash and attack visual state',t=>{
  const {game,p,q,events}=setup(t);cast(game,p,'defense');p.energy=42;cast(game,q,'attack');cast(game,q,'defense');game.broadcast();
- const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,1);assert.equal(s.projectiles[0].visual,'energy');assert.ok(s.players[1].dash);
+ const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,0);assert.ok(s.effects.some(e=>e.visual==='energy'),'visuel energy dans l etat');assert.ok(s.players[1].dash);
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
  const {game,p,q}=setup(t,'biden','maduro');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
  cast(game,p,'defense');assert.equal(p.invulnT,0);assert.ok(p.dashHit);
- cast(game,q,'attack');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'),'burst = onde au sol');
+ q.char={...q.char,super:{type:'burst',radius:90,damage:9,knockback:300,cooldown:1}};cast(game,q,'super');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'),'burst = onde au sol');
  cast(game,q,'defense');assert.ok(q.shieldT>0);
- q.char={...q.char,super:{type:'zone',radius:100,damage:10,duration:1,cooldown:1}};cast(game,q,'super');
+ q.cd.super=0;q.char={...q.char,super:{type:'zone',radius:100,damage:10,duration:1,cooldown:1}};cast(game,q,'super');
  assert.equal(game.zones.length,1);assert.equal(game.zones[0].x,q.x,'zone sans target: centree sur le lanceur');
 });
 test('charge (dash) hits and pushes the enemy on its path',t=>{
@@ -111,7 +112,7 @@ test('charge (dash) hits and pushes the enemy on its path',t=>{
 test('burst shockwave damages and knocks back every nearby enemy, not the far ones',t=>{
  const {game,p,q}=setup(t,'maduro','biden');game.join({id:'c'},{team:'B',character:'musk',name:'far'});
  const far=game.players.get('c');Object.assign(far,{x:p.x+400,y:p.y,protectT:0});q.x=p.x+70;const x0=q.x;
- cast(game,p,'attack');assert.equal(q.hp,q.maxHp-p.char.attack.damage);assert.equal(far.hp,far.maxHp);advance(game,.3);assert.ok(q.x-x0>20);
+ p.char={...p.char,super:{type:'burst',radius:90,damage:9,knockback:300,cooldown:1}};cast(game,p,'super');assert.equal(q.hp,q.maxHp-9);assert.equal(far.hp,far.maxHp);advance(game,.3);assert.ok(q.x-x0>20);
 });
 
 test('countdown 3-2-1: players frozen, inputs ignored and match timer stopped until FIGHT', () => {

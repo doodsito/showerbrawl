@@ -5,6 +5,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { Game } from '../server/game.js';
 import { normalizeCharacters, arena } from '../server/loader.js';
 import { cast } from '../server/abilities.js';
+import { CONFIG } from '../shared/config.js';
 import { spriteLayout } from '../client/sprite-layout.js';
 
 const raw = JSON.parse(readFileSync(new URL('../shared/characters.json', import.meta.url), 'utf8'));
@@ -41,7 +42,7 @@ test('perso "test" ajoute par config: charge, rendu en pied et 3 capacites sans 
   Object.assign(p, { x: 300, y: 320, protectT: 0, fx: 1, fy: 0 }); Object.assign(q, { x: 345, y: 320, protectT: 0 });
 
   // attaque au contact
-  assert.ok(cast(game, p, 'attack')); assert.equal(q.hp, 110 - 10);
+  assert.ok(cast(game, p, 'attack')); assert.equal(q.hp, q.maxHp - CONFIG.BASE_ATTACK.damage, 'attaque de base standard');
   // charge: part vers l'ennemi, le frappe et le pousse
   Object.assign(q, { x: 420 }); const hpBefore = q.hp;
   assert.ok(cast(game, p, 'defense'));

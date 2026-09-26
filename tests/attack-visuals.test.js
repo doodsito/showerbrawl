@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../server/game.js';
 import {characters,arena} from '../server/loader.js';
 import {cast} from '../server/abilities.js';
+import {CONFIG} from '../shared/config.js';
 
 function setup(t,id){
  let state;const game=new Game({emit:(name,data)=>{if(name==='state')state=data;}},{characters,arena,autoTick:false});t.after(()=>game.dispose());
@@ -13,14 +14,11 @@ function setup(t,id){
  return {game,p,q,snapshot:()=>{game.broadcast();return state;}};
 }
 for(const [id,visual,count] of [['macron','baguette',3],['obama','energy',1]]) {
- test(`${id}: visible projectiles travel before hitting, with bounded volley damage`,t=>{
-  const {game,p,q,snapshot}=setup(t,id);q.x=480;const hp=q.hp;
-  assert(cast(game,p,'attack'));assert.equal(q.hp,hp,'no instant melee damage');
-  const shots=snapshot().projectiles;assert.equal(shots.length,count);assert(shots.every(s=>s.visual===visual));
-  const start=shots[0].x;game.tick(.05);assert(snapshot().projectiles[0].x>start);
-  for(let i=0;i<18;i++)game.tick(.05);
-  assert(q.hp<hp);assert(hp-q.hp<=p.char.attack.damage+1e-6,'damage is shared across the volley');
-  assert.equal(game.projectiles.length,0);assert(game.effects.some(e=>e.visual===visual)||q.hp<hp);
+ test(`${id}: attaque de base standard (equite), visuel ${visual} conserve, rien ne vole`,t=>{
+  const {game,p,q,snapshot}=setup(t,id);const hp=q.hp;
+  assert(cast(game,p,'attack'));assert.equal(hp-q.hp,CONFIG.BASE_ATTACK.damage,'degats standard au contact');
+  assert.equal(snapshot().projectiles.length,0,'aucun projectile');
+  assert(game.effects.some(e=>e.kind==='strike'&&e.visual===visual),'visuel du perso a l impact');
  });
  test(`${id}: misses expire, shields block and arena edges stop normal knockback`,t=>{
   const {game,p,q}=setup(t,id);q.x=660;assert(cast(game,p,'attack'));

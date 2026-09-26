@@ -1,3 +1,4 @@
+import { CONFIG } from '../shared/config.js';
 import { castMusk, updateMuskZone } from './musk-combat.js';
 import { charge, hasLabKit, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
 // 5 briques generiques, parametrees par le JSON du pouvoir. Aucune classe en dur.
@@ -55,6 +56,10 @@ const BRICKS = {
     if (a.travel) return volley(ctx, p, a);
     const reach = Math.min(a.range || 70, MELEE_MAX);
     const e = nearestEnemy(ctx, p, reach + p.r * 2);
+    // Un mur invoque entre moi et ma cible (ou devant moi) encaisse le coup a sa place.
+    { const d = e ? Math.hypot(e.x - p.x, e.y - p.y) : reach, ux = e ? (e.x - p.x) / (d || 1) : p.fx, uy = e ? (e.y - p.y) / (d || 1) : p.fy;
+      const wall = ctx.walls?.length ? firstWall(ctx, p, ux * d, uy * d) : null;
+      if (wall) { p.fx = ux; p.fy = uy; hitWall(ctx, wall, a.damage ?? 10, p.id); fx(ctx, 'strike', wall.x, wall.y, { ux, uy, visual: a.visual }, .3); return; } }
     if (!e) { fx(ctx, 'whiff', p.x + p.fx * reach * .6, p.y + p.fy * reach * .6, { ux: p.fx, uy: p.fy, visual: a.visual }, .25); return; }
     face(p, e);
     const hx = (p.x + e.x) / 2, hy = (p.y + e.y) / 2;
@@ -147,8 +152,14 @@ export function dashHits(ctx, p) {
   }
 }
 
+// Attaque de base standard (CONFIG.BASE_ATTACK) pour tous: coup au contact, memes degats, cooldown, portee, recul et recovery.
+// Le perso garde seulement son label, son icone et son visuel; ses valeurs et comportements individuels sont ignores.
+export function standardAttack(own = {}) {
+  return { type: 'projectile', ...CONFIG.BASE_ATTACK, label: own.label, icon: own.icon, visual: own.visual };
+}
+
 export function cast(ctx, p, slot) {
-  const a = p.char[slot];
+  const a = slot === 'attack' ? standardAttack(p.char.attack) : p.char[slot];
   if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
   const handler = ['flamethrower','hyperloop','cybertruck'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { Game } from '../server/game.js';
 import { characters, arena } from '../server/loader.js';
 import { cast } from '../server/abilities.js';
+import { castMusk } from '../server/musk-combat.js';
+const FLAME={type:'zone',behavior:'flamethrower',cooldown:1.2,range:150,duration:.75,dps:32,pushDistance:6,burnDps:7,burnDuration:.8,chargeHit:5,recovery:.2,halfAngle:26,label:'Flamethrower'}; // module musk-combat teste directement: l'attaque de base est standard (CONFIG.BASE_ATTACK)
 
 function setup(t){
   const events=[],game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false});
@@ -18,16 +20,16 @@ function setup(t){
 const advance=(g,s)=>{for(let n=s;n>1e-8;n-=.05)g.tick(Math.min(.05,n));};
 
 test('flame pulses push without stun, burn outside the cone, charge only on hits, and spare allies',t=>{
-  const {game,p,q,friend}=setup(t);cast(game,p,'attack');advance(game,.5);
-  assert(q.hp<q.maxHp);assert(q.x>400);assert.equal(q.stunT,0);assert.equal(friend.hp,friend.maxHp);assert.equal(p.energy,5*p.char.attack.chargeHit);
-  const hp=q.hp;q.x=610;advance(game,.3);assert(q.hp<hp);assert.equal(p.energy,5*p.char.attack.chargeHit);
+  const {game,p,q,friend}=setup(t);castMusk(game,p,FLAME);advance(game,.5);
+  assert(q.hp<q.maxHp);assert(q.x>400);assert.equal(q.stunT,0);assert.equal(friend.hp,friend.maxHp);assert.equal(p.energy,5*FLAME.chargeHit);
+  const hp=q.hp;q.x=610;advance(game,.3);assert(q.hp<hp);assert.equal(p.energy,5*FLAME.chargeHit);
   advance(game,1);assert.equal(q.muskBurn,null);assert.equal(game.zones.length,0);
 });
 test('flame respects shields, spawn protection and walls; exiting or interrupting the jet stops direct damage',t=>{
-  const {game,p,q}=setup(t);q.shieldT=2;cast(game,p,'attack');advance(game,1);assert.equal(q.hp,q.maxHp);assert.equal(p.energy,0);
-  q.shieldT=0;q.protectT=2;p.cd.attack=0;cast(game,p,'attack');advance(game,1);assert.equal(q.hp,q.maxHp);
-  q.protectT=0;p.cd.attack=0;game.walls.push({id:99,owner:q.id,team:q.team,x:350,y:320,ux:1,uy:0,width:20,depth:90,slant:.2,hp:100,ttl:6,age:0});
-  cast(game,p,'attack');advance(game,.4);assert.equal(q.hp,q.maxHp);assert(game.walls[0].hp<100);
+  const {game,p,q}=setup(t);q.shieldT=2;castMusk(game,p,FLAME);advance(game,1);assert.equal(q.hp,q.maxHp);assert.equal(p.energy,0);
+  q.shieldT=0;q.protectT=2;castMusk(game,p,FLAME);advance(game,1);assert.equal(q.hp,q.maxHp);
+  q.protectT=0;game.walls.push({id:99,owner:q.id,team:q.team,x:350,y:320,ux:1,uy:0,width:20,depth:90,slant:.2,hp:100,ttl:6,age:0});
+  castMusk(game,p,FLAME);advance(game,.4);assert.equal(q.hp,q.maxHp);assert(game.walls[0].hp<100);
   p.stunT=.5;advance(game,.1);assert.equal(game.zones.length,0);
 });
 test('Hyperloop is an escape, does not damage bodies, and stops at obstacles',t=>{

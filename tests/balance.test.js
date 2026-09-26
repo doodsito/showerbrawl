@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { CONFIG } from '../shared/config.js';
 import {Game} from '../server/game.js';
 import {characters,arena} from '../server/loader.js';
 import {cast} from '../server/abilities.js';
+import {castMusk} from '../server/musk-combat.js';
+const FLAME={type:'zone',behavior:'flamethrower',cooldown:1.2,range:150,duration:.75,dps:32,pushDistance:6,burnDps:7,burnDuration:.8,chargeHit:5,recovery:.2,halfAngle:26,label:'Flamethrower'}; // module musk-combat teste directement: l'attaque de base est standard (CONFIG.BASE_ATTACK)
 import {hitWall} from '../server/lab-combat.js';
 import {makePhysics} from '../server/physics.js';
 
@@ -18,7 +21,7 @@ const advance=(g,s)=>{for(let n=s;n>1e-8;n-=.05)g.tick(Math.min(n,.05));};
 for(const id of ['obama','harris'])test(`${id}: recovery slows movement briefly; cooldown alone never slows it`,t=>{
  const {game,p}=duel(t,id);cast(game,p,'attack');p.input={dx:1,dy:0};
  const x=p.x;advance(game,.05);assert(Math.abs(p.x-x-p.char.speed*.65*.05)<.01);
- p.cd.super=5;advance(game,p.char.attack.recovery);
+ p.cd.super=5;advance(game,CONFIG.BASE_ATTACK.recovery);
  const recovered=p.x;assert(p.cd.attack>0);advance(game,.05);
  assert(Math.abs(p.x-recovered-p.char.speed*.05)<.01);
  game.reset();assert.equal(p.recoveryT,0);
@@ -64,10 +67,10 @@ test('Trump cannot recharge by punching own or allied walls; enemy walls grant c
 });
 
 test('flame cone rejects a target outside its angle and advertises its geometry',t=>{
- const {game,p,q}=duel(t,'musk','trump');q.x=350;cast(game,p,'attack');
- const angle=(p.char.attack.halfAngle+8)*Math.PI/180;
+ const {game,p,q}=duel(t,'musk','trump');q.x=350;castMusk(game,p,FLAME);
+ const angle=(FLAME.halfAngle+8)*Math.PI/180;
  Object.assign(q,{x:p.x+100*Math.cos(angle),y:p.y+100*Math.sin(angle)});advance(game,.1);
  assert.equal(q.hp,q.maxHp);
  let snapshot;game.io.emit=(name,data)=>{if(name==='state')snapshot=data;};game.broadcast();
- assert.equal(snapshot.zones[0].halfAngle,p.char.attack.halfAngle);
+ assert.equal(snapshot.zones[0].halfAngle,FLAME.halfAngle);
 });
