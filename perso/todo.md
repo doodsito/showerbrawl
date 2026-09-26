@@ -139,7 +139,8 @@ Objectif : un pipeline de déploiement validé de bout en bout avant le jour J, 
 - [x] `loadtest.js` contre la VM : 20/20 connectés, p50 195 ms, p95 307 ms (sans le jeu, à refaire avec le moteur)
 
 ### Suite infra
-- [ ] Déploiement automatique : GitHub Action sur push `main` -> SSH sur la VM -> `./deploy.sh`
+- [x] Déploiement automatique : `.github/workflows/deploy.yml` sur push `main` -> SSH (clé dédiée `~/.ssh/showerbrawl_deploy`, limitée à `deploy.sh`) -> `./deploy.sh`
+- [ ] Secrets GitHub `DEPLOY_HOST` et `DEPLOY_KEY` ajoutés
 - [ ] Adapter `Dockerfile` / `deploy.sh` à la structure du moteur d'Axel dès qu'il pousse
 - [ ] Refaire le loadtest avec le vrai jeu
 
