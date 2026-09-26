@@ -61,10 +61,10 @@
     "super":  {"type": "zone", "behavior": "micDrop", "damage": 30, "radius": 110, "delay": 0.85, "cooldown": 5, "charge": 100, "label": "Mic Drop", "icon": "sprites/obama_super.png"}
   },
   "harris": {
-    "name": "Harris", "hp": 105, "speed": 195, "sprite": "harris", "hint": "Nuclear Laugh: standard hit up close · Donor Support: short shield · Venn Diagram: fast targeted strike, charges in combat",
-    "attack": {"type": "projectile", "label": "Nuclear Laugh"},
+    "name": "Harris", "hp": 105, "speed": 195, "sprite": "sprites/harris.png", "fullBody": true, "hint": "Nuclear Laugh: standard hit up close · Donor Support: short shield · Venn Diagram: fast targeted strike, charges in combat",
+    "attack": {"type": "projectile", "label": "Nuclear Laugh", "icon": "sprites/harris_attack.png"},
     "defense": {"type": "shield", "duration": 1.1, "cooldown": 7, "label": "Donor Support"},
-    "super":  {"type": "zone", "target": "enemy", "range": 480, "radius": 75, "delay": 0.65, "damage": 24, "knockback": 280, "cooldown": 6, "charge": 100, "label": "Venn Diagram"}
+    "super":  {"type": "zone", "target": "enemy", "range": 480, "radius": 75, "delay": 0.65, "damage": 24, "knockback": 280, "cooldown": 6, "charge": 100, "label": "Venn Diagram", "icon": "sprites/harris_super.png"}
   },
   "maduro": {
     "name": "Maduro", "hp": 105, "speed": 195, "sprite": "sprites/maduro.png", "fullBody": true, "hint": "Crude Oil: standard hit up close · Rigged Election: long shield · Hyperinflation: wide, slow targeted strike, charges in combat",
