@@ -1,0 +1,24 @@
+{
+  "_schema": {
+    "note": "grid: tableau de lignes. '#' = hors toit (mur/vide), '.' = sol jouable. cellSize en px. spawns = position pixel du centre de spawn par equipe. L'equipe arene remplit ce fichier.",
+    "theme": "white-house-roof"
+  },
+  "cellSize": 64,
+  "grid": [
+    "############",
+    "####....####",
+    "##........##",
+    "#..........#",
+    "#..........#",
+    "#..........#",
+    "#..........#",
+    "##........##",
+    "####....####",
+    "############"
+  ],
+  "spawns": {
+    "A": [192, 320],
+    "B": [576, 320]
+  },
+  "obstacles": []
+}
