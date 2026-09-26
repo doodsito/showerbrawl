@@ -14,7 +14,7 @@
   },
   "musk": {
     "name": "Musk", "hp": 105, "speed": 195, "sprite": "sprites/musk.png", "labKit": true, "fullBody": true, "hint": "Flamethrower: knockback and burn · Hyperloop: dodge · Cybertruck charges in combat",
-    "attack": {"type": "projectile", "label": "Flamethrower", "icon": "sprites/musk_attack.png"},
+    "attack": {"type": "projectile", "label": "Flamethrower", "icon": "sprites/musk_attack.png", "visual": "flame"},
     "defense": {"type": "dash", "behavior": "hyperloop", "distance": 260, "duration": 0.18, "invulnerable": false, "away": true, "cooldown": 4.5, "label": "Hyperloop", "icon": "sprites/musk_hyperloop.svg"},
     "super":  {"type": "zone", "behavior": "cybertruck", "damage": 42, "cooldown": 6, "charge": 100, "label": "Cybertruck", "icon": "sprites/musk_super.png"}
   },

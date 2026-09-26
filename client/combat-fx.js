@@ -326,6 +326,16 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
           g.restore();
         }return;
       }
+      // Musk: coup standard (BASE_ATTACK) affiche comme une flamme courte, du lanceur au point d'impact (visuel seul).
+      if((e.kind==='strike'||e.kind==='whiff')&&e.visual==='flame'){if(front){
+        const img=getImage('sprites/musk_attack.png'),t=Math.min(1,e.age/e.duration),dx=(e.ux??1)*kx,dy=(e.uy||0)*ky,len=Math.hypot(dx,dy)||1;
+        const reach=85*len; // portee standard en pixels decor
+        g.save();g.globalAlpha=Math.max(0,1-t)*(e.kind==='strike'?1:.6);g.translate(x,y-28);g.rotate(Math.atan2(dy,dx));
+        const w=reach*(.75+.25*Math.min(1,e.age/.08)),h=Math.max(14,reach*.32);
+        if(img)g.drawImage(img,-w*.55,-h/2,w,h);else poly([[-w*.55,-3],[w*.45,-h/2],[w*.45,h/2],[-w*.55,3]],'#ffaf38');
+        if(e.kind==='strike'&&!motionOptions.reducedMotion)for(let i=0;i<8;i++){const a=i*2.399,d=6+t*22;rect(w*.4+Math.cos(a)*d,Math.sin(a)*d*.6,3,3,i%2?'#ffeaa0':'#ff8f26');}
+        g.restore();
+      }return;}
       if((e.kind==='strike'||e.kind==='whiff')&&e.visual==='energy'){if(front){
         const art=getImage('sprites/obama_attack.png');
         if(art&&e.age<.2){g.save();g.globalAlpha=1-e.age/.2;g.translate(x,y-32);g.rotate(Math.atan2((e.uy||0)*ky,(e.ux??1)*kx));g.drawImage(art,-45,-18,54,36);g.restore();}
