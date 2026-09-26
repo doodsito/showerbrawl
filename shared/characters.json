@@ -13,7 +13,7 @@
     "super":  {"type": "burst", "radius": 140, "damage": 22, "knockback": 480, "cooldown": 13, "label": "Executive Order"}
   },
   "musk": {
-    "name": "Musk", "hp": 95, "speed": 210, "sprite": "musk",
+    "name": "Musk", "hp": 95, "speed": 210, "sprite": "sprites/musk.png",
     "attack": {"type": "projectile", "damage": 7, "range": 70, "knockback": 170, "cooldown": 0.22, "label": "Tweet 3h du mat"},
     "defense": {"type": "dash", "distance": 280, "duration": 0.12, "damage": 10, "knockback": 380, "cooldown": 4, "label": "Hyperloop"},
     "super":  {"type": "zone", "radius": 130, "damage": 34, "duration": 1.2, "knockback": 120, "cooldown": 15, "label": "Starlink"}
