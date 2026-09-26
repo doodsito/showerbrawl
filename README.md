@@ -137,7 +137,3 @@ Vérification ciblée : `node --test tests/musk-combat.test.js tests/multiplayer
 ### Retouches des attaques du lab
 
 Le Mic Drop cible la position de l’ennemi vivant le plus proche sur toute la carte au lancement. Sans ennemi disponible, le super reste chargé. La zone reste fixe durant les 0,85 s d’avertissement et peut être esquivée. Le micro détaillé tombe tête en avant puis rebondit ; le 49.3 utilise un tampon doré, une empreinte et des feuilles animées. Le mur reprend la texture MAGA en perspective tout en gardant les couleurs d’équipe. L’impact d’Énergie reprend le sprite tricolore ; son fonctionnement au corps à corps en multijoueur est conservé.
-
-### Obama — projectile à longue portée
-
-Energy conserve un vrai projectile : portée de 600 unités, vitesse de 600 unités/s, 11 dégâts, délai de 0,85 s. Il traverse l’arène jusqu’à une collision ou sa limite de portée. Un bouclier le bloque ; son recul ne peut pas éjecter. Les attaques explicitement configurées `travel: true` conservent leur kit dans `standardAttack`. Les autres attaques de base suivent `CONFIG.BASE_ATTACK`.
