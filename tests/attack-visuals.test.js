@@ -14,16 +14,20 @@ function setup(t,id){
  return {game,p,q,snapshot:()=>{game.broadcast();return state;}};
 }
 for(const [id,visual,count] of [['macron','baguette',3],['obama','energy',1]]) {
- test(`${id}: attaque de base standard (equite), visuel ${visual} conserve, rien ne vole`,t=>{
-  const {game,p,q,snapshot}=setup(t,id);const hp=q.hp;
-  assert(cast(game,p,'attack'));assert.equal(hp-q.hp,CONFIG.BASE_ATTACK.damage,'degats standard au contact');
-  assert.equal(snapshot().projectiles.length,0,'aucun projectile');
-  assert(game.effects.some(e=>e.kind==='strike'&&e.visual===visual),'visuel du perso a l impact');
+ test(`${id}: attack keeps its configured flight and visual`,t=>{
+  const {game,p,q,snapshot}=setup(t,id);const hp=q.hp;assert(cast(game,p,'attack'));
+  if(p.char.attack.travel){
+   assert.equal(q.hp,hp);assert.equal(snapshot().projectiles.length,count);assert.equal(snapshot().projectiles[0].visual,visual);
+   for(let i=0;i<4;i++)game.tick(.05);assert.equal(q.hp,hp-p.char.attack.damage);
+  }else{
+   assert.equal(hp-q.hp,CONFIG.BASE_ATTACK.damage);assert.equal(snapshot().projectiles.length,0);
+   assert(game.effects.some(e=>e.kind==='strike'&&e.visual===visual));
+  }
  });
  test(`${id}: misses expire, shields block and arena edges stop normal knockback`,t=>{
-  const {game,p,q}=setup(t,id);q.x=660;assert(cast(game,p,'attack'));
+  const {game,p,q}=setup(t,id);q.x=660;q.team='A';assert(cast(game,p,'attack'));
   for(let i=0;i<20;i++)game.tick(.05);assert.equal(q.hp,q.maxHp);assert.equal(game.projectiles.length,0);
-  p.cd.attack=0;q.x=420;q.shieldT=2;cast(game,p,'attack');for(let i=0;i<15;i++)game.tick(.05);assert.equal(q.hp,q.maxHp);
+  p.cd.attack=0;q.team='B';q.x=420;q.shieldT=2;cast(game,p,'attack');for(let i=0;i<15;i++)game.tick(.05);assert.equal(q.hp,q.maxHp);
   Object.assign(p,{x:570,fx:1,fy:0});Object.assign(q,{x:680,shieldT:0});p.cd.attack=0;cast(game,p,'attack');
   for(let i=0;i<20;i++)game.tick(.05);assert(q.hp<q.maxHp);assert(q.alive);assert(q.x<=686);assert.equal(q.superKbVx||0,0);
  });

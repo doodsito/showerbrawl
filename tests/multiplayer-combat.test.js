@@ -94,7 +94,7 @@ test('short mobile taps survive between server ticks, defense does not recast wh
 });
 test('snapshots carry authoritative wall, charge, dash and attack visual state',t=>{
  const {game,p,q,events}=setup(t);cast(game,p,'defense');p.energy=42;cast(game,q,'attack');cast(game,q,'defense');game.broadcast();
- const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,0);assert.ok(s.effects.some(e=>e.visual==='energy'),'visuel energy dans l etat');assert.ok(s.players[1].dash);
+ const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,1);assert.equal(s.projectiles[0].visual,'energy');assert.ok(s.players[1].dash);
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
