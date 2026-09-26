@@ -114,11 +114,24 @@ body[data-alive="0"][data-phase=playing] #pad{background:repeating-linear-gradie
 @keyframes blink{50%{opacity:.55}}
 @keyframes glow{0%{box-shadow:inset 0 5px 0 #fff8,0 6px 0 var(--line),0 0 0 3px var(--goldL),0 0 22px #ffd96a}100%{box-shadow:inset 0 5px 0 #fff8,0 6px 0 var(--line),0 0 0 3px #fff,0 0 10px #ffd96a}}
 
+/* perso central */
+.hero{position:absolute;z-index:0;left:0;right:0;top:calc(150px + var(--st));height:calc(100vh - 150px - min(56vh,440px) + 60px - var(--st) - var(--sb));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;pointer-events:none}
+body:not([data-phase=playing]) .hero{justify-content:flex-end}
+.halo{position:absolute;left:50%;top:50%;width:min(70vw,300px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;opacity:.16;
+  background:repeating-conic-gradient(var(--team) 0 10deg,transparent 10deg 20deg);-webkit-mask:radial-gradient(circle,#000 25%,transparent 68%);mask:radial-gradient(circle,#000 25%,transparent 68%)}
+.halo::after{content:"";position:absolute;inset:26%;border-radius:50%;border:6px solid var(--team);box-shadow:0 0 0 6px var(--line)}
+.hero img{position:relative;height:clamp(96px,17vh,150px);width:auto;max-width:70vw;image-rendering:pixelated;filter:drop-shadow(4px 5px 0 #050a12cc) drop-shadow(0 0 14px var(--team))}
+.hero img:not([hidden])+b{display:none}
+.hero b{position:relative;font-size:clamp(64px,12vh,110px);line-height:1;color:var(--team);text-shadow:5px 5px 0 var(--line);opacity:.8}
+.hero span{position:relative;padding:3px 12px;font-size:13px;letter-spacing:.14em;background:var(--panel);border:3px solid var(--line);box-shadow:inset 0 0 0 2px var(--team),0 3px 0 var(--line);text-shadow:2px 2px 0 var(--line)}
+body[data-phase=playing][data-alive="0"] .hero img,body[data-phase=playing][data-alive="0"] .hero b{filter:grayscale(1) brightness(.45) drop-shadow(4px 5px 0 #050a12cc)}
+body[data-phase=playing][data-alive="0"] .halo{opacity:.06}
+
 /* paysage */
 @media(max-height:520px){
   .band{height:48px;right:auto;width:52%}.chip{flex-basis:36px;height:36px}.chip img{width:32px;height:32px}.tag{display:none}
   .hud{top:calc(12px + var(--st));left:auto;right:calc(10px + var(--sr));transform:none}
-  .kit-hint,.hints,.stick>small{display:none}
+  .kit-hint,.hints,.stick>small,.hero{display:none}
   .wait,.respawn{top:calc(70px + var(--st))}
   .stick{top:calc(66px + var(--st));bottom:8px}
   .ring{width:min(80%,150px);bottom:4%}

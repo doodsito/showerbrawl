@@ -99,6 +99,8 @@ function setupPad() {
   $('#meName').textContent = nm; $('#meChar').textContent = ch.name || st.character || '--';
   $('#meTeam').textContent = st.team === 'A' ? 'ÉQUIPE BLEUE' : 'ÉQUIPE ROUGE';
   $('#meInit').textContent = (ch.name || st.character || '?')[0].toUpperCase();
+  $('#heroName').textContent = ch.name || st.character || '--'; $('#heroInit').textContent = $('#meInit').textContent;
+  const hi = $('#heroImg'); hi.hidden = !/\.png$/i.test(ch.sprite || ''); if (!hi.hidden) { hi.src = '/' + ch.sprite; hi.onerror = () => { hi.hidden = true; }; }
   img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = '/' + ch.sprite; img.onerror = () => { img.hidden = true; }; }
   if (stick) return;
   try {
