@@ -93,9 +93,18 @@ function setupPad() {
   $('#kit-hint').textContent=ch.super?.charge?'Le super se charge en combat · Esquive : joystick + bouton':'Maintiens une direction et utilise tes capacités';
   if(ch.hint)$('#kit-hint').textContent=ch.hint; // texte d'aide propre au perso (champ hint de characters.json)
   document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : 'var(--b)');
+  document.body.dataset.team = st.team || '';
+  const nm = ($('#name').value || '').trim() || 'JOUEUR', img = $('#meImg');
+  $('#meName').textContent = nm; $('#meChar').textContent = ch.name || st.character || '--';
+  $('#meTeam').textContent = st.team === 'A' ? 'ÉQUIPE BLEUE' : 'ÉQUIPE ROUGE';
+  $('#meInit').textContent = (ch.name || st.character || '?')[0].toUpperCase();
+  $('#heroName').textContent = ch.name || st.character || '--'; $('#heroInit').textContent = $('#meInit').textContent;
+  const hi = $('#heroImg'); hi.hidden = !/\.png$/i.test(ch.sprite || ''); if (!hi.hidden) { hi.src = '/' + ch.sprite; hi.onerror = () => { hi.hidden = true; }; }
+  img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = '/' + ch.sprite; img.onerror = () => { img.hidden = true; }; }
   if (stick) return;
   try {
-    stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', color: 'white', size: 130 });
+    stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', size: 130, restOpacity: 0.95,
+      color: { front: 'radial-gradient(circle at 40% 32%, #ffffff 0%, #d7dee8 40%, #9aa7b8 100%)', back: 'radial-gradient(circle, #243756 0%, #1b2942 70%)' } });
     // nipplejs v1: handler(evt) avec evt.data. v0.x: handler(evt, data). On gere les deux.
     stick.on('move', (evt, legacy) => {
       try {
@@ -140,8 +149,15 @@ function cdLoop() {
       b.querySelector('.cd').style.setProperty('--p', charged&&st.energy<100?1-st.energy/100:total ? left / total : 0);
       b.querySelector('em').textContent = charged&&st.energy<100?`${Math.floor(st.energy)}%`:left > 0 ? `${Math.ceil(left / 1000)}s` : charged?'PRÊT':'';
       b.disabled=!st.joined||st.phase!=='playing'||!st.alive;
+      b.classList.toggle('cool',left>0||(!!charged&&st.energy<100));
       b.classList.toggle('ready',!!charged&&st.energy>=100&&left===0);
     });
+  } catch (e) {}
+    try {
+    const ph = st.phase, alive = st.alive, bd = document.body.dataset;
+    bd.phase = ph; bd.alive = alive ? '1' : '0';
+    $('#meStatus').textContent = !socket.connected ? 'HORS LIGNE' : ph === 'playing' ? (alive ? 'IN MATCH' : 'ÉLIMINÉ') : ph === 'ended' ? 'FIN' : 'READY';
+    $('#wait').hidden = ph === 'playing';
   } catch (e) {}
   requestAnimationFrame(cdLoop);
 }
@@ -225,7 +241,7 @@ socket.on(MSG.ME, (me) => {
     if (st.wasAlive === true && me.alive === false) hitFeedback(0, true);
     st.wasAlive = me.alive; st.lastHp = me.hp;
     const r = $('#respawn');
-    if (me.alive === false) { r.hidden = false; r.textContent = `Respawn dans ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}s`; }
+    if (me.alive === false) { r.hidden = false; r.innerHTML = `<b>ÉLIMINÉ</b><span>RESPAWN DANS ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}S</span>`; }
     else r.hidden = true;
   } catch (e) {}
 });
