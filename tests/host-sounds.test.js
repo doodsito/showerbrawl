@@ -71,7 +71,7 @@ test('host joue les MP3 de Trump, le synthe pour Biden et fx_victory', { timeout
 
   for (const [c, id] of [[trump, trump.id], [biden, biden.id]]) {
     for (const slot of ['attack', 'defense', 'super']) {
-      const p = game.players.get(id); p.energy = 100; for (const k in p.cd) p.cd[k] = 0; p.stunT = 0;
+      const p = game.players.get(id); p.energy = 100; for (const k in p.cd) p.cd[k] = 0; p.stunT = 0; p.napT = 0; p.cycleT = 0;
       c.emit(MSG.INPUT, { dx: 0, dy: 0, [slot]: true });
       await wait(250);
       c.emit(MSG.INPUT, { dx: 0, dy: 0 });

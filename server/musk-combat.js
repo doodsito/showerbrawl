@@ -27,9 +27,11 @@ export function castMusk(ctx,p,a) {
       r:a.range,reach:a.range,halfAngle:a.halfAngle??24,age:0,duration:a.duration,pulse:0,dps:a.dps,push:a.pushDistance,burnDps:a.burnDps,burnDuration:a.burnDuration,chargeHit:a.chargeHit});
     return true;
   }
-  if(a.behavior==='cybertruck'){
-    ctx.zones.push({id:ctx.nextId(),kind:'cybertruck',owner:p.id,team:p.team,x:p.x,y:p.y,ux,uy,r:30,
-      age:0,delay:.44,duration:2.04,speed:620,damage:a.damage,hitIds:new Set(),passengers:new Set()});
+  if(a.behavior==='cybertruck'||a.behavior==='bicycle'){
+    const bike=a.behavior==='bicycle',delay=bike?.55:.44,speed=bike?a.speed:620;
+    if(bike)p.cycleT=1.15;
+    ctx.zones.push({id:ctx.nextId(),kind:a.behavior,owner:p.id,team:p.team,x:p.x,y:p.y,ux,uy,r:bike?20:30,
+      age:0,delay,duration:bike?delay+a.range/speed:2.04,speed,damage:a.damage,hitIds:new Set(),passengers:new Set()});
     return true;
   }
   return false;
@@ -55,7 +57,8 @@ function release(ctx,z){
 function crash(ctx,z){
   release(ctx,z);
   effect(ctx,'impact',z.x,z.y,{ux:z.ux,uy:z.uy},1.15);
-  effect(ctx,'truckWreck',z.x,z.y,{},.7);
+  effect(ctx,z.kind==='bicycle'?'bikeWreck':'truckWreck',z.x,z.y,{},.7);
+  if(z.kind==='bicycle')return false;
   for(let i=0;i<24;i++){
     const a=i*Math.PI/12,ux=Math.cos(a),uy=Math.sin(a),x=z.x+ux*60,y=z.y+uy*60;
     if(ctx.physics.collidesWithWall(x,y,7)||!clearRay(ctx,z.x,z.y,x-z.x,y-z.y))continue;
@@ -67,7 +70,7 @@ function crash(ctx,z){
 }
 export function updateMuskZone(ctx,z,dt){
   const owner=ctx.players.get(z.owner);
-  if(!owner||owner.team!==z.team){if(z.kind==='cybertruck')release(ctx,z);return false;}
+  if(!owner||owner.team!==z.team){if(z.kind==='cybertruck'||z.kind==='bicycle')release(ctx,z);return false;}
   const previousAge=z.age;z.age+=dt;
   if(z.kind==='flamethrower'){
     if(!owner.alive||owner.hp<=0||owner.character!=='musk'||owner.stunT>0||owner.dashT>0||owner.carriedBy)return false;
@@ -98,7 +101,7 @@ export function updateMuskZone(ctx,z,dt){
   for(let i=0;i<steps;i++){
     const dx=z.ux*distance/steps,dy=z.uy*distance/steps;
     const wall=firstWall(ctx,z,dx+z.ux*z.r,dy+z.uy*z.r);
-    if(wall){hitWall(ctx,wall,wall.hp,null);return crash(ctx,z);}
+    if(wall){hitWall(ctx,wall,wall.hp,null);if(z.kind!=='bicycle')return crash(ctx,z);}
     if(ctx.physics.collidesWithWall(z.x+dx,z.y+dy,z.r,false))return crash(ctx,z);
     z.x+=dx;z.y+=dy;
     for(const target of foes(ctx,owner)){

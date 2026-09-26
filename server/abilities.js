@@ -1,3 +1,4 @@
+import {castBiden} from './biden-combat.js';
 import { CONFIG } from '../shared/config.js';
 import { castMusk, updateMuskZone } from './musk-combat.js';
 import { charge, hasLabKit, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
@@ -161,9 +162,9 @@ export function standardAttack(own = {}) {
 
 export function cast(ctx, p, slot) {
   const a = slot === 'attack' ? standardAttack(p.char.attack) : p.char[slot];
-  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0) return false;
+  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0 || p.napT > 0 || p.cycleT > 0) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
-  const handler = ['flamethrower','hyperloop','cybertruck'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
+  const handler = a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
   if (!handler || handler(ctx, p, {...a, canRingOut: slot === 'super'}) === false) return false;
   if (a.charge) p.energy = 0;
   p.cd[slot] = a.cooldown || 1;
@@ -190,7 +191,7 @@ export function updateProjectiles(ctx, dt) {
         if (!o.alive || o.hp <= 0 || o.team === pr.team || o.launch) continue;
         if (physics.circlesOverlap(pr, pr.r, o, o.r)) {
           const hit = ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * .01, pr.y - pr.vy * .01, pr.pushDistance ? 0 : pr.knockback, !!pr.pushDistance, pr.chargeHit == null, !!pr.canRingOut);
-          if (pr.visual === 'energy' || pr.visual === 'baguette') fx(ctx, hit ? 'strike' : 'whiff', pr.x, pr.y, {visual:pr.visual,ux:pr.vx/Math.hypot(pr.vx,pr.vy),uy:pr.vy/Math.hypot(pr.vx,pr.vy)}, .35);
+          if (pr.visual === 'energy' || pr.visual === 'baguette' || pr.visual === 'icecream') fx(ctx, hit ? 'strike' : 'whiff', pr.x, pr.y, {visual:pr.visual,ux:pr.vx/Math.hypot(pr.vx,pr.vy),uy:pr.vy/Math.hypot(pr.vx,pr.vy)}, .35);
           if(hit && pr.chargeHit != null)charge(ctx.players.get(pr.owner),pr.chargeHit);
           if (hit && pr.pushDistance) shove(o, pr.vx, pr.vy, pr.pushDistance);
           return false;
@@ -205,7 +206,7 @@ export function updateProjectiles(ctx, dt) {
 
 export function updateZones(ctx, dt) {
   ctx.zones = ctx.zones.filter((z) => {
-    if(z.kind==='flamethrower'||z.kind==='cybertruck')return updateMuskZone(ctx,z,dt);
+    if(z.kind==='flamethrower'||z.kind==='cybertruck'||z.kind==='bicycle')return updateMuskZone(ctx,z,dt);
     if (z.kind === 'micDrop' || z.kind === 'decree') return updateMicDrop(ctx, z, dt);
     if (z.kind === 'strike') return updateStrike(ctx, z, dt);
     z.ttl -= dt;

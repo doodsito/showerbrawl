@@ -1,3 +1,4 @@
+import {drawSleep,drawBicycle} from './biden-fx.js';
 import { muskFX } from './musk-fx.js';
 import { getSprite, getImage } from './sprites.js';
 import { combatFX } from './combat-fx.js';
@@ -136,7 +137,7 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     for (const id of poses.keys()) if(!seen.has(id))poses.delete(id);
     for(const e of state.effects||[])if(e.kind!=='truckWreck')fx.effect(e);
     for (const z of state.zones || []) {
-      if(z.kind==='flamethrower'||z.kind==='cybertruck')continue;
+      if(z.kind==='flamethrower'||z.kind==='cybertruck'||z.kind==='bicycle')continue;
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
       if(z.kind==='strike'){if(z.visual==='decree')fx.decree(z);else fx.strikeZone(z);continue;}
       if(z.kind==='decree'){fx.decree(z);continue;}
@@ -157,11 +158,13 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     // Every authoritative projectile must reach a renderer, on host and phone.
     for(const p of state.projectiles||[]){const s=project(p.x,p.y);addItem(p.visual==='muskSteel'||p.visual==='muskDoge'?'muskProjectile':'p',p,s[0],s[1]);}
     for(const z of state.zones||[])if(z.kind==='cybertruck'){const s=project(z.x,z.y);addItem('truck',z,s[0],s[1]+1);}
+    for(const z of state.zones||[])if(z.kind==='bicycle'){const s=project(z.x,z.y);addItem('bike',z,s[0],s[1]+1);}
     for (const p of state.players || []) { const s = worldToScreen(p.x, p.y, b); addItem('j', p, s[0], s[1]); }
     items.sort(byDepth);
     for (const it of items) {
       const x = it.x, y = it.y;
       if(it.k==='muskProjectile'){musk.projectile(it.o);continue;}
+      if(it.k==='bike'){drawBicycle(ctx,it.o,project,kx,ky,reducedMotion.matches);continue;}
       if(it.k==='truck'){musk.truck(it.o);continue;}
       if(it.k==='wall'){fx.wall(it.o);continue;}
       if (it.k === 'p') {
@@ -366,7 +369,8 @@ function drawPlayer(ctx, p, characters, time) {
   if(!quiet&&p.shove){lift+=Math.sin(p.shove.progress*Math.PI)*8;angle=-p.shove.ux*.27;}
   if(!quiet&&p.dash){lift+=Math.sin(Math.min(1,1-p.dash.remaining/(p.character==='musk'?.18:.28))*Math.PI)*14;angle=Math.sign(p.dash.x)*.22;}
   if(!quiet&&p.recoil>0){const t=1-p.recoil/.42,bounce=Math.sin(t*Math.PI);offset-=face*bounce*14;lift+=bounce*9;sx=1-Math.max(0,1-t/.22)*.3;sy=1+Math.max(0,1-t/.22)*.13;}
-  const top=p.y-(img?h:30)-lift;
+  if(p.cycle&&!quiet){const age=1.15-p.cycle;if(age<.55){lift+=8+Math.sin(age*20)*2;}else{const fall=Math.sin(Math.min(1,(age-.55)/.6)*Math.PI);angle+=face*fall*1.45;lift-=fall*30;}}
+  const top=p.y-(p.nap?35:img?h:30)-lift;
   ctx.save();ctx.globalAlpha=p.alive===false?.3:1;
   ctx.fillStyle='#0006';ctx.beginPath();ctx.ellipse(p.x,p.y,18,5,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,20,6,0,0,Math.PI*2);ctx.stroke();
@@ -375,7 +379,8 @@ function drawPlayer(ctx, p, characters, time) {
     ctx.save();ctx.fillStyle=p.shield?(cfg.shieldStyle==='sunglasses'?'#75cfff22':'#facc1548'):'#ffffff28';ctx.strokeStyle=p.shield?(cfg.shieldStyle==='sunglasses'?'#8edbff':'#facc15'):'#ffffff66';ctx.lineWidth=2;
     ctx.beginPath();ctx.ellipse(p.x,p.y-h/2,29*pulse,(h/2+7)*pulse,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
   }
-  if(img){
+  const sleeping=p.nap>0&&drawSleep(ctx,p,time,quiet);
+  if(img&&!sleeping){
     const w=h*(img.naturalWidth/img.naturalHeight);
     if(!quiet&&(p.dash||p.launch||p.shove)){
       const direction=p.dash?Math.sign(p.dash.x):(p.launch?.ux||p.shove?.ux||1);
@@ -389,7 +394,7 @@ function drawPlayer(ctx, p, characters, time) {
       ctx.fillStyle='#b4d9eb';ctx.fillRect(-8,-h+12,4,1);ctx.fillRect(4,-h+12,4,1);
     }
     ctx.restore();
-  }else{const spr=getSprite(p.character);if(spr)ctx.drawImage(spr,p.x-R,p.y-R*2,R*2,R*2);}
+  }else if(!sleeping){const spr=getSprite(p.character);if(spr)ctx.drawImage(spr,p.x-R,p.y-R*2,R*2,R*2);}
   if(p.burning&&p.alive)for(let i=0;i<7;i++){
     const t=quiet?i/7:(time*2+i/7)%1;ctx.fillStyle=t>.5?'#ffdc65':'#f98429';ctx.fillRect(p.x-15+i*5,p.y-8-t*40,3,4);
   }
