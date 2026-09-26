@@ -67,10 +67,10 @@
     "super":  {"type": "zone", "target": "enemy", "range": 480, "radius": 75, "delay": 0.65, "damage": 24, "knockback": 280, "cooldown": 6, "charge": 100, "label": "Venn Diagram"}
   },
   "maduro": {
-    "name": "Maduro", "hp": 105, "speed": 195, "sprite": "sprites/maduro.png", "fullBody": true, "hint": "Crude Oil: standard hit up close · Rigged Election: long shield · Hyperinflation: wide, slow targeted strike, charges in combat",
-    "attack": {"type": "projectile", "label": "Crude Oil", "icon": "sprites/maduro_attack.png"},
+    "name": "Maduro", "hp": 105, "speed": 195, "sprite": "maduro", "hint": "Crude Oil: standard hit up close · Rigged Election: long shield · Hyperinflation: wide, slow targeted strike, charges in combat",
+    "attack": {"type": "projectile", "label": "Crude Oil"},
     "defense": {"type": "shield", "duration": 1.8, "cooldown": 8.5, "label": "Rigged Election"},
-    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 115, "delay": 0.9, "damage": 30, "knockback": 300, "cooldown": 6, "charge": 100, "label": "Hyperinflation", "icon": "sprites/maduro_super.png"}
+    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 115, "delay": 0.9, "damage": 30, "knockback": 300, "cooldown": 6, "charge": 100, "label": "Hyperinflation"}
   },
   "schwarzenegger": {
     "name": "Schwarzenegger", "hp": 105, "speed": 195, "sprite": "schwarzenegger", "hint": "Hasta La Vista: standard hit up close · Get To The Choppa: shoving charge · I'll Be Back: targeted strike with huge knockback, charges in combat",
@@ -83,5 +83,11 @@
     "attack": {"type": "projectile", "travel": true, "range": 400, "speed": 560, "shots": 3, "spread": 0.035, "damage": 8, "knockback": 140, "cooldown": 0.65, "recovery": 0.19, "label": "Triple Baguette", "icon": "sprites/macron_baguettes.svg", "visual": "baguette"},
     "defense": {"type": "shield", "duration": 1.4, "cooldown": 7, "label": "Sunglasses", "icon": "sprites/macron_sunglasses.svg"},
     "super":  {"type": "zone", "behavior": "decree", "range": 520, "radius": 65, "delay": 0.9, "damage": 28, "cooldown": 1.1, "charge": 100, "label": "49.3", "icon": "sprites/macron_super.png"}
+  },
+  "xi": {
+    "name": "Xi Jinping", "hp": 105, "speed": 195, "sprite": "sprites/xi.png", "fullBody": true, "hint": "Red Star: standard hit up close · Long March: shoving charge · Iron Hammer: targeted hammer strike, charges in combat",
+    "attack": {"type": "projectile", "label": "Red Star", "icon": "sprites/xi_attack.png"},
+    "defense": {"type": "dash", "distance": 200, "duration": 0.2, "damage": 6, "knockback": 220, "cooldown": 5, "label": "Long March", "invulnerable": false, "icon": "sprites/xi.png"},
+    "super":  {"type": "zone", "target": "enemy", "range": 440, "radius": 100, "delay": 0.8, "damage": 28, "knockback": 340, "cooldown": 6, "charge": 100, "label": "Iron Hammer", "icon": "sprites/xi_super.png"}
   }
 }
