@@ -208,3 +208,27 @@ body[data-phase=playing][data-alive="0"] .halo{opacity:.06}
   .hud{height:30px}
   .stick,.btns{top:calc(42px + var(--st))}
 }
+/* Vue de jeu sur la manette: canvas plein ecran sous les controles */
+#view{position:absolute;inset:0;width:100%;height:100%;z-index:0;image-rendering:pixelated;background:#0a0f24}
+#view[hidden]{display:none}
+body.viewing .hud{background:#08111fb3}
+body.viewing .btn{opacity:.78}
+body.viewing .kit-hint{display:none}
+body.viewing .stick{background:none}
+.hud,.respawn,.stick,.btns,.viewbar,.startmatch{z-index:2}
+.viewbar{position:absolute;top:46px;right:10px;display:flex;gap:6px;align-items:center}
+.viewtoggle{padding:6px 10px;border:2px solid #ffffff44;border-radius:6px;background:#08111fcc;color:#f2efe4;font:700 12px ui-monospace,Menlo,Consolas,monospace;touch-action:manipulation}
+.fps{padding:4px 6px;background:#000a;color:#9aa7b8;font:11px ui-monospace,Menlo,monospace;border-radius:4px}
+.fps[hidden]{display:none}
+.startmatch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:16px 26px;border:4px solid #08111f;border-radius:2px;
+  background:linear-gradient(#ffe07a,#f6c343 55%,#d99a1c);color:#08111f;font:900 22px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;box-shadow:0 5px 0 #08111f;touch-action:manipulation;z-index:6}
+.startmatch[hidden]{display:none}
+.rotate{display:none}
+@media (orientation:portrait){body.viewing .rotate{display:block;position:absolute;left:0;right:0;bottom:6px;margin:0;text-align:center;font-size:11px;color:#f6c343;text-shadow:0 1px 0 #000;z-index:2;pointer-events:none}}
+/* Vue de jeu: boutons compacts et translucides en bas a droite pour laisser voir le combat */
+body.viewing .btns{top:auto;bottom:10px;right:10px;width:auto;display:grid;grid-template-columns:repeat(3,auto);align-items:end;gap:8px}
+body.viewing .btn,body.viewing .btn.big{width:74px;height:74px;aspect-ratio:auto;opacity:.6;padding:6px 4px 16px}
+body.viewing .btn.big{width:88px;height:88px;transform:none}
+body.viewing .btn img{height:18px;width:22px}
+body.viewing .btn span{font-size:10px}
+body.viewing .btn.down{opacity:.9}
