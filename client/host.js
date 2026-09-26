@@ -207,12 +207,12 @@ function showEnd(d) {
   try {
     const box = $('endBox');
     const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const win = d.winner === 'A' ? ['A', 'TEAM BLEUE WINS'] : d.winner === 'B' ? ['B', 'TEAM ROUGE WINS'] : ['draw', 'EGALITE'];
-    box.innerHTML = `<div class="victory">${win[0] === 'draw' ? 'FIN DU MATCH' : 'VICTORY'}</div>
+    const win = d.winner === 'A' ? ['A', 'BLUE TEAM WINS'] : d.winner === 'B' ? ['B', 'RED TEAM WINS'] : ['draw', 'DRAW'];
+    box.innerHTML = `<div class="victory">${win[0] === 'draw' ? 'MATCH OVER' : 'VICTORY'}</div>
       <div class="winner ${win[0]}">${win[1]}</div>
-      <div class="score"><div class="A">${d.score?.A ?? 0}<small>BLEUS</small></div><div class="vs">VS</div><div class="B">${d.score?.B ?? 0}<small>ROUGES</small></div></div>
+      <div class="score"><div class="A">${d.score?.A ?? 0}<small>BLUE</small></div><div class="vs">VS</div><div class="B">${d.score?.B ?? 0}<small>RED</small></div></div>
       <div class="mvp"></div>
-      <div class="foot"><span id="endCount"></span><button id="replay">REJOUER</button></div>`;
+      <div class="foot"><span id="endCount"></span><button id="replay">REMATCH</button></div>`;
     const m = d.mvp, chars = (lobby && lobby.characters) || {};
     if (m) {
       const ch = chars[m.character];
@@ -222,7 +222,7 @@ function showEnd(d) {
       box.querySelector('.mvp').append(spr, t);
     }
     $('replay').onclick = (e) => { e.stopPropagation(); socket.emit(MSG.RESET, (r) => console.log('[host] REJOUER -> RESET', r)); };
-    let n = 6; const tickEnd = () => { const c = $('endCount'); if (c) c.textContent = n > 0 ? `RETOUR AU LOBBY DANS ${n}S` : ''; n--; };
+    let n = 6; const tickEnd = () => { const c = $('endCount'); if (c) c.textContent = n > 0 ? `BACK TO LOBBY IN ${n}S` : ''; n--; };
     clearInterval(endTimer); tickEnd(); endTimer = setInterval(tickEnd, 1000);
     $('end').style.display = 'flex';
     SFX.end(win[0] === 'draw');
@@ -235,7 +235,7 @@ socket.off();
 let stateLogged = false;
 const status = (t) => { try { $('url').dataset.status = t; $('start').title = t; } catch (e) {} };
 socket.on('connect', () => { console.log('[host] socket connecte', socket.id, socket.io.engine.transport.name); status(''); try { socket.emit(MSG.HOST); } catch (e) {} });
-socket.on('connect_error', (e) => { console.warn('[host] serveur injoignable', e.message); status('serveur injoignable'); $('start').textContent = 'SERVEUR INJOIGNABLE'; });
+socket.on('connect_error', (e) => { console.warn('[host] serveur injoignable', e.message); status('server unreachable'); $('start').textContent = 'SERVER UNREACHABLE'; });
 socket.on('disconnect', (r) => console.warn('[host] deconnecte', r));
 socket.on(MSG.LOBBY, (d) => { try { SFX.setCharacters(Object.keys(d.characters || {})); } catch (e) {} console.log('[host] LOBBY', d.phase, (d.teams?.A?.length || 0) + (d.teams?.B?.length || 0), 'joueurs'); if (socket.connected) $('start').textContent = 'START MATCH'; showLobby(d); });
 socket.on(MSG.STATE, (s) => {
@@ -270,7 +270,7 @@ addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
 
 // Musique: demarre au premier geste (autoplay policy, Safari compris), bouton mute retenu.
 for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => { Music.unlock(); try { SFX.init(); } catch (e) {} }, { capture: true });
-function paintMute() { try { const b = $('mute'); const m = Music.isMuted(); b.textContent = m ? '🔇' : '🔊'; b.title = m ? 'Activer la musique' : 'Couper la musique'; b.setAttribute('aria-pressed', String(m)); } catch (e) {} }
+function paintMute() { try { const b = $('mute'); const m = Music.isMuted(); b.textContent = m ? '🔇' : '🔊'; b.title = m ? 'Unmute music' : 'Mute music'; b.setAttribute('aria-pressed', String(m)); } catch (e) {} }
 try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); Music.unlock(); Music.toggleMute(); SFX.setMuted(Music.isMuted()); paintMute(); }); } catch (e) {}
 paintMute();
 SFX.setMuted(Music.isMuted());
@@ -304,7 +304,7 @@ function loop(now) {
   const dt = now - lastFrame; lastFrame = now;
   if (fpsEl) {
     fpsFrames++; fpsAcc += dt; if (dt > fpsWorst) fpsWorst = dt;
-    if (fpsAcc >= 500) { fpsEl.textContent = `${Math.round(fpsFrames * 1000 / fpsAcc)} fps · pire ${fpsWorst.toFixed(0)} ms`; fpsFrames = 0; fpsAcc = 0; fpsWorst = 0; }
+    if (fpsAcc >= 500) { fpsEl.textContent = `${Math.round(fpsFrames * 1000 / fpsAcc)} fps · worst ${fpsWorst.toFixed(0)} ms`; fpsFrames = 0; fpsAcc = 0; fpsWorst = 0; }
   }
   try { if (phase === 'lobby') drawLobbyBg(); } catch (e) {}
   const show = phase !== 'lobby';

@@ -53,7 +53,7 @@ io.on('connection', (socket) => {
   socket.on(MSG.HOST, () => { console.log(`[host] ${socket.id}`); socket.data.host = true; socket.join('hosts'); game.sendLobby(); });
   socket.on(MSG.JOIN, (data, ack) => {
     let res;
-    try { res = game.join(socket, data); } catch { res = { ok: false, error: 'erreur' }; }
+    try { res = game.join(socket, data); } catch { res = { ok: false, error: 'error' }; }
     console.log(`[join] ${socket.id} team=${data?.team} char=${data?.character} ->`, res.ok ? 'ok' : res.error);
     if (typeof ack === 'function') ack(res);
   });
