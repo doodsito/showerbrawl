@@ -108,6 +108,8 @@ trump: {
 
 ## Chantier infra (Robin)
 
+Le `server/index.js` actuel est le squelette infra (test de latence), pas le serveur de jeu.
+
 Objectif : un pipeline de déploiement validé de bout en bout avant le jour J, sur lequel l'équipe n'a plus qu'à pousser son code.
 
 ### État de la VM (vérifié)
@@ -117,25 +119,62 @@ Objectif : un pipeline de déploiement validé de bout en bout avant le jour J, 
 - Donc on réutilise ce pattern au lieu de cloudflared : `showerbrawl.doodsito.com` -> nginx (TLS) -> app Docker sur `127.0.0.1:3000`. URL fixe pour le QR code.
 
 ### Sur la VM Oracle (manuel)
-- [X] `uname -m` -> confirmer `aarch64`
-- [ ] Cloudflare : enregistrement A `showerbrawl` -> `141.253.101.248`, proxied (orange)
-- [ ] `sudo usermod -aG docker ubuntu` puis se reconnecter
-- [ ] `git clone` du repo dans `~/showerbrawl`
-- [ ] Installer le site nginx `showerbrawl.doodsito.com` (headers WebSocket `Upgrade`/`Connection`), puis `sudo nginx -t && sudo systemctl reload nginx`
+- [x] `uname -m` -> confirmer `aarch64`
+- [x] Cloudflare : enregistrement A `showerbrawl` -> `141.253.101.248`, proxied (orange)
+- [x] `sudo usermod -aG docker ubuntu` puis se reconnecter
+- [x] `git clone` du repo dans `~/showerbrawl`
+- [x] Installer le site nginx `showerbrawl.doodsito.com` (headers WebSocket `Upgrade`/`Connection`), puis `sudo nginx -t && sudo systemctl reload nginx`
 
 ### À coder ensemble (dans le repo)
-- [ ] `server/index.js` minimal : Express sert `client/dist`, Socket.io répond aux `ping`, route `/health`
-- [ ] Page de test `client/` : affiche la latence mesurée (téléphone -> serveur US) et le nombre de connectés
-- [ ] `Dockerfile` multi-stage : build Vite puis image Node slim (build ARM directement sur la VM)
-- [ ] `docker-compose.yml` : service `app` lié à `127.0.0.1:3000`
-- [ ] `infra/nginx/showerbrawl.doodsito.com` : config nginx (copie du pattern eivom-api + WebSocket)
-- [ ] `deploy.sh` : `git pull && docker compose up -d --build` puis vérifie `/health`
-- [ ] `loadtest.js` : ouvre 20 clients Socket.io qui envoient des inputs à 20/s, mesure la latence (sert au test de H5)
+- [x] `server/index.js` minimal : Express sert `client/dist`, Socket.io répond aux `ping`, route `/health`
+- [x] Page de test `client/` : affiche la latence mesurée (téléphone -> serveur US) et le nombre de connectés
+- [x] `Dockerfile` multi-stage : build Vite puis image Node slim (build ARM directement sur la VM)
+- [x] `docker-compose.yml` : service `app` lié à `127.0.0.1:3000`
+- [x] `infra/nginx/showerbrawl.doodsito.com` : config nginx (copie du pattern eivom-api + WebSocket)
+- [x] `deploy.sh` : `git pull && docker compose up -d --build` puis vérifie `/health`
+- [x] `loadtest.js` : ouvre 20 clients Socket.io qui envoient des inputs à 20/s, mesure la latence (sert au test de H5)
 
 ### Validation
-- [ ] Ouvrir https://showerbrawl.doodsito.com sur un téléphone en 4G : page chargée, WebSocket connecté, latence affichée
-- [ ] `loadtest.js` contre la VM : latence stable avec 20 clients
+- [x] Ouvrir https://showerbrawl.doodsito.com sur un téléphone en 4G : page chargée, WebSocket connecté, latence affichée (203 ms depuis le PC)
+- [x] `loadtest.js` contre la VM : 20/20 connectés, p50 195 ms, p95 307 ms (sans le jeu, à refaire avec le moteur)
 
+### Suite infra
+- [ ] Déploiement automatique : GitHub Action sur push `main` -> SSH sur la VM -> `./deploy.sh`
+- [ ] Adapter `Dockerfile` / `deploy.sh` à la structure du moteur d'Axel dès qu'il pousse
+- [ ] Refaire le loadtest avec le vrai jeu
+
+
+## Jeu v1 (moteur) - Responsable : Axel
+
+Axel code le moteur en adaptant `references/magic-arena-main` aux contrats `shared/`. Il remplace `server/index.js` et `client/`, garde le port 3000 et la route `/health`, et pousse souvent sur `main`. La liste ci-dessous est une checklist indicative, pas une affectation.
+
+Base : les contrats d'Axel dans `shared/` (`protocol.js`, `config.js`, `characters.json`, `arena.json`). Le moteur lit ces fichiers, les équipes persos/arène ne touchent qu'aux JSON. Pas de changement de contrat : l'id du joueur = `socket.id`, un `join` refusé répond via l'ack Socket.io.
+
+### Serveur
+- [ ] `server/game.js` : état du lobby (équipes, persos pris par équipe), START, boucle à `TICK_RATE`
+- [ ] Déplacement + collision cercle / cases `#` de `arena.json` + `obstacles`
+- [ ] `server/abilities.js` : les 5 briques (projectile, burst, zone, dash, shield) + auto-aim sur l'ennemi le plus proche
+- [ ] Dégâts, recul, mort, respawn `RESPAWN_TIME`, protection `SPAWN_PROTECTION`, kills par équipe
+- [ ] Timer `MATCH_DURATION`, `end {score, mvp}`, retour au lobby après 10 s
+- [ ] `server/index.js` : brancher `MSG.*` (join, input, host, start), diffusion `state` à `BROADCAST_RATE`
+
+### Client (Phaser 3, ajouté en dépendance)
+- [ ] Écran d'accueil : choix équipe A/B + perso, persos déjà pris dans l'équipe grisés
+- [ ] Scène de jeu : arène depuis `arena.json`, joueurs, projectiles, zones ; interpolation (~100 ms de retard) ; caméra qui suit
+- [ ] Contrôles : joystick virtuel gauche (codé maison, pas de dépendance) + 3 boutons avec cooldown visible ; clavier (ZQSD + J/K/L) pour tester sur PC
+- [ ] HUD : score par équipe, timer, PV ; écran de fin
+- [ ] Sprites : utilise `client/public/sprites/<sprite>.png` s'il existe, sinon cercle coloré + nom. L'équipe art dépose juste ses fichiers.
+
+### Écran hôte (`/?host`)
+- [ ] QR code de l'URL (dépendance `qrcode`), lobby en direct des 2 équipes, bouton START
+- [ ] Pendant le match : vue spectateur de toute l'arène + score + timer
+
+### Vérification
+- [ ] `loadtest.js` mis à jour pour faire `join` + inputs : 20 joueurs en local puis sur la VM
+- [ ] Partie complète à 2 onglets + 1 hôte en local, puis déployé et testé sur téléphone
+
+### Plus tard si la latence (200 ms) gêne
+- Prédiction locale du déplacement du joueur (le serveur reste l'autorité)
 
 ## Risques
 1. Latence depuis les US (100-150 ms) : compensée par l'auto-aim et l'interpolation, à valider au test de charge.
