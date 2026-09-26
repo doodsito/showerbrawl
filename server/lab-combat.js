@@ -126,6 +126,7 @@ export function advanceForcedMovement(ctx, p, dt) {
   if (p.hp <= 0 && !p.launch && !p.shove) ctx.kill(p, p.lastHit);
   return true;
 }
+const DECREE_RING = 70; // largeur de l'onde du 49.3 autour du tampon
 export function updateMicDrop(ctx, z, dt) {
   z.age += dt;
   if (!z.hit && z.age >= z.delay) {
@@ -140,10 +141,17 @@ export function updateMicDrop(ctx, z, dt) {
         shove(target, Math.hypot(dx, dy) > 1e-6 ? dx : Math.cos(z.angle), Math.hypot(dx,dy)>1e-6?dy:Math.sin(z.angle), z.kind==='decree'?70:100, .32);
       }
     }
-    if(z.kind==='decree')for(let i=0;i<9;i++){
-      const a=z.angle+i*Math.PI*2/9,ux=Math.cos(a),uy=Math.sin(a),x=z.x+ux*(z.r+24),y=z.y+uy*(z.r+24);
-      if(ctx.physics.collidesWithWall(x,y,8)||firstWall(ctx,z,x-z.x,y-z.y))continue;
-      ctx.projectiles.push({id:ctx.nextId(),owner:z.owner,team:z.team,x,y,vx:ux*400,vy:uy*400,r:8,ttl:420/400,visual:'decree',damage:10,knockback:0,pushDistance:65,chargeHit:0,wallDamage:12});
+    // 49.3: onde de choc au sol autour du tampon (remplace les 9 petits projectiles: rien ne vole).
+    // Anneau juste a l'exterieur du tampon: memes degats (10) et meme poussee (65) que les anciens eclats.
+    if (z.kind === 'decree') {
+      const ring = z.r + DECREE_RING;
+      effect(ctx, 'shockwave', z.x, z.y, { r: ring, team: z.team }, .55);
+      for (const target of ctx.players.values()) {
+        if (!target.alive || target.team === z.team || target.launch) continue;
+        const dx = target.x - z.x, dy = target.y - z.y, d = Math.hypot(dx, dy);
+        if (d <= z.r + target.r || d > ring + target.r) continue; // le coeur du tampon a deja frappe
+        if (ctx.damage(target, 10, z.owner, z.x, z.y, 0, false, false)) shove(target, dx, dy, 65, .28);
+      }
     }
   }
   return z.age < z.duration;

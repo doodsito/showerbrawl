@@ -156,6 +156,7 @@ test('chute hors du toit: evenement kill marque fell', t => {
 });
 
 // Regle de design: attack/defense au corps a corps, super cible a distance avec alerte au sol (esquivable).
+const escapeRadius=s=>(s.radius||90)+(s.behavior==='decree'?70:0); // decree: onde de choc au sol autour du tampon
 const RANGED_SUPERS=['biden','obama','harris','maduro','sanders','schwarzenegger','macron','zelensky'];
 function duel(t,a){
   const {game,p,q}=setup(t,a,a==='biden'?'musk':'biden');
@@ -178,7 +179,7 @@ for(const id of RANGED_SUPERS){
   });
   test(`${id}: sortir du cercle d'alerte avant l'impact evite le super`,t=>{
     const {game,p,q}=duel(t,id);q.x=600;const hp=q.hp;p.energy=100;cast(game,p,'super');
-    q.x=600-((characters[id].super.radius||90)+q.r+30); // sort du cercle en reculant vers le lanceur, reste sur le toit
+    q.x=600-(escapeRadius(characters[id].super)+q.r+30); // sort du cercle en reculant vers le lanceur, reste sur le toit
     assert.ok(q.alive);
     advance(game,2);assert.equal(q.hp,hp);
   });
@@ -197,8 +198,8 @@ test('Aide Militaire: 3 impacts decales',t=>{
 test('chaque super cible laisse le temps d\'esquiver au perso le plus lent (rayon + corps <= vitesse min x delai)', () => {
   const minSpeed=Math.min(...Object.values(characters).map(c=>c.speed));
   for(const [id,c] of Object.entries(characters)){
-    const s=c.super;if(!(s.target==='enemy'||s.behavior==='micDrop'))continue;
-    assert.ok(s.radius+18<=minSpeed*s.delay,`${id}: rayon ${s.radius} trop grand pour un delai de ${s.delay}s`);
+    const s=c.super;if(!(s.target==='enemy'||s.behavior==='micDrop'||s.behavior==='decree'))continue;
+    assert.ok(escapeRadius(s)+18<=minSpeed*s.delay,`${id}: rayon ${s.radius} trop grand pour un delai de ${s.delay}s`);
   }
 });
 

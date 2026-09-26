@@ -48,7 +48,17 @@ test('phone VIEW preserves zero age and vertical directions for every effect',t=
 });
 test('49.3 broadcasts the stamp at the real target with unchanged damage and warning timing',t=>{
  const {game,p,q,snapshot}=setup(t,'macron');q.x=600;const hp=q.hp;assert(cast(game,p,'super'));
- const z=snapshot().zones[0];assert.equal(z.kind,'strike');assert.equal(z.visual,'decree');assert.equal(z.x,q.x);assert.equal(z.y,q.y);assert.equal(z.r,p.char.super.radius);
+ const z=snapshot().zones[0];assert.equal(z.kind,'decree','code decree d\'Ilan (tampon)');assert.equal(z.x,q.x);assert.equal(z.y,q.y);assert.equal(z.r,p.char.super.radius);
  for(let t=0;t<p.char.super.delay-.051;t+=.05)game.tick(.05);assert.equal(q.hp,hp);game.tick(.1);assert.equal(q.hp,hp-p.char.super.damage);
  game.tick(.05);assert.equal(q.hp,hp-p.char.super.damage,'one impact only');
+});
+test('49.3: onde de choc au sol autour du tampon (plus de projectiles), touche l anneau, epargne au-dela',t=>{
+ const {game,p,q}=setup(t,'macron');q.x=600;
+ game.join({id:'c'},{team:'B',character:'biden',name:'ring'});game.join({id:'d'},{team:'B',character:'musk',name:'far'});
+ const ring=game.players.get('c'),far=game.players.get('d');
+ Object.assign(ring,{x:600,y:320+p.char.super.radius+40,protectT:0});Object.assign(far,{x:600,y:320-190,protectT:0}); // plus loin de Macron que la cible (ciblage), hors onde
+ assert(cast(game,p,'super'));for(let i=0;i<24;i++)game.tick(.05);
+ assert.equal(game.projectiles.length,0,'rien ne vole');
+ assert.equal(q.hp,q.maxHp-p.char.super.damage,'coeur du tampon');
+ assert.equal(ring.hp,ring.maxHp-10,'onde de choc');assert.equal(far.hp,far.maxHp,'hors onde');
 });
