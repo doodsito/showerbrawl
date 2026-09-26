@@ -1,7 +1,7 @@
 // Authoritative versions of the lab abilities. Visuals consume these same world objects.
 import { wallContact, wallSegmentEntry, wallsOverlap } from '../shared/wall-geometry.js';
 
-export const isLabFighter = p => p.character === 'trump' || p.character === 'obama' || p.character === 'macron';
+export const isLabFighter = p => p.character === 'trump' || p.character === 'obama' || p.character === 'macron' || p.character === 'musk';
 export function effect(ctx, kind, x, y, extra = {}, duration = .6) {
   ctx.effects.push({ id: ctx.nextId(), kind, x, y, age: 0, duration, ...extra });
 }
@@ -102,6 +102,7 @@ export function updateLab(ctx, dt) {
   }
 }
 export function advanceForcedMovement(ctx, p, dt) {
+  if(p.carriedBy)return true;
   const flight = p.launch;
   if (flight) {
     flight.age = Math.min(flight.duration, flight.age + dt);

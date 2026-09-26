@@ -13,10 +13,10 @@
     "super":  {"type": "burst", "radius": 140, "damage": 22, "knockback": 480, "cooldown": 13, "label": "Executive Order"}
   },
   "musk": {
-    "name": "Musk", "hp": 95, "speed": 210, "sprite": "musk",
-    "attack": {"type": "projectile", "damage": 7, "range": 70, "knockback": 170, "cooldown": 0.22, "label": "Tweet 3h du mat"},
-    "defense": {"type": "dash", "distance": 280, "duration": 0.12, "damage": 10, "knockback": 380, "cooldown": 4, "label": "Hyperloop"},
-    "super":  {"type": "zone", "radius": 130, "damage": 34, "duration": 1.2, "knockback": 120, "cooldown": 15, "label": "Starlink"}
+    "name": "Musk", "hp": 95, "speed": 210, "sprite": "sprites/musk.png",
+    "attack": {"type":"zone","behavior":"flamethrower","range":150,"duration":0.85,"dps":34,"pushDistance":6,"burnDps":8,"burnDuration":0.9,"chargeHit":5,"cooldown":1.1,"label":"Lance-flammes","icon":"sprites/musk_attack.png"},
+    "defense": {"type":"dash","behavior":"hyperloop","distance":260,"duration":0.18,"invulnerable":false,"away":true,"cooldown":4,"label":"Hyperloop","icon":"sprites/musk_hyperloop.svg"},
+    "super": {"type":"zone","behavior":"cybertruck","damage":48,"cooldown":1.1,"charge":100,"label":"Cybertruck","icon":"sprites/musk_super.png"}
   },
   "obama": {
     "name": "Obama", "hp": 100, "speed": 205, "sprite": "sprites/obama.png",

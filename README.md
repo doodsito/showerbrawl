@@ -63,3 +63,16 @@ Macron rejoint les kits Trump et Obama :
 - **49.3** : à 100 % de charge, le tampon cible la position de l’ennemi le plus proche. Impact après 0,55 seconde, 28 dégâts dans un rayon de 60, recul et destruction des murs dans la zone. Neuf projectiles partent ensuite vers l’extérieur, dans les limites du terrain. Le super ne recharge pas sa propre jauge.
 
 Le ciblage, les dégâts, le bouclier et la charge sont décidés par le serveur ; les alliés ne subissent pas de dégâts. Les icônes des baguettes et des lunettes viennent du labo, et le tampon est animé en Canvas.
+
+
+## Musk — kit multijoueur du lab
+
+Musk utilise le sprite de l’équipe (`Musk perso/Musk.png`) sur l’hôte et la manette. Ses capacités sont calculées côté serveur dans `server/musk-combat.js` ; l’hôte dessine les mêmes zones et trajectoires.
+
+- **Lance-flammes** : cône de 48°, portée 150, jet de 0,85 s. 34 dégâts/s, brûlure de 8 dégâts/s pendant 0,9 s. Chaque pulsation repousse de 6 unités sans étourdir et donne 5 % de charge. Les murs, boucliers et protections de réapparition bloquent les dégâts.
+- **Hyperloop** : esquive de 260 unités en 0,18 s, direction du joystick ou recul par défaut. Recharge 4 s ; bloque sur les murs et joueurs, sans dégâts ni invulnérabilité.
+- **Cybertruck** : nécessite 100 % de charge. Après 0,44 s, avance à 620 unités/s et inflige 48 dégâts par ennemi touché, puis entraîne les cibles vers le bord. Le choc contre un obstacle libère les cibles et émet des billes d’acier/Dogecoins (6 dégâts chacun), sans recharger le super. Les alliés sont épargnés. La mort d’une cible transportée est comptée à sa libération.
+
+Les autres kits conservent les règles de corps à corps de l’équipe. Le lab reste indépendant ; ce port ne publie pas les changements locaux de Biden.
+
+Vérification ciblée : `node --test tests/musk-combat.test.js tests/multiplayer-combat.test.js`, puis `npm run build`.
