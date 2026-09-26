@@ -211,7 +211,7 @@ function drawFx(ctx, state, b) {
 function drawPlayer(ctx, p, characters, time) {
   const R=15, col=TEAM_COL[p.team]||'#fff', quiet=reducedMotion.matches;
   const img=getImage(characters?.[p.character]?.sprite||p.character,p.character);
-  const full=img&&(p.character==='trump'||p.character==='obama'||p.character==='macron'), h=full?76:51;
+  const cfg=characters?.[p.character]||{}, full=img&&!!cfg.fullBody, h=full?76:51; // rendu en pied: champ fullBody du perso
   let pose=poses.get(p.id);
   if(!pose){pose={x:p.x,y:p.y,t:time,phase:0,walk:0};poses.set(p.id,pose);}
   const dt=Math.min(.1,Math.max(0,time-pose.t)),distance=Math.hypot(p.x-pose.x,(p.y-pose.y)*3);
@@ -232,7 +232,7 @@ function drawPlayer(ctx, p, characters, time) {
   ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,20,6,0,0,Math.PI*2);ctx.stroke();
   if(p.shield||p.protected){
     const pulse=quiet?1:1+.06*Math.sin(time*12.5);
-    ctx.save();ctx.fillStyle=p.shield?(p.character==='macron'?'#75cfff22':'#facc1548'):'#ffffff28';ctx.strokeStyle=p.shield?(p.character==='macron'?'#8edbff':'#facc15'):'#ffffff66';ctx.lineWidth=2;
+    ctx.save();ctx.fillStyle=p.shield?(cfg.shieldStyle==='sunglasses'?'#75cfff22':'#facc1548'):'#ffffff28';ctx.strokeStyle=p.shield?(cfg.shieldStyle==='sunglasses'?'#8edbff':'#facc15'):'#ffffff66';ctx.lineWidth=2;
     ctx.beginPath();ctx.ellipse(p.x,p.y-h/2,29*pulse,(h/2+7)*pulse,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
   }
   if(img){
@@ -243,7 +243,7 @@ function drawPlayer(ctx, p, characters, time) {
     }
     ctx.save();ctx.translate(p.x+offset,p.y-lift);ctx.rotate(angle);ctx.scale(face*sx,sy);if(p.flash)ctx.globalAlpha=.75;
     ctx.drawImage(img,-w/2,-h,w,h);
-    if(p.character==='macron'&&p.shield){
+    if(cfg.shieldStyle==='sunglasses'&&p.shield){
       ctx.fillStyle='#091321';ctx.fillRect(-10,-h+11,9,6);ctx.fillRect(2,-h+11,9,6);
       ctx.fillStyle='#d4b579';ctx.fillRect(-2,-h+12,5,2);
       ctx.fillStyle='#b4d9eb';ctx.fillRect(-8,-h+12,4,1);ctx.fillRect(4,-h+12,4,1);
