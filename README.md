@@ -103,3 +103,7 @@ Musk utilise le sprite de l’équipe (`Musk perso/Musk.png`) sur l’hôte et l
 Les autres kits conservent les règles de corps à corps de l’équipe. Le lab reste indépendant ; ce port ne publie pas les changements locaux de Biden.
 
 Vérification ciblée : `node --test tests/musk-combat.test.js tests/multiplayer-combat.test.js`, puis `npm run build`.
+
+### Retouches des attaques du lab
+
+Le Mic Drop cible la position de l’ennemi vivant le plus proche sur toute la carte au lancement. Sans ennemi disponible, le super reste chargé. La zone reste fixe durant les 0,85 s d’avertissement et peut être esquivée. Le micro détaillé tombe tête en avant puis rebondit ; le 49.3 utilise un tampon doré, une empreinte et des feuilles animées. Le mur reprend la texture MAGA en perspective tout en gardant les couleurs d’équipe. L’impact d’Énergie reprend le sprite tricolore ; son fonctionnement au corps à corps en multijoueur est conservé.
