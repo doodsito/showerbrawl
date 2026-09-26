@@ -52,3 +52,14 @@ Les deux personnages utilisent les dessins de l’équipe et les pouvoirs du lab
 Les supers se chargent en combat. Leur pourcentage et les recharges viennent du serveur et sont affichés sur les manettes `/play/`. Le mur bloque les deux équipes, les déplacements et les projectiles ; le Mic Drop touche les ennemis dans sa zone. Les projections respectent la cage. Relâcher l’attaque et reculer accélère la fuite à proximité d’un ennemi.
 
 Les événements et champs existants du réseau restent disponibles ; les snapshots ajoutent `walls`, `effects`, `energy` et les états d’animation. Les cinq types de capacité restent identiques, avec des variantes `behavior` pour les pouvoirs du labo. Les tests du combat sont dans `tests/multiplayer-combat.test.js` (`node --test tests/*.test.js`).
+
+
+### Macron — kit du labo
+
+Macron rejoint les kits Trump et Obama :
+
+- **Triple baguette** : trois projectiles en éventail, 5 dégâts chacun, portée 360. Chaque impact sur un ennemi donne **25 % de charge** (quatre impacts pour le super). Les boucliers et les murs bloquent les tirs.
+- **Lunettes de soleil** : bouclier de 1,6 seconde, recharge de 6 secondes, lunettes visibles sur le personnage.
+- **49.3** : à 100 % de charge, le tampon cible la position de l’ennemi le plus proche. Impact après 0,55 seconde, 28 dégâts dans un rayon de 60, recul et destruction des murs dans la zone. Neuf projectiles partent ensuite vers l’extérieur, dans les limites du terrain. Le super ne recharge pas sa propre jauge.
+
+Le ciblage, les dégâts, le bouclier et la charge sont décidés par le serveur ; les alliés ne subissent pas de dégâts. Les icônes des baguettes et des lunettes viennent du labo, et le tampon est animé en Canvas.

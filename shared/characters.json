@@ -49,10 +49,44 @@
     "super":  {"type": "projectile", "damage": 42, "radius": 22, "speed": 300, "range": 520, "knockback": 450, "cooldown": 14, "label": "I'll Be Back"}
   },
   "macron": {
-    "name": "Macron", "hp": 92, "speed": 206, "sprite": "sprites/macron.png",
-    "attack": {"type": "projectile", "damage": 10, "cooldown": 0.28, "range": 410, "speed": 500, "label": "En Meme Temps"},
-    "defense": {"type": "shield", "duration": 2.2, "cooldown": 7, "label": "49.3"},
-    "super":  {"type": "zone", "onEnemy": true, "follow": false, "radius": 150, "damage": 30, "duration": 2, "range": 460, "cooldown": 15, "label": "Reforme"}
+    "name": "Macron",
+    "hp": 100,
+    "speed": 200,
+    "sprite": "sprites/macron.png",
+    "attack": {
+      "type": "projectile",
+      "count": 3,
+      "spread": 0.15,
+      "visual": "baguette",
+      "damage": 5,
+      "pushDistance": 18,
+      "chargeHit": 25,
+      "wallDamage": 4,
+      "speed": 470,
+      "range": 360,
+      "cooldown": 0.42,
+      "label": "Triple baguette",
+      "icon": "sprites/macron_baguettes.svg"
+    },
+    "defense": {
+      "type": "shield",
+      "duration": 1.6,
+      "cooldown": 6,
+      "label": "Lunettes de soleil",
+      "icon": "sprites/macron_sunglasses.svg"
+    },
+    "super": {
+      "type": "zone",
+      "behavior": "decree",
+      "damage": 28,
+      "radius": 60,
+      "range": 1200,
+      "delay": 0.55,
+      "cooldown": 1.1,
+      "charge": 100,
+      "label": "49.3",
+      "icon": "sprites/macron_super.png"
+    }
   },
   "zelensky": {
     "name": "Zelensky", "hp": 105, "speed": 192, "sprite": "zelensky",

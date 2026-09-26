@@ -19,3 +19,6 @@ Toutes les images du jeu, au même endroit. Servies à `/sprites/<fichier>.png`.
 - PNG, fond transparent.
 - Recadré au plus près du dessin (pas de marge), sinon le perso flotte au-dessus du sol : le jeu le dessine à hauteur fixe, pieds en bas de l'image.
 - Persos : 256 px de haut. Effets : tiennent dans 256 x 256.
+
+
+Macron : `macron_baguettes.svg` et `macron_sunglasses.svg` sont les icônes dessinées en code dans le labo. Le sprite existant `macron.png` et l’icône `macron_super.png` sont conservés. Les projectiles et le tampon sont dessinés en Canvas.
