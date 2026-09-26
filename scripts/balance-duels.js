@@ -7,7 +7,7 @@ const args=process.argv.slice(2),value=(flag,fallback)=>args.includes(flag)?args
 const characters=value('--characters')?normalizeCharacters(JSON.parse(readFileSync(value('--characters'),'utf8'))):defaults;
 const ids=value('--roster',Object.keys(characters).join(',')).split(','),seconds=Number(value('--seconds',40)),dt=.05;
 const scenarios=['rush','spacing','evasive','edge'];
-function reach(p){const a=p.char.attack;return a.behavior==='flamethrower'?a.range:(a.behavior?a.range:Math.min(a.range||a.radius||70,a.type==='burst'?220:110)+p.r*2);}
+function reach(p){const a=p.char.attack;return a.travel||a.behavior==='flamethrower'?a.range:(a.behavior?a.range:Math.min(a.range||a.radius||70,a.type==='burst'?220:110)+p.r*2);}
 function steer(g,p,dx,dy){
  const angle=Math.atan2(dy,dx),len=Math.min(1,Math.hypot(dx,dy));let best=null;
  for(const offset of [0,.6,-.6,1.2,-1.2,2,-2,Math.PI]){

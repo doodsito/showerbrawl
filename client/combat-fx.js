@@ -266,7 +266,7 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
     g.restore();
   }
   function baguette(shot){
-    const a=Math.atan2(shot.dy,shot.dx),x=shot.x,y=shot.y-38;
+    const a=Math.atan2(shot.dy,shot.dx),x=shot.x,y=shot.y-(shot.height??38);
     g.save();g.translate(x,y);g.rotate(a);
     if(!motionOptions.reducedMotion){line(-34,-3,-19,-3,'#f7d69688',2);line(-40,3,-22,3,'#f7d69655',2);}
     poly([[-22,-3],[-18,-7],[17,-7],[24,-2],[24,3],[18,7],[-17,7],[-22,3]],'#d89a4d','#774523');
@@ -276,6 +276,15 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
   return {wall,
     decree(drop,front=false){const [x,y]=project(drop.x,drop.y);decree({...drop,x,y},front);},
     projectile(shot){
+      if(shot.visual==='energy'){
+        const [x,y]=project(shot.x,shot.y),art=getImage('sprites/obama_attack.png');
+        g.save();g.translate(x,y-36);g.rotate(Math.atan2(shot.vy*ky,shot.vx*kx));
+        line(-46,0,-9,0,'#328adb88',12);line(-33,0,-6,0,'#90e5ff',5);
+        // The luminous core also remains visible while the PNG loads.
+        poly([[-16,0],[-5,-10],[12,-7],[19,0],[12,7],[-5,10]],'#c4f4ff','#318fe0');
+        if(art)g.drawImage(art,-28,-16,52,32);
+        rect(4,-3,9,6,'#ffffff');g.restore();return true;
+      }
       if(shot.visual!=='baguette'&&shot.visual!=='decree')return false;
       const [x,y]=project(shot.x,shot.y);
       if(shot.visual==='baguette'){baguette({...shot,x,y,dx:shot.vx*kx,dy:shot.vy*ky});return true;}
