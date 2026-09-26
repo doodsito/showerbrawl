@@ -154,7 +154,7 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       const support=Math.abs(Math.cos(tilt))*48+Math.abs(Math.sin(tilt))*20;
       g.translate(x,y-lift-support);g.rotate(tilt);
       if(objectArt){
-        g.drawImage(objectArt,409,95,434,1065,-20,-48,40,96);
+        g.drawImage(objectArt,-20,-48,40,96); // image deja recadree (220x528, 2x la taille max affichee)
       }else{
         rect(-7,-4,14,50,'#142339');rect(-3,-1,4,42,'#8ba4b9');
         poly([[-14,-43],[14,-43],[19,-31],[19,-12],[10,-3],[-10,-3],[-19,-12],[-19,-31]],'#d3e5ec','#425970');
@@ -204,7 +204,7 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       const press=quiet||falling?0:Math.max(0,1-age/.12);
       g.scale(1+press*.1,1-press*.12);
       if(objectArt){
-        g.drawImage(objectArt,235,33,784,1209,-44,-132,88,136);
+        g.drawImage(objectArt,-44,-132,88,136); // image deja recadree (484x748, 2x la taille max affichee)
       }else{
         poly([[-39,-12],[30,-12],[42,-3],[34,9],[-35,9],[-43,-1]],'#96703a','#423425');
         rect(-36,-12,72,13,'#d5ad61');rect(-32,-10,64,3,'#f8dc92');rect(-25,-18,50,7,'#9f7437');
