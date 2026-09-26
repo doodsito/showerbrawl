@@ -54,6 +54,7 @@
   #roster .r .spr{height:clamp(22px,6vh,60px);display:flex;align-items:flex-end}
   #roster .r img,#roster .r canvas{max-height:100%;image-rendering:pixelated}
   @media (max-width:900px){.meta,#roster .t{display:none}#roster .r span{display:none}}
+  #fps{display:none;position:fixed;left:90px;bottom:6px;z-index:6;font:10px ui-monospace,Menlo,Consolas,monospace;color:#9aa7b8b0;pointer-events:none}
   #version{position:fixed;left:8px;bottom:6px;z-index:6;font:10px ui-monospace,Menlo,Consolas,monospace;color:#9aa7b880;pointer-events:none}
   #game{position:fixed;inset:0;display:none}
   #mute{position:fixed;top:10px;left:10px;z-index:7;width:34px;height:34px;padding:0;border:2px solid #ffffff22;border-radius:4px;background:#08111fb0;color:#f2efe4;font-size:16px;line-height:1;cursor:pointer;opacity:.55}
@@ -108,7 +109,7 @@
   <div id="roster" class="frame"></div>
 </div>
 <canvas id="game"></canvas>
-<div id="version"></div>
+<div id="version"></div><div id="fps"></div>
 <button id="mute" aria-label="Musique" aria-pressed="false">🔊</button>
 <button id="reset">ARRÊTER LA MANCHE</button>
 <div id="countdown"><span></span></div>

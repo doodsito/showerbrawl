@@ -12,7 +12,6 @@ const ctx = canvas.getContext('2d');
 let lobby = null;
 let phase = 'lobby';
 
-<<<<<<< HEAD
 // Interpolation: rendu à serverTime - 70 ms, extrapolation courte (50 ms max) si le STATE suivant tarde.
 const RENDER_DELAY = 70;
 const MAX_EXTRAPOLATION = 50;
@@ -274,17 +273,31 @@ function updateCountdown(st) {
   void span.offsetWidth; span.classList.add('pop'); // relance l'animation a chaque chiffre
 }
 
-function loop() {
+// Compteur FPS discret (?fps=1), a cote du SHA. Mis a jour 2x/s, dt reel entre frames rAF.
+const SHOW_FPS = new URLSearchParams(location.search).get('fps') === '1';
+const fpsEl = SHOW_FPS ? $('fps') : null;
+if (fpsEl) fpsEl.style.display = 'block';
+let fpsFrames = 0, fpsAcc = 0, fpsWorst = 0, lastFrame = performance.now();
+const resetBtn = $('reset');
+let resetShown = null;
+
+function loop(now) {
+  const dt = now - lastFrame; lastFrame = now;
+  if (fpsEl) {
+    fpsFrames++; fpsAcc += dt; if (dt > fpsWorst) fpsWorst = dt;
+    if (fpsAcc >= 500) { fpsEl.textContent = `${Math.round(fpsFrames * 1000 / fpsAcc)} fps · pire ${fpsWorst.toFixed(0)} ms`; fpsFrames = 0; fpsAcc = 0; fpsWorst = 0; }
+  }
   try { if (phase === 'lobby') drawLobbyBg(); } catch (e) {}
-  try { $('reset').style.display = phase === 'lobby' ? 'none' : 'block'; } catch (e) {}
+  const show = phase !== 'lobby';
+  if (show !== resetShown) { resetShown = show; try { resetBtn.style.display = show ? 'block' : 'none'; } catch (e) {} }
   try {
-    const st = phase !== 'lobby' ? currentState() : null;
-    if (phase !== 'lobby') render(ctx, canvas.width, canvas.height, lobby && lobby.arena, st, lobby && lobby.characters);
+    const st = show ? currentState() : null;
+    if (show) render(ctx, canvas.width, canvas.height, lobby && lobby.arena, st, lobby && lobby.characters);
     updateCountdown(st);
   } catch (e) {}
   requestAnimationFrame(loop);
 }
-loop();
+requestAnimationFrame(loop);
 
 // Version qui tourne (SHA du commit), discrete en bas de l'ecran. Rafraichie toutes les 60 s.
 function showVersion() {
