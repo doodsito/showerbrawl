@@ -5,18 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shower Brawl</title>
 <style>
-  html,body{margin:0;height:100%;background:#0b1020;color:#eef;font-family:system-ui,sans-serif;overflow:hidden}
-  #lobby{display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px;height:100%;box-sizing:border-box;overflow-y:auto;position:relative;z-index:1}
-  h1{margin:0;font-size:48px;letter-spacing:2px}
-  #qr{width:min(40vh,420px);image-rendering:pixelated;background:#fff;border-radius:12px;padding:8px}
-  #url{font-size:22px;opacity:.85}
-  #teams{display:flex;gap:40px;width:min(900px,95vw)}
-  .team{flex:1;border-radius:12px;padding:12px 18px;min-height:120px}
-  .team h2{margin:0 0 8px}
-  .team ul{margin:0;padding-left:18px;font-size:20px}
-  #teamA{background:#1d3b8a55;border:3px solid #3b82f6}
-  #teamB{background:#8a1d1d55;border:3px solid #ef4444}
-  #start{font-size:32px;padding:14px 60px;border:0;border-radius:12px;background:#facc15;color:#111;font-weight:800;cursor:pointer}
+  :root{--navy:#0b1020;--panel:#101a31;--panel2:#162642;--blue:#2f7de1;--blueL:#60a5fa;--red:#e0413a;--redL:#f87171;--gold:#f6c343;--white:#f2efe4;--muted:#9aa7b8;--black:#08111f;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  html,body{margin:0;height:100%;background:var(--navy);color:var(--white);font-family:var(--mono);overflow:hidden}
+  /* Lobby hote: design/lobby-approved.json */
+  #lobbyBg{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:0}
+  #lobby{position:fixed;inset:0;z-index:1;display:grid;box-sizing:border-box;padding:1.6vh 2vw;gap:1.4vh 2vw;
+    grid-template-columns:1fr minmax(0,26vw) 1fr;grid-template-rows:auto 1fr auto;
+    grid-template-areas:"brand brand brand" "blue join red" "roster roster roster";
+    background:radial-gradient(ellipse 34vw 46vh at 50% 52%,#08111fb0,#08111f00 100%)}
+  .meta{position:absolute;top:1.8vh;font-size:clamp(9px,1.25vh,13px);letter-spacing:.2em;color:var(--muted);text-shadow:0 1px 0 #000}
+  .meta.l{left:2vw}.meta.r{right:2vw}
+  #brand{grid-area:brand;text-align:center;line-height:1;max-height:18vh}
+  #brand h1{margin:0;font:900 clamp(26px,7vh,72px)/1 var(--mono);letter-spacing:.08em;color:var(--white);
+    text-shadow:3px 0 0 var(--red),-3px 0 0 var(--blue),0 4px 0 var(--black),0 0 18px #0008}
+  #brand .sub{margin-top:.8vh;font-size:clamp(10px,1.7vh,17px);letter-spacing:.45em;color:var(--gold);text-shadow:0 2px 0 var(--black)}
+  .frame{background:linear-gradient(var(--panel2),var(--panel));border:3px solid var(--black);border-radius:2px;
+    box-shadow:inset 0 0 0 2px #ffffff14,0 6px 0 #0009,0 0 24px #0007}
+  #join{grid-area:join;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4vh;min-height:0}
+  #joinPanel{width:100%;box-sizing:border-box;padding:1.6vh 1.2vw;display:flex;flex-direction:column;align-items:center;gap:1vh}
+  #joinPanel .title{font:900 clamp(12px,2.2vh,22px)/1 var(--mono);letter-spacing:.2em;color:var(--gold)}
+  #qr{display:block;width:min(100%,38vh);aspect-ratio:1;background:#fff;padding:8px;box-sizing:border-box;image-rendering:pixelated;border-radius:0}
+  #url{font-size:clamp(9px,1.4vh,14px);color:var(--muted);word-break:break-all;text-align:center}
+  #start{font:900 clamp(18px,4vh,40px)/1 var(--mono);letter-spacing:.1em;padding:1.8vh 2.4vw;cursor:pointer;color:var(--black);
+    background:linear-gradient(#ffe07a,var(--gold) 55%,#d99a1c);border:4px solid var(--black);border-radius:2px;
+    box-shadow:inset 0 3px 0 #fff6,inset 0 -4px 0 #0003,0 6px 0 var(--black),0 0 28px #f6c34366;white-space:nowrap}
+  #start:hover{filter:brightness(1.08)}#start:active{transform:translateY(3px);box-shadow:inset 0 3px 0 #fff6,0 3px 0 var(--black)}
+  #teams{display:contents}
+  .team{align-self:center;box-sizing:border-box;padding:1.2vh 1vw;min-width:0}
+  #teamA{grid-area:blue;border-color:var(--black);box-shadow:inset 0 0 0 2px #ffffff14,inset 6px 0 0 var(--blue),0 6px 0 #0009}
+  #teamB{grid-area:red;box-shadow:inset 0 0 0 2px #ffffff14,inset -6px 0 0 var(--red),0 6px 0 #0009}
+  .team h2{margin:0 0 1vh;font:900 clamp(16px,3.6vh,36px)/1 var(--mono);letter-spacing:.12em;text-shadow:0 3px 0 var(--black)}
+  #teamA h2{color:var(--blueL)}#teamB h2{color:var(--redL);text-align:right}
+  .team ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.8vh}
+  .slot{display:flex;align-items:center;gap:1vw;height:clamp(40px,8.4vh,84px);padding:0 1vw;background:#08111fcc;border:2px solid #ffffff12}
+  .slot .spr{flex:0 0 auto;width:clamp(36px,7.6vh,76px);height:100%;display:flex;align-items:flex-end;justify-content:center}
+  .slot .spr img,.slot .spr canvas{max-width:100%;max-height:100%;image-rendering:pixelated}
+  .slot .txt{min-width:0;display:flex;flex-direction:column;gap:.4vh}
+  .slot .pn{font:900 clamp(14px,3vh,30px)/1 var(--mono);color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+  .slot .cn{font-size:clamp(10px,1.8vh,18px);letter-spacing:.1em;text-transform:uppercase}
+  #teamA .slot.on{border-color:var(--blue);background:linear-gradient(90deg,#2f7de144,#08111fcc)}#teamA .cn{color:var(--blueL)}
+  #teamB .slot.on{border-color:var(--red);background:linear-gradient(270deg,#e0413a44,#08111fcc)}#teamB .cn{color:var(--redL)}
+  .slot.empty{color:var(--muted);border-style:dashed;font-size:clamp(10px,1.8vh,17px);letter-spacing:.12em}
+  .slot.empty .plus{flex:0 0 auto;width:clamp(36px,7.6vh,76px);text-align:center;font:900 clamp(20px,4vh,40px)/1 var(--mono);color:#ffffff44}
+  #roster{grid-area:roster;justify-self:center;display:flex;align-items:flex-end;gap:1.2vw;padding:.8vh 1.4vw;max-width:100%;overflow:hidden}
+  #roster .t{align-self:center;font-size:clamp(9px,1.4vh,14px);letter-spacing:.2em;color:var(--gold);white-space:nowrap}
+  #roster .r{display:flex;flex-direction:column;align-items:center;gap:.3vh;font-size:clamp(8px,1.1vh,11px);color:var(--muted);text-transform:uppercase}
+  #roster .r .spr{height:clamp(22px,6vh,60px);display:flex;align-items:flex-end}
+  #roster .r img,#roster .r canvas{max-height:100%;image-rendering:pixelated}
+  @media (max-width:900px){.meta,#roster .t{display:none}#roster .r span{display:none}}
   #game{position:fixed;inset:0;display:none}
   #reset{position:fixed;top:12px;right:12px;z-index:5;display:none;font:800 18px system-ui;padding:10px 18px;border:0;border-radius:10px;background:#ef4444;color:#fff;cursor:pointer;box-shadow:0 2px 10px #0008}
   #end{position:fixed;inset:0;display:none;background:#000c;align-items:center;justify-content:center}
@@ -27,15 +64,20 @@
 </style>
 </head>
 <body>
+<canvas id="lobbyBg" width="960" height="540"></canvas>
 <div id="lobby">
-  <h1>SHOWER BRAWL</h1>
-  <img id="qr" alt="QR code">
-  <div id="url"></div>
+  <div class="meta l">8 PLAYERS</div>
+  <div class="meta r">10 CHARACTERS · 1 WINNER</div>
+  <div id="brand"><h1>SHOWER BRAWL</h1><div class="sub">THE WHITE HOUSE</div></div>
   <div id="teams">
-    <div class="team" id="teamA"><h2 class="A">Équipe Bleue</h2><ul></ul></div>
-    <div class="team" id="teamB"><h2 class="B">Équipe Rouge</h2><ul></ul></div>
+    <div class="team frame" id="teamA"><h2 class="A">BLUE CORNER</h2><ul></ul></div>
+    <div class="team frame" id="teamB"><h2 class="B">RED CORNER</h2><ul></ul></div>
   </div>
-  <button id="start">START</button>
+  <div id="join">
+    <div id="joinPanel" class="frame"><div class="title">SCAN TO JOIN</div><img id="qr" alt="QR code"><div id="url"></div></div>
+    <button id="start">START MATCH</button>
+  </div>
+  <div id="roster" class="frame"></div>
 </div>
 <canvas id="game"></canvas>
 <button id="reset">ARRÊTER LA MANCHE</button>
