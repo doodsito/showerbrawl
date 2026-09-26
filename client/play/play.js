@@ -48,7 +48,7 @@ function renderSelect() {
     b.disabled = !!(st.team && taken(st.team, id));
     if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src='/'+c.sprite;img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
-    const s = document.createElement('small'); s.textContent = `PV ${c.hp ?? '?'} · ${c.attack?.label || ''}`; b.appendChild(s);
+    const s = document.createElement('small'); s.textContent = `HP ${c.hp ?? '?'} · ${c.attack?.label || ''}`; b.appendChild(s);
     b.onclick = () => { st.character = id; renderSelect(); };
     box.appendChild(b);
   }
@@ -61,7 +61,7 @@ function doJoin() {
   const name = ($('#name').value || '').trim().slice(0, 16);
   socket.emit(MSG.JOIN, { team: st.team, character: st.character, name }, (res) => {
     console.log('[play] JOIN ack', res);
-    if (res && res.ok === false) { st.joined = false; st.wantJoin = false; $('#err').textContent = res.error || 'Impossible de rejoindre'; renderSelect(); show('select'); return; }
+    if (res && res.ok === false) { st.joined = false; st.wantJoin = false; $('#err').textContent = res.error || 'Could not join'; renderSelect(); show('select'); return; }
     st.joined = true; st.wantJoin = true; st.lastHp = null;
     setupPad(); if (st.phase !== 'ended') show('pad');
   });
@@ -89,16 +89,16 @@ function setupPad() {
   document.querySelectorAll('.btn').forEach((b) => {
     const k = b.dataset.k;
     const icon=b.querySelector('img');icon.hidden=!ch[k]?.icon;if(ch[k]?.icon)icon.src='/'+ch[k].icon;
-    b.title=k==='super'&&ch[k]?.charge?'Se charge en infligeant et en recevant des dégâts':ch[k]?.label||k;
-    b.querySelector('span').textContent = { attack: 'Attaque', defense: 'Défense', super: 'Super' }[k];
+    b.title=k==='super'&&ch[k]?.charge?'Charges as you deal and take damage':ch[k]?.label||k;
+    b.querySelector('span').textContent = { attack: 'ATTACK', defense: 'DEFENSE', super: 'SUPER' }[k];
   });
-  $('#kit-hint').textContent=ch.super?.charge?'Le super se charge en combat · Esquive : joystick + bouton':'Maintiens une direction et utilise tes capacités';
+  $('#kit-hint').textContent=ch.super?.charge?'Super charges in combat · Dodge: joystick + button':'Hold a direction and use your abilities';
   if(ch.hint)$('#kit-hint').textContent=ch.hint; // texte d'aide propre au perso (champ hint de characters.json)
   document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : 'var(--b)');
   document.body.dataset.team = st.team || '';
-  const nm = ($('#name').value || '').trim() || 'JOUEUR', img = $('#meImg');
+  const nm = ($('#name').value || '').trim() || 'PLAYER', img = $('#meImg');
   $('#meName').textContent = nm; $('#meChar').textContent = ch.name || st.character || '--';
-  $('#meTeam').textContent = st.team === 'A' ? 'ÉQUIPE BLEUE' : 'ÉQUIPE ROUGE';
+  $('#meTeam').textContent = st.team === 'A' ? 'BLUE TEAM' : 'RED TEAM';
   $('#meInit').textContent = (ch.name || st.character || '?')[0].toUpperCase();
   $('#heroName').textContent = ch.name || st.character || '--'; $('#heroInit').textContent = $('#meInit').textContent;
   const hi = $('#heroImg'); hi.hidden = !/\.png$/i.test(ch.sprite || ''); if (!hi.hidden) { hi.src = '/' + ch.sprite; hi.onerror = () => { hi.hidden = true; }; }
@@ -149,7 +149,7 @@ function cdLoop() {
       const total = cdRaw > 50 ? cdRaw : cdRaw * 1000;
       const left = Math.max(0, cds[k] - now),charged=k==='super'&&st.characters[st.character]?.super?.charge;
       b.querySelector('.cd').style.setProperty('--p', charged&&st.energy<100?1-st.energy/100:total ? left / total : 0);
-      b.querySelector('em').textContent = charged&&st.energy<100?`${Math.floor(st.energy)}%`:left > 0 ? `${Math.ceil(left / 1000)}s` : charged?'PRÊT':'';
+      b.querySelector('em').textContent = charged&&st.energy<100?`${Math.floor(st.energy)}%`:left > 0 ? `${Math.ceil(left / 1000)}s` : charged?'READY':'';
       b.disabled=!st.joined||st.phase!=='playing'||!st.alive;
       b.classList.toggle('cool',left>0||(!!charged&&st.energy<100));
       b.classList.toggle('ready',!!charged&&st.energy>=100&&left===0);
@@ -158,7 +158,7 @@ function cdLoop() {
     try {
     const ph = st.phase, alive = st.alive, bd = document.body.dataset;
     bd.phase = ph; bd.alive = alive ? '1' : '0';
-    $('#meStatus').textContent = !socket.connected ? 'HORS LIGNE' : ph === 'playing' ? (alive ? 'IN MATCH' : 'ÉLIMINÉ') : ph === 'ended' ? 'FIN' : 'READY';
+    $('#meStatus').textContent = !socket.connected ? 'OFFLINE' : ph === 'playing' ? (alive ? 'IN MATCH' : 'KNOCKED OUT') : ph === 'ended' ? 'OVER' : 'READY';
     $('#wait').hidden = ph === 'playing';
   } catch (e) {}
   requestAnimationFrame(cdLoop);
@@ -264,12 +264,12 @@ socket.on(MSG.ME, (me) => {
     $('#timer').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
     st.alive=me.alive;st.energy=me.energy||0;
     for(const k of Object.keys(cds))cds[k]=performance.now()+Math.max(0,me.cd?.[k]||0)*1000;
-    $('#hp').textContent = `PV ${Math.max(0, Math.round(me.hp))}/${me.maxHp ?? '?'}`;
+    $('#hp').textContent = `HP ${Math.max(0, Math.round(me.hp))}/${me.maxHp ?? '?'}`;
     if (st.lastHp != null && me.hp < st.lastHp && me.alive !== false) hitFeedback(st.lastHp - me.hp, false);
     if (st.wasAlive === true && me.alive === false) hitFeedback(0, true);
     st.wasAlive = me.alive; st.lastHp = me.hp;
     const r = $('#respawn');
-    if (me.alive === false) { r.hidden = false; r.innerHTML = `<b>ÉLIMINÉ</b><span>RESPAWN DANS ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}S</span>`; }
+    if (me.alive === false) { r.hidden = false; r.innerHTML = `<b>KNOCKED OUT</b><span>RESPAWN IN ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}S</span>`; }
     else r.hidden = true;
   } catch (e) {}
 });
@@ -279,10 +279,10 @@ socket.on(MSG.END, (d) => {
     st.phase = 'ended';
     Object.assign(input, { dx: 0, dy: 0, attack: false, defense: false, super: false });
     const w = d?.winner;
-    $('#endTitle').textContent = w === 'A' ? 'Victoire des Bleus' : w === 'B' ? 'Victoire des Rouges' : 'Égalité';
-    $('#endScore').textContent = `Bleus ${d?.score?.A ?? 0} - ${d?.score?.B ?? 0} Rouges`;
+    $('#endTitle').textContent = w === 'A' ? 'Blue team wins' : w === 'B' ? 'Red team wins' : 'Draw';
+    $('#endScore').textContent = `Blue ${d?.score?.A ?? 0} - ${d?.score?.B ?? 0} Red`;
     const m = d?.mvp;
-    $('#endMvp').textContent = m ? `MVP : ${m.name || m.id || m}` : '';
+    $('#endMvp').textContent = m ? `MVP: ${m.name || m.id || m}` : '';
     show('end');
   } catch (e) {}
 });
