@@ -96,20 +96,22 @@ test('snapshots carry authoritative wall, charge, dash and attack visual state',
  const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,0);assert.ok(s.players[1].dash);
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
-test('generic bricks are all melee: strike, ground shockwave, centred zone, charge, shield',t=>{
+test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
  const {game,p,q}=setup(t,'biden','maduro');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,120,'trop loin');
  cast(game,p,'defense');assert.ok(p.invulnT>0);assert.ok(p.dashHit);
- cast(game,p,'super');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'));
- cast(game,q,'defense');assert.ok(q.shieldT>0);cast(game,q,'super');assert.equal(game.zones.length,1);assert.equal(game.zones[0].x,q.x);
+ cast(game,q,'attack');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'),'burst = onde au sol');
+ cast(game,q,'defense');assert.ok(q.shieldT>0);
+ q.char={...q.char,super:{type:'zone',radius:100,damage:10,duration:1,cooldown:1}};cast(game,q,'super');
+ assert.equal(game.zones.length,1);assert.equal(game.zones[0].x,q.x,'zone sans target: centree sur le lanceur');
 });
 test('charge (dash) hits and pushes the enemy on its path',t=>{
  const {game,p,q}=setup(t,'schwarzenegger','biden');q.x=p.x+120;const hp=q.hp,x0=q.x;
  cast(game,p,'defense');advance(game,.3);assert.equal(q.hp,hp-12);assert.ok(q.x-x0>30,'pousse devant');
 });
-test('super shockwave damages and knocks back every nearby enemy, not the far ones',t=>{
- const {game,p,q}=setup(t,'sanders','biden');game.join({id:'c'},{team:'B',character:'musk',name:'far'});
- const far=game.players.get('c');Object.assign(far,{x:p.x+400,y:p.y,protectT:0});q.x=p.x+80;const x0=q.x;
- cast(game,p,'super');assert.equal(q.hp,110-18);assert.equal(far.hp,far.maxHp);advance(game,.3);assert.ok(q.x-x0>40);
+test('burst shockwave damages and knocks back every nearby enemy, not the far ones',t=>{
+ const {game,p,q}=setup(t,'maduro','biden');game.join({id:'c'},{team:'B',character:'musk',name:'far'});
+ const far=game.players.get('c');Object.assign(far,{x:p.x+400,y:p.y,protectT:0});q.x=p.x+70;const x0=q.x;
+ cast(game,p,'attack');assert.equal(q.hp,110-9);assert.equal(far.hp,far.maxHp);advance(game,.3);assert.ok(q.x-x0>20);
 });
 
 test('countdown 3-2-1: players frozen, inputs ignored and match timer stopped until FIGHT', () => {
@@ -150,4 +152,44 @@ test('regeneration passive: 1 PV/s seulement apres 3 s hors combat', t => {
 test('chute hors du toit: evenement kill marque fell', t => {
  const {game,q}=setup(t,'biden','musk');q.x=-50;game.tick(.05);
  const ev=game.events.find(e=>e.k==='kill');assert.ok(ev);assert.equal(ev.fell,true);
+});
+
+// Regle de design: attack/defense au corps a corps, super cible a distance avec alerte au sol (esquivable).
+const RANGED_SUPERS=['biden','obama','harris','maduro','sanders','schwarzenegger','macron','zelensky'];
+function duel(t,a){
+  const {game,p,q}=setup(t,a,a==='biden'?'musk':'biden');
+  Object.assign(p,{x:200,y:320,fx:1,fy:0});Object.assign(q,{x:400,y:320});return {game,p,q};
+}
+for(const id of Object.keys(characters)){
+  test(`${id}: l'attaque de base ne touche pas a 200 unites`,t=>{
+    const {game,p,q}=duel(t,id);const hp=q.hp;cast(game,p,'attack');advance(game,.6);
+    assert.equal(q.hp,hp);assert.equal(game.projectiles.length,0);
+  });
+}
+for(const id of RANGED_SUPERS){
+  test(`${id}: le super touche une cible a 400 unites apres son delai`,t=>{
+    const {game,p,q}=duel(t,id);q.x=600;const hp=q.hp;p.energy=100;
+    assert.ok(cast(game,p,'super'),'super lance');assert.equal(p.energy,0,'charge consommee');
+    const s=characters[id].super,delay=s.delay??.7;
+    advance(game,Math.max(0,delay-.12));assert.equal(q.hp,hp,'rien avant la fin de l\'alerte');
+    advance(game,.12+(s.hits?(s.hits-1)*(s.gap??.18):0)+.05);assert.ok(q.hp<hp,'touche apres le delai');
+    assert.equal(game.projectiles.length,0,'rien ne vole');
+  });
+  test(`${id}: sortir du cercle d'alerte avant l'impact evite le super`,t=>{
+    const {game,p,q}=duel(t,id);q.x=600;const hp=q.hp;p.energy=100;cast(game,p,'super');
+    q.x=600-((characters[id].super.radius||90)+q.r+30); // sort du cercle en reculant vers le lanceur, reste sur le toit
+    assert.ok(q.alive);
+    advance(game,2);assert.equal(q.hp,hp);
+  });
+}
+test('super cible sans ennemi a portee: frappe devant le lanceur a mi-portee',t=>{
+  const {game,p,q}=duel(t,'biden');q.x=p.x+2000;p.energy=100;cast(game,p,'super');
+  const z=game.zones.find(z=>z.kind==='strike');assert.ok(z);assert.ok(Math.abs(z.x-(p.x+characters.biden.super.range/2))<1);
+});
+test('super cible: sans charge d\'energie, pas de super',t=>{
+  const {game,p}=duel(t,'sanders');p.energy=40;assert.equal(cast(game,p,'super'),false);
+});
+test('Aide Militaire: 3 impacts decales',t=>{
+  const {game,p}=duel(t,'zelensky');p.energy=100;cast(game,p,'super');
+  const zs=game.zones.filter(z=>z.kind==='strike');assert.equal(zs.length,3);assert.ok(new Set(zs.map(z=>Math.round(z.y))).size===3);
 });
