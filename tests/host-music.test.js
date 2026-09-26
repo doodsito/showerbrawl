@@ -2,12 +2,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, statSync } from 'node:fs';
-import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import express from 'express';
 import { Server } from 'socket.io';
 import { io as ioc } from 'socket.io-client';
+import { ensureBuild } from './build-once.js';
 import { MSG } from '../shared/protocol.js';
 import { characters, arena } from '../server/loader.js';
 import { Game } from '../server/game.js';
@@ -50,7 +50,7 @@ test('music_circus.mp3 compresse: mono, moins de 700 Ko', () => {
 });
 
 test('host: chiptune au lobby, MP3 en combat, retour lobby, mute', { timeout: 120000 }, async (t) => {
-  if (!existsSync(`${dist}/index.html`)) execSync('npx vite build', { cwd: root, stdio: 'ignore' });
+  await ensureBuild();
   const browser = await launch();
   if (!browser) return t.skip('aucun Chromium disponible');
   t.after(() => browser.close());
