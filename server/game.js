@@ -43,15 +43,17 @@ export class Game {
     if (!team || !char) return { ok: false, error: 'equipe ou perso invalide' };
     const existing = this.players.get(socket.id);
     if (!existing && this.players.size >= CONFIG.MAX_PLAYERS) return { ok: false, error: 'salle pleine' };
-    for (const o of this.players.values())
-      if (o.id !== socket.id && o.team === team && o.character === data.character) return { ok: false, error: 'perso deja pris' };
+    // Perso unique par equipe tant qu'il en reste un libre; sinon doublons autorises (10v10 avec peu de persos).
+    const usedInTeam = new Set([...this.players.values()].filter((o) => o.id !== socket.id && o.team === team).map((o) => o.character));
+    const freeLeft = Object.keys(this.characters).some((c) => !usedInTeam.has(c));
+    if (freeLeft && usedInTeam.has(data.character)) return { ok: false, error: 'perso deja pris' };
     const name = String(data.name || char.name).slice(0, 16);
     const p = existing || { id: socket.id, kills: 0, deaths: 0, input: { dx: 0, dy: 0 } };
     Object.assign(p, { team, character: data.character, char, name, maxHp: char.hp, r: CONFIG.PLAYER_RADIUS });
     this.players.set(socket.id, p);
-    this.spawn(p);
+    this.spawn(p); // en phase playing, le joueur apparait directement dans l'arene
     this.sendLobby();
-    return { ok: true, id: socket.id };
+    return { ok: true, id: socket.id, phase: this.phase };
   }
 
   leave(id) { if (this.players.delete(id)) this.sendLobby(); }
