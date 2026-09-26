@@ -2,13 +2,24 @@ import express from 'express';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
+import { networkInterfaces } from 'node:os';
 import QRCode from 'qrcode';
 import { MSG } from '../shared/protocol.js';
 import { characters, arena } from './loader.js';
 import { Game } from './game.js';
 
 const PORT = process.env.PORT || 3000;
-const PUBLIC_URL = process.env.PUBLIC_URL || 'https://showerbrawl.doodsito.com';
+const DEV_PORT = process.env.DEV_PORT || 5173;
+
+// Premiere IPv4 LAN non interne, pour que les telephones du reseau local scannent le QR.
+function lanIp() {
+  for (const list of Object.values(networkInterfaces()))
+    for (const a of list || []) if ((a.family === 'IPv4' || a.family === 4) && !a.internal) return a.address;
+  return 'localhost';
+}
+
+const PUBLIC_URL = process.env.PUBLIC_URL
+  || (process.env.NODE_ENV !== 'production' ? `http://${lanIp()}:${DEV_PORT}` : 'https://showerbrawl.doodsito.com');
 const PLAY_URL = `${PUBLIC_URL.replace(/\/$/, '')}/play/`;
 const clientDist = fileURLToPath(new URL('../client/dist', import.meta.url));
 
