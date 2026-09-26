@@ -1,6 +1,6 @@
 <!doctype html><html lang="fr"><meta charset="utf-8"><title>QA animations multijoueur</title>
 <style>body{margin:0;background:#101727;color:#edf1fa;font:15px system-ui}header{padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}button,select,input{font:inherit;padding:8px}canvas{max-width:100%;display:block}#status{padding:10px}#gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}article{background:#233046;padding:8px}article canvas{width:100%}article p{margin:5px}#errors{color:#ff9988}</style>
-<header><strong>QA · Moteur multijoueur</strong><select aria-label="Capacité" id="case"></select><button id="play">Rejouer</button><button id="pause">Pause</button><label>Image <input id="frame" aria-label="Image" type="number" min="0" max="90" value="5"></label><button id="show">Afficher l’image</button><button id="audit">Auditer les 30 capacités</button></header>
+<header><strong>QA · Moteur multijoueur</strong><select aria-label="Capacité" id="case"></select><select aria-label="Écran" id="screen"><option value="host">Arène</option><option value="phone">Téléphone</option></select><button id="play">Rejouer</button><button id="pause">Pause</button><label>Image <input id="frame" aria-label="Image" type="number" min="0" max="90" value="5"></label><button id="show">Afficher l’image</button><button id="audit">Auditer les 30 capacités</button></header>
 <canvas id="game" width="960" height="540"></canvas><pre id="status"></pre><pre id="errors"></pre><section id="gallery"></section>
 <script type="module">
 import {render,pushEvents} from '/client/scene.js';
@@ -10,23 +10,28 @@ const data=await(await fetch('/fixtures')).json(),select=document.querySelector(
 preloadCombatArt(data.characters);
 for(const c of data.cases)select.add(new Option(c.id+' · '+c.label,c.id));
 let playing=true,started=performance.now(),frame=0,last=-1,current=data.cases[0];const drawn=new Set();
+// Canvas silently ignores NaN coordinates: fail the audit instead of reporting a blank animation as OK.
+function finiteCanvas(cx){for(const name of ['translate','rotate','scale','transform','setTransform','fillRect','strokeRect','clearRect','moveTo','lineTo','arc','ellipse','drawImage']){const fn=cx[name].bind(cx);cx[name]=(...args)=>{if(args.some(v=>typeof v==='number'&&!Number.isFinite(v)))throw new Error(name+': non-finite coordinate');return fn(...args);};}}
+finiteCanvas(g);
+const screen=document.querySelector('#screen'),camera={x:440,y:412,zoom:2,me:'a'};
+const currentFrame=()=>screen.value==='phone'?current.views[frame]:current.frames[frame];
 const original=g.drawImage.bind(g);g.drawImage=(img,...args)=>{if(img.src)drawn.add(img.src.split('/').at(-1));return original(img,...args);};
 const describe=()=>document.querySelector('#status').textContent=JSON.stringify({case:current.id,cast:current.ok,frame,images:[...drawn],effects:current.frames[frame].effects.map(e=>[e.kind,e.visual]),zones:current.frames[frame].zones.map(z=>[z.kind,z.visual])},null,2);
-function paint(){try{render(g,960,540,data.arena,current.frames[frame],data.characters);describe();}catch(e){errors.textContent+=e.stack+'\n';playing=false;}}
+function paint(){try{render(g,960,540,data.arena,currentFrame(),data.characters,screen.value==='phone'?camera:undefined);describe();}catch(e){errors.textContent+=e.stack+'\n';playing=false;}}
 function replay(){drawn.clear();started=performance.now();playing=true;last=-1;}
-select.onchange=()=>{current=data.cases.find(c=>c.id===select.value);replay();};document.querySelector('#play').onclick=replay;document.querySelector('#pause').onclick=()=>{playing=false;};
+screen.onchange=()=>paint();select.onchange=()=>{current=data.cases.find(c=>c.id===select.value);replay();};document.querySelector('#play').onclick=replay;document.querySelector('#pause').onclick=()=>{playing=false;};
 document.querySelector('#show').onclick=()=>{playing=false;frame=Math.max(0,Math.min(90,Number(document.querySelector('#frame').value)));paint();};
 function loop(t){if(playing){frame=Math.max(0,Math.min(90,Math.floor((t-started)/1000*30)));if(frame!==last){pushEvents(current.frames[frame].events);last=frame;}paint();if(frame===90)playing=false;}requestAnimationFrame(loop);}requestAnimationFrame(loop);
 document.querySelector('#audit').onclick=async()=>{
  playing=false;document.querySelector('#status').textContent='Audit en cours';const gallery=document.querySelector('#gallery');gallery.innerHTML='';const audit=[];
  for(const c of data.cases){
   const cn=document.createElement('canvas');cn.width=960;cn.height=540;const cx=cn.getContext('2d'),images=new Set(),draw=cx.drawImage.bind(cx);cx.drawImage=(img,...args)=>{if(img.src)images.add(img.src.split('/').at(-1));return draw(img,...args);};
-  let error=null;try{for(const s of c.frames){render(cx,960,540,data.arena,s,data.characters);await new Promise(resolve=>setTimeout(resolve,0));}}catch(e){error=e.message;errors.textContent+=c.id+': '+e.stack+'\n';}
+  let error=null;finiteCanvas(cx);try{for(const mode of ['host','phone'])for(const s of mode==='host'?c.frames:c.views){render(cx,960,540,data.arena,s,data.characters,mode==='phone'?camera:undefined);await new Promise(resolve=>setTimeout(resolve,0));}}catch(e){error=e.message;errors.textContent+=c.id+': '+e.stack+'\n';}
   const a=data.characters[c.character][c.slot],f=c.slot==='super'?Math.round(((a.delay||.5)+.05)*30):c.slot==='attack'?3:5;
   render(cx,960,540,data.arena,c.frames[f],data.characters);
   const crop=document.createElement('canvas');crop.width=740;crop.height=350;crop.getContext('2d').drawImage(cn,100,175,740,350,0,0,740,350);
   const article=document.createElement('article'),p=document.createElement('p');p.textContent=c.id+' · '+(error||'OK');article.append(p,crop);gallery.append(article);
-  audit.push({case:c.id,cast:c.ok,error,images:[...images]});document.querySelector('#status').textContent='Audit '+audit.length+'/30';
+  audit.push({case:c.id,cast:c.ok,error,images:[...images],projectileFrames:c.frames.filter(s=>s.projectiles.length).length,hostFrames:c.frames.length,phoneFrames:c.views.length});document.querySelector('#status').textContent='Audit '+audit.length+'/30';
  }
  document.querySelector('#status').textContent=JSON.stringify(audit,null,2);document.body.dataset.audit=JSON.stringify(audit);
 };

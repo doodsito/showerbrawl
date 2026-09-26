@@ -154,8 +154,8 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     }
     items.length = 0; nItems = 0;
     for(const w of state.walls||[]){const s=project(w.x,w.y+Math.abs(w.ux)*w.depth/2);addItem('wall',w,s[0],s[1]);}
-    // Other fighters keep their melee renderer; only Musk's physical debris flies.
-    for(const p of state.projectiles||[])if(p.visual==='muskSteel'||p.visual==='muskDoge'){const s=project(p.x,p.y);addItem('muskProjectile',p,s[0],s[1]);}
+    // Every authoritative projectile must reach a renderer, on host and phone.
+    for(const p of state.projectiles||[]){const s=project(p.x,p.y);addItem(p.visual==='muskSteel'||p.visual==='muskDoge'?'muskProjectile':'p',p,s[0],s[1]);}
     for(const z of state.zones||[])if(z.kind==='cybertruck'){const s=project(z.x,z.y);addItem('truck',z,s[0],s[1]+1);}
     for (const p of state.players || []) { const s = worldToScreen(p.x, p.y, b); addItem('j', p, s[0], s[1]); }
     items.sort(byDepth);

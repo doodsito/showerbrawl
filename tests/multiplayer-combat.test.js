@@ -34,10 +34,10 @@ test('invalid wall placement has no cooldown; a placed wall expires and reset cl
  game.reset();assert.equal(game.effects.length,0);assert.equal(game.zones.length,0);assert.equal(p.energy,0);
 });
 test('melee strike: misses at range, hits and pushes at contact, never spawns a projectile',t=>{
- const {game,p,q}=setup(t,'obama','trump');cast(game,p,'attack');assert.equal(game.projectiles.length,0);advance(game,.4);assert.equal(q.hp,q.maxHp);
+ const {game,p,q}=setup(t,'harris','trump');cast(game,p,'attack');assert.equal(game.projectiles.length,0);advance(game,.4);assert.equal(q.hp,q.maxHp);
  Object.assign(q,{x:340});p.cd.attack=0;cast(game,p,'attack');assert.equal(q.hp,q.maxHp-p.char.attack.damage);assert.equal(game.projectiles.length,0);
  const atHit=q.x;advance(game,.3);assert.ok(q.x-atHit>20,'knockback pousse la cible');
- assert.ok(game.effects.some(e=>e.kind==='strike'&&e.visual==='energy'),'effet énergie au point d\'impact');
+ assert.ok(game.effects.some(e=>e.kind==='strike'),'effet au point d\'impact');
 });
 test('friendly players take no projectile or Mic Drop damage',t=>{
  const {game,p,q}=setup(t,'obama','trump');q.team='A';q.x=370;p.fx=1;p.fy=0;
@@ -93,7 +93,7 @@ test('short mobile taps survive between server ticks, defense does not recast wh
 });
 test('snapshots carry authoritative wall, charge, dash and attack visual state',t=>{
  const {game,p,q,events}=setup(t);cast(game,p,'defense');p.energy=42;cast(game,q,'attack');cast(game,q,'defense');game.broadcast();
- const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,0);assert.ok(s.players[1].dash);
+ const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,1);assert.equal(s.projectiles[0].visual,'energy');assert.ok(s.players[1].dash);
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
@@ -160,7 +160,7 @@ function duel(t,a){
   const {game,p,q}=setup(t,a,a==='biden'?'musk':'biden');
   Object.assign(p,{x:200,y:320,fx:1,fy:0});Object.assign(q,{x:400,y:320});return {game,p,q};
 }
-for(const id of Object.keys(characters)){
+for(const id of Object.keys(characters).filter(id=>!characters[id].attack.travel)){
   test(`${id}: l'attaque de base ne touche pas a 200 unites`,t=>{
     const {game,p,q}=duel(t,id);const hp=q.hp;cast(game,p,'attack');advance(game,.6);
     assert.equal(q.hp,hp);assert.equal(game.projectiles.length,0);

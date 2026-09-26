@@ -32,9 +32,27 @@ function face(p, o) {
 }
 const hitable = (p, o) => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch;
 
+// Opt-in moving shots. The generic contact attacks keep their existing rules.
+function volley(ctx, p, a) {
+  const target = nearestEnemy(ctx, p, a.range);
+  if (target) face(p, target);
+  const angle = Math.atan2(p.fy, p.fx), count = a.shots || 1, speed = a.speed || 600;
+  for (let i = 0; i < count; i++) {
+    const offset = i - (count - 1) / 2, theta = angle + offset * (a.spread || 0);
+    const ux = Math.cos(theta), uy = Math.sin(theta);
+    // Start inside the owner's collision circle so nearby walls cannot be skipped.
+    ctx.projectiles.push({id:ctx.nextId(),owner:p.id,team:p.team,
+      x:p.x-Math.sin(angle)*offset*10,y:p.y+Math.cos(angle)*offset*10,
+      vx:ux*speed,vy:uy*speed,r:a.radius||7,ttl:a.range/speed,visual:a.visual,
+      damage:a.damage/count,knockback:(a.knockback||0)/count,wallDamage:a.damage/count,
+      canRingOut:a.canRingOut,height:38-offset*12});
+  }
+}
+
 const BRICKS = {
   // Coup: touche seulement un ennemi vivant au contact (portee = bras + rayons). Auto-aim sur le plus proche.
   projectile(ctx, p, a) {
+    if (a.travel) return volley(ctx, p, a);
     const reach = Math.min(a.range || 70, MELEE_MAX);
     const e = nearestEnemy(ctx, p, reach + p.r * 2);
     if (!e) { fx(ctx, 'whiff', p.x + p.fx * reach * .6, p.y + p.fy * reach * .6, { ux: p.fx, uy: p.fy, visual: a.visual }, .25); return; }
@@ -159,7 +177,8 @@ export function updateProjectiles(ctx, dt) {
       for (const o of ctx.players.values()) {
         if (!o.alive || o.hp <= 0 || o.team === pr.team || o.launch) continue;
         if (physics.circlesOverlap(pr, pr.r, o, o.r)) {
-          const hit = ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * .01, pr.y - pr.vy * .01, pr.pushDistance ? 0 : pr.knockback, !!pr.pushDistance, pr.chargeHit == null);
+          const hit = ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * .01, pr.y - pr.vy * .01, pr.pushDistance ? 0 : pr.knockback, !!pr.pushDistance, pr.chargeHit == null, !!pr.canRingOut);
+          if (pr.visual === 'energy' || pr.visual === 'baguette') fx(ctx, hit ? 'strike' : 'whiff', pr.x, pr.y, {visual:pr.visual,ux:pr.vx/Math.hypot(pr.vx,pr.vy),uy:pr.vy/Math.hypot(pr.vx,pr.vy)}, .35);
           if(hit && pr.chargeHit != null)charge(ctx.players.get(pr.owner),pr.chargeHit);
           if (hit && pr.pushDistance) shove(o, pr.vx, pr.vy, pr.pushDistance);
           return false;
