@@ -2,18 +2,19 @@
 <html lang="fr">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0c111b"><title>Maison Blanche — Showerbrawl</title><link rel="stylesheet" href="style.css"></head>
 <body>
-<header class="site-header"><a class="brand" href="./">SHOWER<span>BRAWL</span><sup>®</sup></a><nav aria-label="Laboratoires"><a href="./" aria-current="page">Arène</a></nav><span class="local"><i></i> LOCAL PLAY</span></header>
+<header class="site-header"><a class="brand" href="../">SHOWER<span>BRAWL</span><sup>®</sup></a><nav aria-label="Navigation"><a href="./" aria-current="page">Arène</a></nav><span class="local"><i></i> LOCAL PLAY</span></header>
 <main>
   <section class="heading"><div><p class="eyebrow">WASHINGTON, D.C. <span> / </span> ARÈNE 01</p><h1>THE WHITE HOUSE<span>FIGHT NIGHT</span></h1></div><p class="description">La pelouse la plus célèbre du monde.<br>Un octogone. À toi de jouer.</p></section>
   <div id="game-session">
+  <div class="art-bar"><span><i></i> DESIGNS ÉQUIPE</span><label class="character-picker">Jouer avec <select id="character"><option value="obama" selected>Obama</option><option value="trump">Trump</option></select></label><span id="art-status" role="status">Chargement du personnage…</span><label class="motion-toggle"><input id="motion" type="checkbox" checked> Mouvements améliorés</label></div>
   <section class="arena-shell" aria-label="Arène Maison Blanche">
     <div class="arena-bar"><span><i></i> SOUTH LAWN <b>•</b> COUCHER DE SOLEIL</span><div><button id="pause" aria-label="Mettre en pause" disabled>Ⅱ Pause</button><button id="reset" aria-label="Recommencer le combat">↺ Rejouer</button><button id="fullscreen" aria-label="Afficher l’arène en plein écran">⛶</button></div></div>
     <div class="stage" id="stage">
       <canvas id="arena" width="960" height="540" tabindex="0" aria-label="Terrain de combat en pixel art devant la Maison Blanche. Utilise les flèches ou ZQSD pour te déplacer et J, K, L pour combattre."></canvas>
       <div class="hud">
-        <div class="player red"><div class="player-name"><span>01 <b>JOUEUR</b></span><output id="hp0">100</output></div><div class="health" role="meter" aria-label="Vie du joueur" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="health0"></i></div><div class="stamina"><i id="stamina0"></i></div><span class="stamina-label">ENDURANCE</span></div>
+        <div class="player red"><div class="player-name"><span>01 <b id="name0">TRUMP</b></span><output id="hp0">100</output></div><div class="health" role="meter" aria-label="Vie du joueur" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="health0"></i></div><div class="stamina"><i id="stamina0"></i></div><span class="stamina-label">ENDURANCE</span></div>
         <div class="clock"><output id="timer">03:00</output><span>ROUND 01</span></div>
-        <div class="player blue"><div class="player-name"><span><b>ADVERSAIRE</b> 02</span><output id="hp1">100</output></div><div class="health" role="meter" aria-label="Vie de l’adversaire" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="health1"></i></div><div class="stamina"><i id="stamina1"></i></div><span class="stamina-label">ENDURANCE</span></div>
+        <div class="player blue"><div class="player-name"><span><b id="name1">TRUMP · IA</b> 02</span><output id="hp1">100</output></div><div class="health" role="meter" aria-label="Vie de l’adversaire" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="health1"></i></div><div class="stamina"><i id="stamina1"></i></div><span class="stamina-label">ENDURANCE</span></div>
       </div>
       <div id="result" class="result" hidden><span>FIN DU COMBAT</span><h2 id="result-title">VICTOIRE</h2><p id="result-detail"></p><button id="rematch">Rejouer ↗</button></div>
       <span class="scene-tag">THE WHITE HOUSE <b>·</b> WASHINGTON, D.C.</span>
@@ -22,11 +23,11 @@
   </section>
   <section class="controls" aria-label="Commandes de combat">
     <div class="movement"><p class="eyebrow">DÉPLACEMENT</p><div class="movement-row"><div class="dpad" aria-label="Déplacements tactiles"><button data-move="up" aria-label="Avancer">↑</button><button data-move="left" aria-label="Aller à gauche">←</button><button data-move="down" aria-label="Reculer">↓</button><button data-move="right" aria-label="Aller à droite">→</button></div><p><b>ZQSD / WASD</b><br>ou les flèches du clavier</p></div></div>
-    <button class="ability attack" id="attack"><span class="ability-top"><span class="icon">✦</span><kbd>J / 1</kbd></span><strong>Attaque</strong><span>Direct au corps · 15 endurance</span><div class="ability-track"><i id="attack-ready"></i></div></button>
-    <button class="ability defense" id="guard"><span class="ability-top"><span class="icon">◇</span><kbd>K / 2</kbd></span><strong>Garde</strong><span>Maintenir pour encaisser</span><div class="ability-track"><i id="guard-ready"></i></div></button>
-    <button class="ability super" id="super"><span class="ability-top"><span class="icon">ϟ</span><kbd>L / 3</kbd></span><strong>Super <output id="charge">0%</output></strong><span>Charge en touchant l’adversaire</span><div class="ability-track"><i id="super-ready"></i></div></button>
+    <button class="ability attack" id="attack"><span class="ability-top"><img class="ability-art" id="attack-art" src="assets/punch_fx.png" alt=""><kbd>J / 1</kbd></span><strong id="attack-name">Attaque</strong><span id="attack-detail">Direct au corps · 15 endurance</span><div class="ability-track"><i id="attack-ready"></i></div></button>
+    <button class="ability defense" id="guard"><span class="ability-top"><img class="ability-art" id="defense-art" src="assets/maga_wall.png" alt=""><kbd>K / 2</kbd></span><strong id="defense-name">Mur MAGA</strong><span id="wall-detail">Poser un obstacle · 6 s</span><div class="ability-track"><i id="guard-ready"></i></div></button>
+    <button class="ability super" id="super"><span class="ability-top"><span class="icon" id="super-symbol">ϟ</span><img class="ability-art" id="super-art" src="assets/mic_drop.png" alt="" hidden><kbd>L / 3</kbd></span><strong><span id="super-name">You’re fired!</span> <output id="charge">0%</output></strong><span id="super-detail">Projette à l’autre bout du ring</span><div class="ability-track"><i id="super-ready"></i></div></button>
   </section>
   </div>
-  <footer><label><input type="checkbox" id="ai" checked> Adversaire actif</label><span><kbd>Espace</kbd> Pause <b>·</b> <kbd>R</kbd> Rejouer</span><span>PIXEL ARENA / 01</span></footer>
-</main><script type="module" src="src/app.js"></script>
+  <footer><label><input type="checkbox" id="ai" checked> Adversaire actif</label><span><kbd>Maj</kbd> Garde <b>·</b> <kbd>Espace</kbd> Pause <b>·</b> <kbd>R</kbd> Rejouer</span><span>PIXEL ARENA / 01</span></footer>
+</main><script type="module" src="src/app.js?v=obama-4"></script>
 </body></html>
