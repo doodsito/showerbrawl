@@ -105,7 +105,7 @@ function setupPad() {
   img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = '/' + ch.sprite; img.onerror = () => { img.hidden = true; }; }
   if (stick) return;
   try {
-    stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', size: 130, restOpacity: 0.95,
+    stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', size: 91, restOpacity: 0.95,
       color: { front: 'radial-gradient(circle at 40% 32%, #ffffff 0%, #d7dee8 40%, #9aa7b8 100%)', back: 'radial-gradient(circle, #243756 0%, #1b2942 70%)' } });
     // nipplejs v1: handler(evt) avec evt.data. v0.x: handler(evt, data). On gere les deux.
     stick.on('move', (evt, legacy) => {
@@ -180,7 +180,7 @@ setInterval(sendInput,100); // filet de securite, l'envoi principal est immediat
 
 // Vue de jeu sur le telephone (camera sur mon perso) ou manette seule, choix memorise.
 let viewEnabled = true;
-try { viewEnabled = localStorage.getItem('sb_view') !== 'off'; } catch (e) {}
+// Bascule Game view / Controller only masquee dans cette version: vue toujours active.
 const SHOW_FPS = new URLSearchParams(location.search).get('fps') === '1';
 if (SHOW_FPS) $('#fps').hidden = false;
 const view = createView($('#view'), { getArena: () => st.arena, getCharacters: () => st.characters, myId: () => socket.id, fpsEl: SHOW_FPS ? $('#fps') : null });

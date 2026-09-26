@@ -232,3 +232,7 @@ body.viewing .btn.big{width:88px;height:88px;transform:none}
 body.viewing .btn img{height:18px;width:22px}
 body.viewing .btn span{font-size:10px}
 body.viewing .btn.down{opacity:.9}
+/* polish mobile: HUD epure, joystick visuel -30%, pas de doublon perso en match */
+.vib,.viewtoggle,.rotate{display:none!important}
+body[data-phase=playing] .hero{display:none!important}
+.stick .ring{transform:translateX(-50%) scale(.7);transform-origin:50% 100%}
