@@ -59,6 +59,11 @@ $('#join').onclick = () => {
 };
 
 let stick = null;
+let lastStickLog = 0;
+function logStick() {
+  const now = performance.now();
+  if (now - lastStickLog > 250) { lastStickLog = now; console.log('[play] joystick dx dy', input.dx.toFixed(2), input.dy.toFixed(2)); }
+}
 function setupPad() {
   const ch = st.characters[st.character] || {};
   document.querySelectorAll('.btn').forEach((b) => {
@@ -69,15 +74,23 @@ function setupPad() {
   if (stick) return;
   try {
     stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', color: 'white', size: 130 });
-    stick.on('move', (_e, d) => {
+    // nipplejs v1: handler(evt) avec evt.data. v0.x: handler(evt, data). On gere les deux.
+    stick.on('move', (evt, legacy) => {
       try {
-        const f = Math.min(1, (d.force ?? d.distance / 65) || 0);
-        const a = d.angle?.radian ?? 0;
-        input.dx = Math.max(-1, Math.min(1, Math.cos(a) * f));
-        input.dy = Math.max(-1, Math.min(1, -Math.sin(a) * f));
+        const d = legacy || evt?.data || {};
+        const f = Math.min(1, Number(d.force) || 0);
+        let x, y;
+        if (d.vector && Number.isFinite(d.vector.x)) { x = d.vector.x; y = d.vector.y; }
+        else { const a = d.angle?.radian ?? 0; x = Math.cos(a); y = Math.sin(a); }
+        const m = Math.hypot(x, y) || 1;
+        const k = Math.min(1, Math.max(f, m)) / m; // amplitude en [0,1]
+        // Y nipplejs vers le haut, Y canvas vers le bas: on inverse.
+        input.dx = Math.max(-1, Math.min(1, x * k));
+        input.dy = Math.max(-1, Math.min(1, -y * k));
+        logStick();
       } catch (e) {}
     });
-    stick.on('end', () => { input.dx = 0; input.dy = 0; });
+    stick.on('end', () => { input.dx = 0; input.dy = 0; console.log('[play] joystick relache'); });
   } catch (e) {}
 }
 
