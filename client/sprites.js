@@ -9,10 +9,8 @@ const LOOKS = {
   obama: { skin: '#8a5a3c', hair: '#2a2a2a', hairStyle: 'thin', glasses: false },
   harris: { skin: '#b27a55', hair: '#1f1a17', hairStyle: 'swoop', glasses: false },
   maduro: { skin: '#c79270', hair: '#1c1c1c', hairStyle: 'thin', glasses: false },
-  sanders: { skin: '#f2cfb4', hair: '#ececec', hairStyle: 'thin', glasses: true },
   schwarzenegger: { skin: '#d9a07a', hair: '#6b4a2e', hairStyle: 'thin', glasses: false },
   macron: { skin: '#f0cdb0', hair: '#5a4632', hairStyle: 'swoop', glasses: false },
-  zelensky: { skin: '#e3b999', hair: '#3b3b36', hairStyle: 'thin', glasses: false },
 };
 const images = {};
 const isImage = (id) => typeof id === 'string' && /\.(png|svg|webp|gif|jpe?g)$/i.test(id);
