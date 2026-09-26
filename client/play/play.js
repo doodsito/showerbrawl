@@ -1,3 +1,4 @@
+import {assetUrl, watchVersion} from '../version.js';
 import nipplejs from 'nipplejs';
 import { io } from 'socket.io-client';
 import { MSG } from '../../shared/protocol.js';
@@ -19,6 +20,13 @@ const cds = { attack: 0, defense: 0, super: 0 };
 
 try { $('#name').value = localStorage.getItem('sb_name') || ''; } catch (e) {}
 try { const t = localStorage.getItem('sb_team'); if (t === 'A' || t === 'B') st.team = t; st.character = localStorage.getItem('sb_char'); } catch (e) {}
+
+// A release refresh restores the same player choice on the new connection.
+try { st.wantJoin = sessionStorage.getItem('sb_release_rejoin') === '1'; sessionStorage.removeItem('sb_release_rejoin'); } catch {}
+const checkVersion = watchVersion({
+  canReload: () => !!st.arena && st.phase === 'lobby',
+  beforeReload: () => { try { if (st.wantJoin) sessionStorage.setItem('sb_release_rejoin', '1'); } catch {} },
+});
 
 let fsDone = false;
 document.addEventListener('pointerdown', () => {
@@ -46,7 +54,7 @@ function renderSelect() {
     const b = document.createElement('button');
     b.className = 'char' + (id === st.character ? ' on' : '');
     b.disabled = !!(st.team && taken(st.team, id));
-    if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src='/'+c.sprite;img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
+    if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src=assetUrl(c.sprite);img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
     const s = document.createElement('small'); s.textContent = `PV ${c.hp ?? '?'} · ${c.attack?.label || ''}`; b.appendChild(s);
     b.onclick = () => { st.character = id; renderSelect(); };
@@ -88,7 +96,7 @@ function setupPad() {
   const ch = st.characters[st.character] || {};
   document.querySelectorAll('.btn').forEach((b) => {
     const k = b.dataset.k;
-    const icon=b.querySelector('img');icon.hidden=!ch[k]?.icon;if(ch[k]?.icon)icon.src='/'+ch[k].icon;
+    const icon=b.querySelector('img');icon.hidden=!ch[k]?.icon;if(ch[k]?.icon)icon.src=assetUrl(ch[k].icon);
     b.title=k==='super'&&ch[k]?.charge?'Se charge en infligeant et en recevant des dégâts':ch[k]?.label||k;
     b.querySelector('span').textContent = { attack: 'Attaque', defense: 'Défense', super: 'Super' }[k];
   });
@@ -101,8 +109,8 @@ function setupPad() {
   $('#meTeam').textContent = st.team === 'A' ? 'ÉQUIPE BLEUE' : 'ÉQUIPE ROUGE';
   $('#meInit').textContent = (ch.name || st.character || '?')[0].toUpperCase();
   $('#heroName').textContent = ch.name || st.character || '--'; $('#heroInit').textContent = $('#meInit').textContent;
-  const hi = $('#heroImg'); hi.hidden = !/\.png$/i.test(ch.sprite || ''); if (!hi.hidden) { hi.src = '/' + ch.sprite; hi.onerror = () => { hi.hidden = true; }; }
-  img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = '/' + ch.sprite; img.onerror = () => { img.hidden = true; }; }
+  const hi = $('#heroImg'); hi.hidden = !/\.png$/i.test(ch.sprite || ''); if (!hi.hidden) { hi.src = assetUrl(ch.sprite); hi.onerror = () => { hi.hidden = true; }; }
+  img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = assetUrl(ch.sprite); img.onerror = () => { img.hidden = true; }; }
   if (stick) return;
   try {
     stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', size: 130, restOpacity: 0.95,
@@ -206,6 +214,7 @@ socket.on(MSG.LOBBY, (d) => {
   try {
     const prev = st.phase;
     st.phase = d?.phase || 'lobby';
+    checkVersion();
     if(st.phase!=='playing'){clearInput();st.energy=0;st.alive=false;for(const k of Object.keys(cds))cds[k]=0;}
     st.teams = d?.teams || { A: [], B: [] };
     if (d?.characters) { st.characters = d.characters; preloadCombatArt(st.characters); }

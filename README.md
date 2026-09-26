@@ -68,7 +68,7 @@ Tout se déclare dans `shared/characters.json` (rechargé à chaud par le serveu
 - https://showerbrawl.doodsito.com/health renvoie `{"ok":true,"players":N,"sha":"<commit>"}` ;
 - ou en bas à gauche de l'écran hôte, en petit gris : `v <commit>`.
 
-Si le SHA affiché est celui de ton dernier push (`git rev-parse --short HEAD`), la prod est à jour.
+Le SHA de `/health` identifie le serveur. `/build-version.json` identifie le client : l’hôte et la manette vérifient cette version et se rechargent au lobby après une mise à jour. Les images utilisent cette même version dans leur URL pour éviter un ancien design en cache. Les onglets ouverts avant l’ajout de ce mécanisme doivent être actualisés une première fois.
 
 ## Arène Maison Blanche — prototype pixel art
 

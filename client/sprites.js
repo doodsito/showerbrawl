@@ -1,3 +1,4 @@
+import {assetUrl} from './version.js';
 // Crânes politiciens en pixel art générés au runtime (aucune image).
 const S = 16;
 const cache = {};
@@ -18,9 +19,9 @@ const isImage = (id) => typeof id === 'string' && /\.(png|webp|gif|jpe?g)$/i.tes
 
 // URL du PNG pour un perso: le champ sprite s'il est un chemin, sinon sprites/<id>.png par convention.
 export function spriteUrl(sprite, charId) {
-  if (isImage(sprite)) return sprite.startsWith('/') ? sprite : '/' + sprite;
+  if (isImage(sprite)) return assetUrl(sprite);
   const id = sprite || charId;
-  return id ? `/sprites/${id}.png` : null;
+  return id ? assetUrl(`sprites/${id}.png`) : null;
 }
 
 // Charge le PNG une fois (cache), log le resultat. Renvoie l'image prete ou null (crane en fallback).

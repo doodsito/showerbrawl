@@ -33,7 +33,9 @@ let SHA = process.env.GIT_SHA && process.env.GIT_SHA !== 'dev' ? process.env.GIT
 if (!SHA) { try { SHA = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { SHA = 'dev'; } }
 
 app.get('/health', (req, res) => res.json({ ok: true, players: io.engine.clientsCount, sha: SHA }));
-app.use(express.static(clientDist));
+app.use(express.static(clientDist, {setHeaders(res, path) {
+  if (path.endsWith('.html') || path.endsWith('/build-version.json')) res.setHeader('Cache-Control', 'no-store');
+}}));
 
 let qr = null;
 try { qr = await QRCode.toDataURL(PLAY_URL, { width: 512, margin: 1 }); } catch {}
