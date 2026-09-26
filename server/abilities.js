@@ -52,8 +52,9 @@ const BRICKS = {
       if (ctx.damage(o, a.damage ?? 20, p.id, p.x, p.y, a.knockback ?? 480)) fx(ctx, 'strike', o.x, o.y, { heavy: true }, .4);
     }
   },
-  // Zone au sol centree sur le lanceur (le suit par defaut). onEnemy/range ignores: rien a distance.
+  // Zone au sol centree sur le lanceur (le suit par defaut). Avec "target":"enemy": super cible a distance (targetedStrike).
   zone(ctx, p, a) {
+    if (a.target === 'enemy') return targetedStrike(ctx, p, a);
     const duration = a.duration || 2;
     ctx.zones.push({
       id: ctx.nextId(), owner: p.id, team: p.team, x: p.x, y: p.y, r: Math.min(a.radius || 120, 200),
@@ -81,6 +82,40 @@ const BRICKS = {
     p.shieldT = Math.max(p.shieldT, a.duration || 1.5);
   },
 };
+
+// Super cible a distance (modele Mic Drop d'Ilan): vise l'ennemi vivant le plus proche dans la portee,
+// pose une alerte au sol (cercle qui se remplit pendant delay) puis frappe la zone: degats + knockback.
+// Sans ennemi a portee: frappe devant le lanceur a mi-portee. Rien ne vole: on peut esquiver en sortant du cercle.
+// Champs: range, radius, delay, damage, knockback, hits (impacts successifs), spread (ecart entre impacts), gap (s entre impacts).
+function targetedStrike(ctx, p, a) {
+  const range = a.range || 400, e = nearestEnemy(ctx, p, range);
+  let x, y;
+  if (e) { face(p, e); x = e.x; y = e.y; } else { x = p.x + p.fx * range / 2; y = p.y + p.fy * range / 2; }
+  const n = Math.max(1, a.hits || 1), spread = a.spread ?? 70, gap = a.gap ?? 0.18, delay = a.delay ?? 0.7;
+  for (let i = 0; i < n; i++) {
+    const off = n === 1 ? 0 : (i - (n - 1) / 2) * spread; // impacts decales perpendiculairement a la visee
+    ctx.zones.push({
+      id: ctx.nextId(), kind: 'strike', owner: p.id, team: p.team,
+      x: x - p.fy * off, y: y + p.fx * off, ux: p.fx, uy: p.fy,
+      r: a.radius || 90, age: 0, delay: delay + i * gap, duration: delay + i * gap + 0.4,
+      damage: a.damage ?? 25, knockback: a.knockback ?? 450, hit: false,
+    });
+  }
+}
+
+export function updateStrike(ctx, z, dt) {
+  z.age += dt;
+  if (!z.hit && z.age >= z.delay) {
+    z.hit = true;
+    fx(ctx, 'shockwave', z.x, z.y, { r: z.r, team: z.team }, .5);
+    for (const o of ctx.players.values()) {
+      if (!o.alive || o.hp <= 0 || o.team === z.team || o.launch || Math.hypot(o.x - z.x, o.y - z.y) > z.r + o.r) continue;
+      // pousse depuis un point en amont de la visee: une cible au centre part quand meme en arriere
+      if (ctx.damage(o, z.damage, z.owner, z.x - (z.ux || 0) * 30, z.y - (z.uy || 0) * 30, z.knockback)) fx(ctx, 'strike', o.x, o.y, { heavy: true }, .4);
+    }
+  }
+  return z.age < z.duration;
+}
 
 // Pendant une charge: chaque ennemi touche prend les degats une fois et est pousse sur le cote de la trajectoire.
 export function dashHits(ctx, p) {
@@ -140,6 +175,7 @@ export function updateZones(ctx, dt) {
   ctx.zones = ctx.zones.filter((z) => {
     if(z.kind==='flamethrower'||z.kind==='cybertruck')return updateMuskZone(ctx,z,dt);
     if (z.kind === 'micDrop' || z.kind === 'decree') return updateMicDrop(ctx, z, dt);
+    if (z.kind === 'strike') return updateStrike(ctx, z, dt);
     z.ttl -= dt;
     if (z.follow) {
       const f = ctx.players.get(z.follow);
