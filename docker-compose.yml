@@ -1,0 +1,7 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Local only: nginx on the host is the single public entry point
+    ports:
+      - "127.0.0.1:3000:3000"
