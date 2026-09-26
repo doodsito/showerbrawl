@@ -77,9 +77,9 @@ body[data-alive="0"][data-phase=playing] #pad{background:repeating-linear-gradie
 .ring2{position:relative;z-index:1;width:56%;aspect-ratio:1;border-radius:50%;border:3px dashed #35527e;display:grid;place-items:center}
 .puck{width:78%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 40% 32%,#fff 0,#d7dee8 35%,#9aa7b8 80%);border:4px solid var(--line);box-shadow:0 5px 0 #5e6c82,0 7px 0 var(--line)}
 .stick>small{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:10px;color:#5e6c82;letter-spacing:.3em;pointer-events:none}
-.stick:has(.nipple) .ring{opacity:.25}
-.stick .nipple .back{background:radial-gradient(circle,#243756 0,#1b2942 70%)!important;opacity:.95!important;border:5px solid var(--line);box-shadow:0 0 0 3px #35527e,0 0 26px #60a5fa55,inset 0 0 0 4px #60a5fa33}
-.stick .nipple .front{background:radial-gradient(circle at 40% 32%,#fff 0,#d7dee8 40%,#9aa7b8)!important;opacity:1!important;border:4px solid var(--line);box-shadow:0 4px 0 #5e6c82,0 0 18px #60a5fa88}
+.stick:has(.joystick) .ring{opacity:.25}
+.stick .joystick .back{border:5px solid var(--line);box-sizing:border-box;box-shadow:0 0 0 3px #35527e,0 0 26px #60a5fa55,inset 0 0 0 4px #60a5fa33}
+.stick .joystick .front{opacity:1!important;border:4px solid var(--line);box-sizing:border-box;box-shadow:0 4px 0 #5e6c82,0 0 18px #60a5fa88}
 
 /* boutons: grappe triangulaire */
 .btns{position:absolute;z-index:1;right:calc(10px + var(--sr));bottom:calc(34px + var(--sb));width:48%;height:min(56%,440px);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;place-items:center}

@@ -103,7 +103,8 @@ function setupPad() {
   img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = '/' + ch.sprite; img.onerror = () => { img.hidden = true; }; }
   if (stick) return;
   try {
-    stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', color: 'white', size: 130 });
+    stick = nipplejs.create({ zone: $('#stick'), mode: 'dynamic', size: 130, restOpacity: 0.95,
+      color: { front: 'radial-gradient(circle at 40% 32%, #ffffff 0%, #d7dee8 40%, #9aa7b8 100%)', back: 'radial-gradient(circle, #243756 0%, #1b2942 70%)' } });
     // nipplejs v1: handler(evt) avec evt.data. v0.x: handler(evt, data). On gere les deux.
     stick.on('move', (evt, legacy) => {
       try {
