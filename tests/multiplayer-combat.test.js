@@ -189,11 +189,14 @@ test('super cible sans ennemi a portee: frappe devant le lanceur a mi-portee',t=
   const z=game.zones.find(z=>z.kind==='strike');assert.ok(z);assert.ok(Math.abs(z.x-(p.x+characters.harris.super.range/2))<1);
 });
 test('super cible: sans charge d\'energie, pas de super',t=>{
-  const {game,p}=duel(t,'sanders');p.energy=40;assert.equal(cast(game,p,'super'),false);
+  const {game,p}=duel(t,'schwarzenegger');p.energy=40;assert.equal(cast(game,p,'super'),false);
 });
-test('Aide Militaire: 3 impacts decales',t=>{
-  const {game,p}=duel(t,'zelensky');p.energy=100;cast(game,p,'super');
+test('super a impacts multiples (pouvoir de test): 3 impacts decales',t=>{
+  const {game,p}=duel(t,'harris');p.energy=100;
+  p.char={...p.char,super:{type:'zone',target:'enemy',range:600,radius:70,delay:.65,damage:13,knockback:200,hits:3,spread:70,gap:.2,cooldown:6,charge:100,label:'Test Barrage'}};
+  cast(game,p,'super');
   const zs=game.zones.filter(z=>z.kind==='strike');assert.equal(zs.length,3);assert.ok(new Set(zs.map(z=>Math.round(z.y))).size===3);
+  const q2=game.players.get('b');Object.assign(q2,{x:zs[0].x,y:zs[0].y});const hp=q2.hp;advance(game,1.2);assert.ok(q2.hp<hp,'les impacts touchent');
 });
 test('chaque super cible laisse le temps d\'esquiver au perso le plus lent (rayon + corps <= vitesse min x delai)', () => {
   const minSpeed=Math.min(...Object.values(characters).map(c=>c.speed));
@@ -226,3 +229,4 @@ test('VIEW: chaque joueur recoit le combat filtre autour de lui, compact (< 1 Ko
     assert.ok(sent.some(m=>m.room==='hosts'&&m.name==='state'),'STATE toujours aux hotes');
   }finally{game.dispose();}
 });
+
