@@ -35,6 +35,18 @@ Chaque push lance d'abord `npm test` + `npm run build` : si ça échoue, rien n'
 
 Le design de Leo prévoit des attaques de base à distance, alors que la règle du jeu les veut au corps à corps (seul le super peut viser à distance, voir ci-dessous).
 
+### Équité (validée)
+
+**Attaque de base, PV et vitesse sont identiques pour les 10 persos**, fixés dans `shared/config.js` (valeurs = médianes des persos au moment de l'alignement) :
+
+| Réglage | Valeur |
+|---|---|
+| `BASE_ATTACK` | dégâts 12, cooldown 0,51 s, portée 85, knockback 195, recovery 0,19 s |
+| `BASE_HP` | 105 |
+| `BASE_SPEED` | 195 |
+
+Le serveur applique `BASE_ATTACK` à l'attaque de tous les persos et ignore toute valeur individuelle. Chaque perso garde seulement l'**apparence** de son attaque (label, icône, visuel : le Jab de Trump reste un poing, les baguettes de Macron restent des baguettes). **Seules la défense et le super sont propres à chaque perso.** Des tests vérifient l'égalité pour chaque paire de persos (dégâts, cooldown, portée, recul, dégâts sur 5 s) et les PV/vitesse.
+
 ### Règle de combat (validée)
 
 - **Attaque de base et défense : corps à corps.** L'attaque ne touche qu'un ennemi au contact (portée plafonnée à 110), la défense est un bouclier ou une charge qui frappe et pousse sur sa trajectoire.
