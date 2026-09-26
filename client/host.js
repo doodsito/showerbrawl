@@ -84,16 +84,15 @@ function currentState() {
 }
 
 // Sons déclenchés par diff des snapshots
-let lastProj = new Set(), lastHp = new Map();
+// Pouvoirs: sounds/<perso>_<slot>.mp3 sur l'event cast, synthetise si le fichier manque.
+let lastHp = new Map();
+const charById = new Map();
+onCombatEvent((e) => { if (e.k === 'cast') SFX.cast(e.id, charById.get(e.id), e.slot); });
 function sounds(s) {
   try {
-    let shot = false;
-    const ids = new Set();
-    for (const p of s.projectiles || []) { ids.add(p.id); if (!lastProj.has(p.id)) shot = true; }
-    lastProj = ids;
-    if (shot) SFX.shoot();
     let hit = false, death = false;
     for (const p of s.players || []) {
+      if (p.character) charById.set(p.id, p.character);
       const prev = lastHp.get(p.id);
       if (prev) {
         if (prev.alive && p.alive === false) death = true;
@@ -223,7 +222,7 @@ function showEnd(d) {
     let n = 6; const tickEnd = () => { const c = $('endCount'); if (c) c.textContent = n > 0 ? `RETOUR AU LOBBY DANS ${n}S` : ''; n--; };
     clearInterval(endTimer); tickEnd(); endTimer = setInterval(tickEnd, 1000);
     $('end').style.display = 'flex';
-    SFX.win();
+    SFX.end(win[0] === 'draw');
   } catch (e) { console.warn('[host] ecran de fin', e); }
 }
 
@@ -235,7 +234,7 @@ const status = (t) => { try { $('url').dataset.status = t; $('start').title = t;
 socket.on('connect', () => { console.log('[host] socket connecte', socket.id, socket.io.engine.transport.name); status(''); try { socket.emit(MSG.HOST); } catch (e) {} });
 socket.on('connect_error', (e) => { console.warn('[host] serveur injoignable', e.message); status('serveur injoignable'); $('start').textContent = 'SERVEUR INJOIGNABLE'; });
 socket.on('disconnect', (r) => console.warn('[host] deconnecte', r));
-socket.on(MSG.LOBBY, (d) => { console.log('[host] LOBBY', d.phase, (d.teams?.A?.length || 0) + (d.teams?.B?.length || 0), 'joueurs'); if (socket.connected) $('start').textContent = 'START MATCH'; showLobby(d); });
+socket.on(MSG.LOBBY, (d) => { try { SFX.setCharacters(Object.keys(d.characters || {})); } catch (e) {} console.log('[host] LOBBY', d.phase, (d.teams?.A?.length || 0) + (d.teams?.B?.length || 0), 'joueurs'); if (socket.connected) $('start').textContent = 'START MATCH'; showLobby(d); });
 socket.on(MSG.STATE, (s) => {
   if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
@@ -267,10 +266,11 @@ document.addEventListener('click', window.__sbResetHandler);
 addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
 
 // Musique: demarre au premier geste (autoplay policy, Safari compris), bouton mute retenu.
-for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => Music.unlock(), { capture: true });
+for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => { Music.unlock(); try { SFX.init(); } catch (e) {} }, { capture: true });
 function paintMute() { try { const b = $('mute'); const m = Music.isMuted(); b.textContent = m ? '🔇' : '🔊'; b.title = m ? 'Activer la musique' : 'Couper la musique'; b.setAttribute('aria-pressed', String(m)); } catch (e) {} }
-try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); Music.unlock(); Music.toggleMute(); paintMute(); }); } catch (e) {}
+try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); Music.unlock(); Music.toggleMute(); SFX.setMuted(Music.isMuted()); paintMute(); }); } catch (e) {}
 paintMute();
+SFX.setMuted(Music.isMuted());
 
 // Compte a rebours au START: 3, 2, 1 pilotes par state.countdown (serveur), puis FIGHT! 1 s.
 let cdShown = '', fightUntil = 0, lastCd = 0;

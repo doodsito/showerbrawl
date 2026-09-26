@@ -1,16 +1,93 @@
-// Sons synthétisés en WebAudio, aucun fichier audio.
+// Sons d'action de l'ecran hote en WebAudio: synthetises + fichiers MP3 de client/public/sounds/.
+// Fichiers: <perso>_<slot>.mp3 (attack/defense/super) et fx_<nom>.mp3, precharges en AudioBuffer au premier geste.
+// Un fichier absent (404) est ignore: le son synthetise prend le relais.
+const SLOTS = ['attack', 'defense', 'super'];
+const FX = ['victory', 'defeat'];
+const VOICE_VOLUME = 0.8;   // au-dessus de la musique (0,16)
+const MAX_VOICES = 4;
 export const SFX = {
-  ctx: null, master: null,
+  ctx: null, master: null, out: null, voice: null, muted: false,
+  buffers: new Map(), wanted: new Set(FX.map((n) => `fx_${n}`)), loading: new Set(), playing: new Map(),
   init() {
     try {
-      if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+      if (this.ctx) { if (this.ctx.state !== 'running') this._resume(); this._preload(); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       this.ctx = new AC();
+      this.out = this.ctx.createGain();
+      this.out.gain.value = this.muted ? 0 : 1;
+      this.out.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.35;
-      this.master.connect(this.ctx.destination);
+      this.master.connect(this.out);
+      this.voice = this.ctx.createGain();
+      this.voice.gain.value = VOICE_VOLUME;
+      this.voice.connect(this.out);
+      this._resume();
+      this._preload();
     } catch (e) {}
+  },
+  // Safari: un son joue pendant le geste + resume explicite (meme deblocage que music.js).
+  _resume() {
+    try {
+      const s = this.ctx.createBufferSource(); s.buffer = this.ctx.createBuffer(1, 1, 22050); s.connect(this.ctx.destination); s.start(0);
+      const p = this.ctx.resume(); if (p && p.catch) p.catch(() => {});
+    } catch (e) {}
+  },
+  // Declare les persos connus (cles de characters.json): leurs 3 fichiers seront tentes au chargement.
+  setCharacters(keys) {
+    for (const k of keys || []) for (const slot of SLOTS) this.wanted.add(`${String(k).toLowerCase()}_${slot}`);
+    this._preload();
+  },
+  _preload() {
+    if (!this.ctx) return;
+    for (const name of this.wanted) {
+      if (this.loading.has(name)) continue;
+      this.loading.add(name);
+      fetch(`/sounds/${name}.mp3`)
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .then((ab) => ab && new Promise((ok, ko) => { const p = this.ctx.decodeAudioData(ab, ok, ko); if (p && p.then) p.then(ok, ko); }))
+        .then((buf) => { if (buf) this.buffers.set(name, buf); })
+        .catch(() => {});
+    }
+  },
+  has(name) { return this.buffers.has(name); },
+  setMuted(m) {
+    this.muted = !!m;
+    try {
+      if (!this.out) return;
+      const now = this.ctx.currentTime;
+      this.out.gain.cancelScheduledValues(now);
+      this.out.gain.setValueAtTime(this.out.gain.value, now);
+      this.out.gain.linearRampToValueAtTime(this.muted ? 0 : 1, now + 0.1);
+    } catch (e) {}
+  },
+  // Joue un fichier precharge. key: anti-spam (meme son du meme joueur pas avant la fin du precedent). false si indisponible.
+  play(name, key = name) {
+    try {
+      const buf = this.buffers.get(name);
+      if (!buf || !this.ctx) return false;
+      if (this.playing.has(key)) return true;
+      if (this.playing.size >= MAX_VOICES) return true;
+      const s = this.ctx.createBufferSource(); s.buffer = buf; s.connect(this.voice);
+      this.playing.set(key, s);
+      s.onended = () => { if (this.playing.get(key) === s) this.playing.delete(key); };
+      s.start();
+      console.log('[sfx] fichier joue', `${name}.mp3`);
+      return true;
+    } catch (e) { return false; }
+  },
+  // Pouvoir lance: fichier <perso>_<slot>.mp3 si present, sinon son synthetise.
+  cast(playerId, character, slot) {
+    const name = `${String(character || '').toLowerCase()}_${slot}`;
+    if (character && this.play(name, `${playerId}:${name}`)) return;
+    console.log('[sfx] synth', name);
+    this.shoot();
+  },
+  // Fin de manche: victoire si une equipe gagne, defaite sur egalite.
+  end(draw) {
+    const name = draw ? 'fx_defeat' : 'fx_victory';
+    if (!this.play(name)) this.win();
   },
   _tone(type, f0, f1, dur, vol = 1, delay = 0) {
     try {

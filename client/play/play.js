@@ -88,7 +88,7 @@ function setupPad() {
     const k = b.dataset.k;
     const icon=b.querySelector('img');icon.hidden=!ch[k]?.icon;if(ch[k]?.icon)icon.src='/'+ch[k].icon;
     b.title=k==='super'&&ch[k]?.charge?'Se charge en infligeant et en recevant des dégâts':ch[k]?.label||k;
-    b.querySelector('span').textContent = ch[k]?.label || { attack: 'Attaque', defense: 'Défense', super: 'Super' }[k];
+    b.querySelector('span').textContent = { attack: 'Attaque', defense: 'Défense', super: 'Super' }[k];
   });
   $('#kit-hint').textContent=ch.super?.charge?'Le super se charge en combat · Esquive : joystick + bouton':'Maintiens une direction et utilise tes capacités';
   if(ch.hint)$('#kit-hint').textContent=ch.hint; // texte d'aide propre au perso (champ hint de characters.json)
