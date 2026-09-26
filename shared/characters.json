@@ -49,7 +49,7 @@
     "super":  {"type": "zone", "radius": 160, "damage": 40, "duration": 1.2, "knockback": 200, "cooldown": 16, "label": "I'll Be Back"}
   },
   "macron": {
-    "name": "Macron", "hp": 95, "speed": 205, "sprite": "macron",
+    "name": "Macron", "hp": 95, "speed": 205, "sprite": "sprites/macron.png",
     "attack": {"type": "projectile", "damage": 12, "cooldown": 0.33, "range": 400, "label": "En Meme Temps"},
     "defense": {"type": "dash", "distance": 190, "cooldown": 4.5, "label": "Traverser la Rue"},
     "super":  {"type": "burst", "count": 9, "damage": 10, "cooldown": 14, "label": "49.3"}
