@@ -2,7 +2,7 @@
 import { CONFIG } from '../shared/config.js';
 import { MSG } from '../shared/protocol.js';
 import { makePhysics } from './physics.js';
-import { cast, updateProjectiles, updateZones } from './abilities.js';
+import { cast, updateProjectiles, updateZones, dashHits } from './abilities.js';
 import { isLabFighter, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
 
 const SLOTS = ['attack', 'defense', 'super'];
@@ -182,9 +182,12 @@ export class Game {
       const forced = advanceForcedMovement(this, p, dt);
       if (!forced && p.alive) {
         if (p.dashT > 0) {
-          const step = Math.min(dt, p.dashT); p.dashT = Math.max(0, p.dashT - step);
+          const step = Math.min(dt, p.dashT);
+          dashHits(this, p); // la charge frappe et pousse ceux qu'elle touche
           this.physics.moveWithWalls(p, p.dashVx * step, p.dashVy * step, p.r, (x, y) =>
             [...this.players.values()].some(o => o !== p && o.alive && !o.launch && Math.hypot(o.x - x, o.y - y) < o.r + p.r));
+          dashHits(this, p);
+          p.dashT = Math.max(0, p.dashT - step);
         } else if (p.stunT <= 0) {
           let speed = p.char.speed;
           if (isLabFighter(p)) {

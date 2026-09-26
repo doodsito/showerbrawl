@@ -2,7 +2,6 @@ import { charge, isLabFighter, castLab, firstWall, hitWall, shove, updateMicDrop
 // 5 briques generiques, parametrees par le JSON du pouvoir. Aucune classe en dur.
 // ctx = { players: Map, projectiles: [], zones: [], physics, damage(target, amount, src, fromX, fromY, kb), nextId() }
 
-const P_SPEED = 380, P_RADIUS = 9;
 
 export function nearestEnemy(ctx, p, maxRange = Infinity) {
   let best = null, bd = maxRange;
@@ -14,72 +13,85 @@ export function nearestEnemy(ctx, p, maxRange = Infinity) {
   return best;
 }
 
-function aim(ctx, p, range) {
-  const e = nearestEnemy(ctx, p, range * 1.5);
-  if (e) {
-    const d = Math.hypot(e.x - p.x, e.y - p.y) || 1;
-    return [(e.x - p.x) / d, (e.y - p.y) / d];
-  }
-  return [p.fx, p.fy];
-}
+// Combat 100% corps a corps: rien ne vole a travers l'arene.
+// Les 5 types de protocol.js sont conserves mais interpretes en melee:
+//   projectile -> coup au contact (ennemi le plus proche a portee de bras)
+//   burst      -> onde de choc au sol centree sur le lanceur (tous les ennemis proches)
+//   zone       -> zone au sol centree sur le lanceur (degats continus)
+//   dash       -> charge qui traverse et pousse les ennemis sur la trajectoire
+//   shield     -> bloque les degats un court temps
+const MELEE_MAX = 110; // plafond de portee d'un coup, meme si le JSON indique plus
 
-function spawnProjectile(ctx, p, a, ux, uy) {
-  const speed = a.speed || P_SPEED;
-  const r = a.radius || P_RADIUS;
-  ctx.projectiles.push({
-    id: ctx.nextId(), owner: p.id, team: p.team,
-    x: p.x + ux * (p.r + r), y: p.y + uy * (p.r + r),
-    vx: ux * speed, vy: uy * speed, r,
-    damage: a.damage ?? 10, knockback: a.knockback ?? 150,
-    ttl: (a.range || 400) / speed, visual: a.visual, pushDistance: a.pushDistance, chargeHit:a.chargeHit, wallDamage:a.wallDamage,
-  });
+function fx(ctx, kind, x, y, extra = {}, duration = .45) {
+  ctx.effects?.push({ id: ctx.nextId(), kind, x, y, age: 0, duration, ...extra });
 }
+function face(p, o) {
+  const d = Math.hypot(o.x - p.x, o.y - p.y) || 1;
+  p.fx = (o.x - p.x) / d; p.fy = (o.y - p.y) / d;
+}
+const hitable = (p, o) => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch;
 
 const BRICKS = {
+  // Coup: touche seulement un ennemi vivant au contact (portee = bras + rayons). Auto-aim sur le plus proche.
   projectile(ctx, p, a) {
-    const [ux, uy] = aim(ctx, p, a.range || 400);
-    p.fx = ux; p.fy = uy;
-    const count=a.count||1,angle=Math.atan2(uy,ux);
-    for(let i=0;i<count;i++){
-      const direction=angle+(i-(count-1)/2)*(a.spread||0);
-      spawnProjectile(ctx,p,a,Math.cos(direction),Math.sin(direction));
-    }
+    const reach = Math.min(a.range || 70, MELEE_MAX);
+    const e = nearestEnemy(ctx, p, reach + p.r * 2);
+    if (!e) { fx(ctx, 'whiff', p.x + p.fx * reach * .6, p.y + p.fy * reach * .6, { ux: p.fx, uy: p.fy }, .25); return; }
+    face(p, e);
+    const hx = (p.x + e.x) / 2, hy = (p.y + e.y) / 2;
+    if (ctx.damage(e, a.damage ?? 10, p.id, p.x, p.y, a.knockback ?? 260)) fx(ctx, 'strike', hx, hy, { ux: p.fx, uy: p.fy, heavy: (a.damage ?? 10) >= 15 });
+    else fx(ctx, 'whiff', hx, hy, { ux: p.fx, uy: p.fy }, .25);
   },
+  // Onde de choc au sol centree sur le lanceur: ne vole pas, gros recul radial.
   burst(ctx, p, a) {
-    const n = a.count || 8;
-    const off = Math.atan2(p.fy, p.fx);
-    for (let i = 0; i < n; i++) {
-      const ang = off + (i / n) * Math.PI * 2;
-      spawnProjectile(ctx, p, { range: 320, speed: 320, ...a }, Math.cos(ang), Math.sin(ang));
+    const r = Math.min(a.radius || a.range || 130, 220);
+    fx(ctx, 'shockwave', p.x, p.y, { r, team: p.team }, .55);
+    for (const o of ctx.players.values()) {
+      if (!hitable(p, o) || Math.hypot(o.x - p.x, o.y - p.y) > r + o.r) continue;
+      if (ctx.damage(o, a.damage ?? 20, p.id, p.x, p.y, a.knockback ?? 480)) fx(ctx, 'strike', o.x, o.y, { heavy: true }, .4);
     }
   },
+  // Zone au sol centree sur le lanceur (le suit par defaut). onEnemy/range ignores: rien a distance.
   zone(ctx, p, a) {
     const duration = a.duration || 2;
-    const e = a.onEnemy ? nearestEnemy(ctx, p, a.range || 400) : null;
     ctx.zones.push({
-      id: ctx.nextId(), owner: p.id, team: p.team,
-      x: e ? e.x : p.x, y: e ? e.y : p.y, r: a.radius || 120,
+      id: ctx.nextId(), owner: p.id, team: p.team, x: p.x, y: p.y, r: Math.min(a.radius || 120, 200),
       dps: (a.damage ?? 20) / duration, ttl: duration, knockback: a.knockback ?? 60,
-      follow: !e && a.follow !== false ? p.id : null,
+      follow: a.follow !== false ? p.id : null,
     });
   },
+  // Charge: fonce (joystick, sinon vers l'ennemi le plus proche), traverse et pousse ceux touches.
   dash(ctx, p, a) {
-    const t = a.duration || 0.15;
+    const t = a.duration || 0.18;
     let ux = p.dx, uy = p.dy;
     if (!ux && !uy) {
-      const enemy = a.away && nearestEnemy(ctx, p);
-      ux = enemy ? p.x - enemy.x : (a.away ? -p.fx : p.fx);
-      uy = enemy ? p.y - enemy.y : (a.away ? -p.fy : p.fy);
+      const enemy = nearestEnemy(ctx, p, 400);
+      if (a.away) { ux = enemy ? p.x - enemy.x : -p.fx; uy = enemy ? p.y - enemy.y : -p.fy; }
+      else { ux = enemy ? enemy.x - p.x : p.fx; uy = enemy ? enemy.y - p.y : p.fy; }
     }
     const d = Math.hypot(ux, uy) || 1;
     const v = (a.distance || 180) / t;
     p.dashVx = (ux / d) * v; p.dashVy = (uy / d) * v; p.dashT = t;
+    p.fx = ux / d; p.fy = uy / d;
+    p.dashHit = { damage: a.damage ?? 8, knockback: a.knockback ?? 320, done: new Set() };
     if (a.invulnerable !== false) p.invulnT = Math.max(p.invulnT, t);
   },
   shield(ctx, p, a) {
     p.shieldT = Math.max(p.shieldT, a.duration || 1.5);
   },
 };
+
+// Pendant une charge: chaque ennemi touche prend les degats une fois et est pousse sur le cote de la trajectoire.
+export function dashHits(ctx, p) {
+  const h = p.dashHit;
+  if (!h || !(p.dashT > 0)) { p.dashHit = null; return; }
+  for (const o of ctx.players.values()) {
+    if (!hitable(p, o) || h.done.has(o.id) || Math.hypot(o.x - p.x, o.y - p.y) > p.r + o.r + 6) continue;
+    h.done.add(o.id);
+    // pousse depuis un point derriere le lanceur: l'ennemi part devant et sur le cote
+    if (ctx.damage(o, h.damage, p.id, p.x - p.fx * 20, p.y - p.fy * 20, h.knockback)) fx(ctx, 'strike', o.x, o.y, { ux: p.fx, uy: p.fy, heavy: true });
+  }
+}
 
 export function cast(ctx, p, slot) {
   const a = p.char[slot];
