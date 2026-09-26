@@ -165,7 +165,7 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
   }
   function decree(drop,foreground=false){
     const quiet=motionOptions.reducedMotion,falling=drop.age<drop.delay;
-    const t=Math.min(1,drop.age/drop.delay),age=Math.max(0,drop.age-drop.delay),fade=falling?1:Math.max(0,1-age/1.1),x=drop.x,y=drop.y;
+    const t=Math.min(1,drop.age/drop.delay),age=Math.max(0,drop.age-drop.delay),fade=falling?1:Math.max(0,1-age/Math.max(.01,drop.duration-drop.delay)),x=drop.x,y=drop.y;
     const objectArt=getImage('sprites/stamp_object_v1.png');
     g.save();g.globalAlpha=fade;
     if(!foreground){
@@ -305,10 +305,22 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       g.restore();
     },
     effect(e,front=false){const [x,y]=project(e.x,e.y);
-      if(e.kind==='strike'&&e.visual==='energy'){if(front){
+      if((e.kind==='strike'||e.kind==='whiff')&&e.visual==='baguette'){
+        if(front){
+          const t=Math.min(1,e.age/e.duration),hit=e.kind==='strike',ux=e.ux??1,uy=e.uy??0;
+          g.save();g.globalAlpha=(1-t)*(hit?1:.65);
+          for(let i=-1;i<=1;i++){
+            const a=Math.atan2(uy*ky,ux*kx)+i*.24,swing=reducedMotion?0:Math.sin(t*Math.PI)*9;
+            baguette({x:x+Math.cos(a)*swing,y:y+i*5,dx:Math.cos(a),dy:Math.sin(a)});
+          }
+          if(hit)for(let i=0;i<9;i++){const a=i*2.399,d=9+t*35;rect(x+Math.cos(a)*d,y-32+Math.sin(a)*d*.55,3,3,i%2?'#f4d58c':'#bd8444');}
+          g.restore();
+        }return;
+      }
+      if((e.kind==='strike'||e.kind==='whiff')&&e.visual==='energy'){if(front){
         const art=getImage('sprites/obama_attack.png');
         if(art&&e.age<.2){g.save();g.globalAlpha=1-e.age/.2;g.translate(x,y-32);g.rotate(Math.atan2((e.uy||0)*ky,(e.ux??1)*kx));g.drawImage(art,-45,-18,54,36);g.restore();}
-        energyBurst({...e,x,y:y-32,dx:(e.ux??1)*kx,dy:(e.uy||0)*ky,hit:true});
+        energyBurst({...e,x,y:y-32,dx:(e.ux??1)*kx,dy:(e.uy||0)*ky,hit:e.kind==='strike'});
       }return;}
       if(e.kind==='impact'){impact({...e,x,y},front);return;}
       if(e.kind==='shockwave'){shockwave({...e,x,y},front);return;}
