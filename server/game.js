@@ -93,6 +93,16 @@ export class Game {
     this.sendLobby();
   }
 
+  // Arret immediat: retour lobby, joueurs gardes, score remis a zero.
+  reset() {
+    this.phase = 'lobby';
+    this.timeLeft = CONFIG.MATCH_DURATION;
+    this.score = { A: 0, B: 0 };
+    this.projectiles = []; this.zones = [];
+    for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
+    this.sendLobby();
+  }
+
   damage(t, amount, srcId, fromX, fromY, kb = 0) {
     if (!t.alive || this.phase !== 'playing') return;
     if (t.protectT > 0 || t.invulnT > 0) return;

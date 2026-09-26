@@ -56,6 +56,12 @@ io.on('connection', (socket) => {
     if (typeof ack === 'function') ack({ ok: game.phase === 'playing', phase: game.phase, players: game.players.size });
   });
 
+  socket.on(MSG.RESET, (ack) => {
+    try { game.reset(); } catch (e) { console.warn('[reset] erreur', e.message); }
+    console.log(`[reset] recu de ${socket.id}, phase=${game.phase}, joueurs=${game.players.size}`);
+    if (typeof ack === 'function') ack({ ok: game.phase === 'lobby' });
+  });
+
   socket.on('disconnect', () => {
     game.leave(socket.id);
     io.emit(MSG.COUNT, io.engine.clientsCount);

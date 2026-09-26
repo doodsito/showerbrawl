@@ -8,6 +8,7 @@ export const MSG = {
   // Hôte (écran) -> serveur
   HOST: 'host', // aucun payload, déclare ce socket comme écran hôte
   START: 'start', // aucun payload, lance la manche depuis le lobby
+  RESET: 'reset', // aucun payload, arrete la manche en cours et revient au lobby (joueurs gardes)
   // Serveur -> tous
   LOBBY: 'lobby', // { teams: { A: [{id,name,character}], B: [...] } }
   STATE: 'state', // { t, players[], projectiles[], zones[], score, timeLeft } a 20/s
