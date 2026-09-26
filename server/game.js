@@ -1,3 +1,4 @@
+import { updateMuskBurns } from './musk-combat.js';
 // Boucle autoritaire: une salle publique, 2 equipes, manche au timer.
 import { CONFIG } from '../shared/config.js';
 import { MSG } from '../shared/protocol.js';
@@ -88,7 +89,7 @@ export class Game {
       p.x = s[0]; p.y = s[1];
     }
     Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
-      energy: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
+      muskBurn:null, carriedBy:null, energy: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
       input: {dx: 0, dy: 0}, pending: {}, shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
       fx: p.team === 'A' ? 1 : -1, fy: 0, cd: { attack: 0, defense: 0, super: 0 } });
   }
@@ -210,8 +211,9 @@ export class Game {
 
     const alive = [...this.players.values()].filter((p) => p.alive);
     for (let i = 0; i < alive.length; i++)
-      for (let j = i + 1; j < alive.length; j++) if (!alive[i].launch && !alive[j].launch) this.physics.separate(alive[i], alive[j], CONFIG.PLAYER_RADIUS);
+      for (let j = i + 1; j < alive.length; j++) if (!alive[i].launch && !alive[j].launch && !alive[i].carriedBy && !alive[j].carriedBy) this.physics.separate(alive[i], alive[j], CONFIG.PLAYER_RADIUS);
 
+    updateMuskBurns(this, dt);
     updateProjectiles(this, dt);
     updateZones(this, dt);
 
@@ -251,12 +253,12 @@ export class Game {
         dash: p.dashT > 0 ? {x:p.dashVx,y:p.dashVy,remaining:p.dashT} : null,
         shove: p.shove ? {ux:p.shove.ux,uy:p.shove.uy,progress:1-p.shove.remaining/p.shove.duration} : null,
         launch: p.launch ? {ux:p.launch.ux,uy:p.launch.uy,progress:p.launch.age/p.launch.duration} : null,
-        recoil: p.recoilT,
+        recoil: p.recoilT, burning:!!p.muskBurn, carried:!!p.carriedBy,
 
         cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
       })),
       projectiles: this.projectiles.map((p) => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, team: p.team, visual:p.visual, vx:p.vx, vy:p.vy })),
-      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit })),
+      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit, ux:z.ux, uy:z.uy, reach:z.reach, owner:z.owner })),
       events: this.events.splice(0),
       walls: this.walls.map(w => ({...w})), effects: this.effects.map(e => ({...e})),
       score: this.score,

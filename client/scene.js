@@ -1,3 +1,4 @@
+import { muskFX } from './musk-fx.js';
 import { getSprite, getImage } from './sprites.js';
 import { combatFX } from './combat-fx.js';
 import { spriteLayout } from './sprite-layout.js';
@@ -84,9 +85,9 @@ export function render(ctx, W, H, arena, state, characters) {
   // Fonctions d'effets creees une fois par (contexte, arene, reduced-motion) au lieu de chaque frame.
   if(!fxCache||fxCache.ctx!==ctx||fxCache.b!==b||fxCache.rm!==reducedMotion.matches){
     const pr=(x,y)=>worldToScreen(x,y,b);
-    fxCache={ctx,b,rm:reducedMotion.matches,project:pr,fx:combatFX(ctx,pr,kx,ky,reducedMotion.matches)};
+    fxCache={ctx,b,rm:reducedMotion.matches,project:pr,fx:combatFX(ctx,pr,kx,ky,reducedMotion.matches),musk:muskFX(ctx,pr,kx,ky,reducedMotion.matches)};
   }
-  const project=fxCache.project, fx=fxCache.fx;
+  const project=fxCache.project, fx=fxCache.fx, musk=fxCache.musk;
   const impact=(state?.effects||[]).find(e=>e.kind==='impact'&&e.age<.38);
   const drop=(state?.zones||[]).find(z=>(z.kind==='micDrop'||z.kind==='decree')&&z.age>=z.delay&&z.age-z.delay<.38);
   if(!reducedMotion.matches&&(impact||drop)){
@@ -100,8 +101,9 @@ export function render(ctx, W, H, arena, state, characters) {
     const now=performance.now();
     seen.clear(); for (const p of state.players) seen.add(p.id);
     for (const id of poses.keys()) if(!seen.has(id))poses.delete(id);
-    for(const e of state.effects||[])fx.effect(e);
+    for(const e of state.effects||[])if(e.kind!=='truckWreck')fx.effect(e);
     for (const z of state.zones || []) {
+      if(z.kind==='flamethrower'||z.kind==='cybertruck')continue;
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
       if(z.kind==='decree'){fx.decree(z);continue;}
       const [x, y] = worldToScreen(z.x, z.y, b);
@@ -118,11 +120,15 @@ export function render(ctx, W, H, arena, state, characters) {
     }
     items.length = 0; nItems = 0;
     for(const w of state.walls||[]){const s=project(w.x,w.y+Math.abs(w.ux)*w.depth/2);addItem('wall',w,s[0],s[1]);}
-    // Combat corps a corps: plus aucun projectile volant a dessiner.
+    // Other fighters keep their melee renderer; only Musk's physical debris flies.
+    for(const p of state.projectiles||[])if(p.visual==='muskSteel'||p.visual==='muskDoge'){const s=project(p.x,p.y);addItem('muskProjectile',p,s[0],s[1]);}
+    for(const z of state.zones||[])if(z.kind==='cybertruck'){const s=project(z.x,z.y);addItem('truck',z,s[0],s[1]+1);}
     for (const p of state.players || []) { const s = worldToScreen(p.x, p.y, b); addItem('j', p, s[0], s[1]); }
     items.sort(byDepth);
     for (const it of items) {
       const x = it.x, y = it.y;
+      if(it.k==='muskProjectile'){musk.projectile(it.o);continue;}
+      if(it.k==='truck'){musk.truck(it.o);continue;}
       if(it.k==='wall'){fx.wall(it.o);continue;}
       if (it.k === 'p') {
         if(fx.projectile(it.o))continue;
@@ -134,9 +140,10 @@ export function render(ctx, W, H, arena, state, characters) {
   }
   if(state)for(const z of state.zones||[])if(z.kind==='micDrop')fx.micDrop(z,true);
   if(state)for(const z of state.zones||[])if(z.kind==='decree')fx.decree(z,true);
+  if(state)for(const z of state.zones||[])if(z.kind==='flamethrower')musk.flame(z);
   if(state)drawFx(ctx,state,b);
   decor.foreground(ctx);
-  if(state)for(const e of state.effects||[])fx.effect(e,true);
+  if(state)for(const e of state.effects||[])if(e.kind==='truckWreck')musk.wreck(e);else fx.effect(e,true);
   ctx.restore();
   // HUD
   if (state) {
@@ -225,7 +232,7 @@ function drawPlayer(ctx, p, characters, time) {
   let sx=1, sy=quiet?1:1+Math.sin(time*3)*.007*(1-pose.walk),offset=quiet?0:face*attack*8;
   if(!quiet&&p.launch){lift+=Math.sin(p.launch.progress*Math.PI)*35;angle=-p.launch.ux*.38;}
   if(!quiet&&p.shove){lift+=Math.sin(p.shove.progress*Math.PI)*8;angle=-p.shove.ux*.27;}
-  if(!quiet&&p.dash){lift+=Math.sin(Math.min(1,1-p.dash.remaining/.28)*Math.PI)*14;angle=Math.sign(p.dash.x)*.22;}
+  if(!quiet&&p.dash){lift+=Math.sin(Math.min(1,1-p.dash.remaining/(p.character==='musk'?.18:.28))*Math.PI)*14;angle=Math.sign(p.dash.x)*.22;}
   if(!quiet&&p.recoil>0){const t=1-p.recoil/.42,bounce=Math.sin(t*Math.PI);offset-=face*bounce*14;lift+=bounce*9;sx=1-Math.max(0,1-t/.22)*.3;sy=1+Math.max(0,1-t/.22)*.13;}
   const top=p.y-(img?h:30)-lift;
   ctx.save();ctx.globalAlpha=p.alive===false?.3:1;
@@ -251,6 +258,13 @@ function drawPlayer(ctx, p, characters, time) {
     }
     ctx.restore();
   }else{const spr=getSprite(p.character);if(spr)ctx.drawImage(spr,p.x-R,p.y-R*2,R*2,R*2);}
+  if(p.burning&&p.alive)for(let i=0;i<7;i++){
+    const t=quiet?i/7:(time*2+i/7)%1;ctx.fillStyle=t>.5?'#ffdc65':'#f98429';ctx.fillRect(p.x-15+i*5,p.y-8-t*40,3,4);
+  }
+  if(p.character==='musk'&&p.dash){
+    ctx.save();ctx.strokeStyle='#a7e5ff';ctx.globalAlpha=.5;ctx.lineWidth=2;
+    for(let i=1;i<=3;i++){ctx.beginPath();ctx.ellipse(p.x-Math.sign(p.dash.x)*i*13,p.y-35,8,30,0,0,Math.PI*2);ctx.stroke();}ctx.restore();
+  }
   const hp=Math.max(0,Math.min(1,p.hp/p.maxHp));
   ctx.fillStyle='#000a';ctx.fillRect(p.x-20,top-9,40,4);ctx.fillStyle=hp>.5?'#22c55e':hp>.25?'#facc15':'#ef4444';ctx.fillRect(p.x-20,top-9,40*hp,4);
   if(characters?.[p.character]?.super?.charge){ctx.fillStyle='#26314c';ctx.fillRect(p.x-20,top-3,40,2);ctx.fillStyle='#edcb80';ctx.fillRect(p.x-20,top-3,40*(p.energy||0)/100,2);}

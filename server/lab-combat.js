@@ -103,6 +103,7 @@ export function updateLab(ctx, dt) {
   }
 }
 export function advanceForcedMovement(ctx, p, dt) {
+  if(p.carriedBy)return true;
   const flight = p.launch;
   if (flight) {
     flight.age = Math.min(flight.duration, flight.age + dt);
