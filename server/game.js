@@ -19,6 +19,7 @@ export class Game {
     this.players = new Map();
     this.projectiles = [];
     this.zones = [];
+    this.events = [];
     this.score = { A: 0, B: 0 };
     this.phase = 'lobby';
     this.timeLeft = CONFIG.MATCH_DURATION;
@@ -96,7 +97,7 @@ export class Game {
     this.phase = 'playing';
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
-    this.projectiles = []; this.zones = []; this.walls = []; this.effects = [];
+    this.projectiles = []; this.zones = []; this.walls = []; this.effects = []; this.events = [];
     for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
     this.sendLobby();
   }
@@ -106,7 +107,7 @@ export class Game {
     this.phase = 'lobby';
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
-    this.projectiles = []; this.zones = []; this.walls = []; this.effects = [];
+    this.projectiles = []; this.zones = []; this.walls = []; this.effects = []; this.events = [];
     for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
     this.sendLobby();
   }
@@ -114,9 +115,17 @@ export class Game {
   damage(t, amount, srcId, fromX, fromY, kb = 0, deferKO = false) {
     if (!t.alive || t.hp <= 0 || t.launch || this.phase !== 'playing') return false;
     if (t.protectT > 0 || t.invulnT > 0) return false;
-    if (t.shieldT > 0) { this.physics.push(t, fromX, fromY, kb * 0.3); return false; }
+    if (t.shieldT > 0) {
+      this.physics.push(t, fromX, fromY, kb * .3);
+      if(!t._blkT || Date.now()-t._blkT>250){t._blkT=Date.now();this.events.push({k:'block',id:t.id,x:Math.round(t.x),y:Math.round(t.y),lab:isLabFighter(t)});}
+      return false;
+    }
     t.hp = Math.max(0, t.hp - amount); t.flashT = .18;
     charge(this.players.get(srcId), amount * 2.2); charge(t, amount);
+    if (amount >= 1 || !t._hitEvT || Date.now() - t._hitEvT > 250) {
+      t._hitEvT = Date.now();
+      this.events.push({ k:'hit', id:t.id, x:Math.round(t.x), y:Math.round(t.y), amount:Math.round(amount*10)/10, team:t.team, lab:isLabFighter(t)||isLabFighter(this.players.get(srcId)||{}) });
+    }
     t.lastHit = srcId; t.lastHitT = 3;
     if (kb) this.physics.push(t, fromX, fromY, kb);
     if (t.hp <= 0 && !deferKO) this.kill(t, srcId);
@@ -218,7 +227,7 @@ export class Game {
       players: [...this.players.values()].map((p) => ({
         id: p.id, name: p.name, team: p.team, character: p.character,
         x: r(p.x), y: r(p.y), hp: Math.ceil(p.hp), maxHp: p.maxHp, alive: p.alive,
-        shield: p.shieldT > 0 || p.invulnT > 0, protected: p.protectT > 0,
+        shield: p.shieldT > 0, dashing: p.dashT > 0, protected: p.protectT > 0,
         fx: r(p.fx), fy: r(p.fy), respawnIn: p.alive ? 0 : Math.max(0, Math.ceil(p.respawnT)),
         kills: p.kills, deaths: p.deaths,
         energy: r(p.energy), pose: r(p.poseT), action: p.action, flash: p.flashT > 0,
@@ -231,7 +240,8 @@ export class Game {
         cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
       })),
       projectiles: this.projectiles.map((p) => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, team: p.team, visual:p.visual, vx:p.vx, vy:p.vy })),
-      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit })),
+      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit })),
+      events: this.events.splice(0),
       walls: this.walls.map(w => ({...w})), effects: this.effects.map(e => ({...e})),
       score: this.score,
       timeLeft: Math.max(0, Math.ceil(this.timeLeft)),

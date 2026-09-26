@@ -2,7 +2,7 @@ import { isLabFighter, castLab, firstWall, hitWall, shove, updateMicDrop } from 
 // 5 briques generiques, parametrees par le JSON du pouvoir. Aucune classe en dur.
 // ctx = { players: Map, projectiles: [], zones: [], physics, damage(target, amount, src, fromX, fromY, kb), nextId() }
 
-const P_SPEED = 600, P_RADIUS = 8;
+const P_SPEED = 380, P_RADIUS = 9;
 
 export function nearestEnemy(ctx, p, maxRange = Infinity) {
   let best = null, bd = maxRange;
@@ -30,7 +30,7 @@ function spawnProjectile(ctx, p, a, ux, uy) {
     id: ctx.nextId(), owner: p.id, team: p.team,
     x: p.x + ux * (p.r + r), y: p.y + uy * (p.r + r),
     vx: ux * speed, vy: uy * speed, r,
-    damage: a.damage ?? 10, knockback: a.knockback ?? 250,
+    damage: a.damage ?? 10, knockback: a.knockback ?? 150,
     ttl: (a.range || 400) / speed, visual: a.visual, pushDistance: a.pushDistance,
   });
 }
@@ -46,7 +46,7 @@ const BRICKS = {
     const off = Math.atan2(p.fy, p.fx);
     for (let i = 0; i < n; i++) {
       const ang = off + (i / n) * Math.PI * 2;
-      spawnProjectile(ctx, p, { range: 300, speed: 500, ...a }, Math.cos(ang), Math.sin(ang));
+      spawnProjectile(ctx, p, { range: 320, speed: 320, ...a }, Math.cos(ang), Math.sin(ang));
     }
   },
   zone(ctx, p, a) {
@@ -88,6 +88,8 @@ export function cast(ctx, p, slot) {
   p.poseT = slot === 'super' ? .4 : slot === 'attack' ? .2 : 0;
   p.action = slot;
   if (slot !== 'defense') p.protectT = 0;
+  console.log(`[cast] ${p.name} ${slot} ${a.type} "${a.label || ''}"`);
+  ctx.events?.push({ k: 'cast', id: p.id, slot, type: a.type, label: a.label || a.type, team: p.team, x: Math.round(p.x), y: Math.round(p.y), lab:isLabFighter(p) });
   return true;
 }
 

@@ -5,7 +5,7 @@ import { Server } from 'socket.io';
 import { networkInterfaces } from 'node:os';
 import QRCode from 'qrcode';
 import { MSG } from '../shared/protocol.js';
-import { characters, arena } from './loader.js';
+import { characters, arena, watchCharacters } from './loader.js';
 import { Game } from './game.js';
 
 const PORT = process.env.PORT || 3000;
@@ -34,6 +34,7 @@ let qr = null;
 try { qr = await QRCode.toDataURL(PLAY_URL, { width: 512, margin: 1 }); } catch {}
 
 const game = new Game(io, { characters, arena, lobbyExtra: { url: PLAY_URL, qr } });
+watchCharacters(() => game.sendLobby());
 
 io.on('connection', (socket) => {
   io.emit(MSG.COUNT, io.engine.clientsCount);

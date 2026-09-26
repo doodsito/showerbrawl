@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
-import { render } from './scene.js';
+import { render, pushEvents } from './scene.js';
 import { SFX } from './sfx.js';
 
 const $ = (id) => document.getElementById(id);
@@ -86,6 +86,11 @@ function showLobby(d) {
         const li = document.createElement('li');
         const ch = d.characters && d.characters[p.character];
         li.textContent = `${p.name}${ch ? ' (' + ch.name + ')' : ''}`;
+        if (ch && /\.(png|webp|gif|jpe?g)$/i.test(ch.sprite || '')) {
+          const im = document.createElement('img'); im.src = ch.sprite.startsWith('/') ? ch.sprite : '/' + ch.sprite;
+          im.style.cssText = 'height:28px;vertical-align:middle;margin-left:8px;image-rendering:pixelated';
+          im.onerror = () => im.remove(); li.appendChild(im);
+        }
         ul.appendChild(li);
       }
     }
@@ -122,7 +127,7 @@ socket.on(MSG.STATE, (s) => {
   if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
     if (phase !== 'playing') { phase = 'playing'; $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
-    pushUpdate(s); sounds(s);
+    pushUpdate(s); sounds(s); pushEvents(s.events);
   } catch (e) {}
 });
 socket.on(MSG.END, showEnd);

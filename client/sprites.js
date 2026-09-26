@@ -16,13 +16,27 @@ const LOOKS = {
 const images = {};
 const isImage = (id) => typeof id === 'string' && /\.(png|webp|gif|jpe?g)$/i.test(id);
 
-// PNG de l'equipe si le champ sprite est un chemin et que l'image est chargee, sinon null.
-export function getImage(src) {
-  if (!isImage(src)) return null;
-  let im = images[src];
-  if (!im) { im = images[src] = new Image(); im.onerror = () => { im.failed = true; }; im.src = src.startsWith('/') ? src : '/' + src; }
+// URL du PNG pour un perso: le champ sprite s'il est un chemin, sinon sprites/<id>.png par convention.
+export function spriteUrl(sprite, charId) {
+  if (isImage(sprite)) return sprite.startsWith('/') ? sprite : '/' + sprite;
+  const id = sprite || charId;
+  return id ? `/sprites/${id}.png` : null;
+}
+
+// Charge le PNG une fois (cache), log le resultat. Renvoie l'image prete ou null (crane en fallback).
+export function getImage(sprite, charId) {
+  const url = spriteUrl(sprite, charId);
+  if (!url) return null;
+  let im = images[url];
+  if (!im) {
+    im = images[url] = new Image();
+    im.onload = () => console.log('[sprites] PNG charge', url, im.naturalWidth + 'x' + im.naturalHeight);
+    im.onerror = () => { im.failed = true; if (isImage(sprite)) console.warn('[sprites] PNG introuvable', url, '-> crane genere'); };
+    im.src = url;
+  }
   return im.complete && im.naturalWidth && !im.failed ? im : null;
 }
+
 function px(ctx, x, y, c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
 function rect(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
 
