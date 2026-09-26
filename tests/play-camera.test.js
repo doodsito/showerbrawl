@@ -91,9 +91,23 @@ for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
       for (let i = 0; i < 20; i++) { if (game.countdown > 0) game.countdown = 0; place(pa, pb); await wait(50); }
       for (const page of pages) {
         const r = await page.evaluate(PROBE([a, b].map((p) => ({ id: p.id, x: p.x, y: p.y }))));
-        assert.ok(Math.abs(r.zoom - 1.75) < 1e-9, 'CAMERA_ZOOM applique');
+        assert.ok(Math.abs(r.zoom - 1.45) < 1e-9, 'CAMERA_ZOOM applique');
         assert.ok(r.tx <= 0 && r.ty <= 0 && r.tx + 960 * r.scale >= r.W - 1 && r.ty + 540 * r.scale >= r.H - 1, 'jamais hors decor');
         const me = r.players.find((p) => p.id === r.me);
+        // Boutons atteignables au pouce: dans l'ecran, hors HUD/bandeau, en colonne au bord droit (SUPER, DEFENSE, ATTACK de haut en bas).
+        const ui = await page.evaluate(() => {
+          const box = (e) => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+          const hud = box(document.querySelector('.hud')), bar = document.querySelector('#a2hs');
+          return { hud, bar: bar && !bar.hidden ? box(bar) : null, btn: Object.fromEntries([...document.querySelectorAll('.btns .btn')].map((e) => [e.dataset.k, box(e)])) };
+        });
+        const hit = (u, v) => u.l < v.r && u.r > v.l && u.t < v.b && u.b > v.t;
+        for (const [k, q] of Object.entries(ui.btn)) {
+          assert.ok(q.l >= 0 && q.t >= 0 && q.r <= r.W && q.b <= r.H, `${k} dans l'ecran`);
+          assert.ok(!hit(q, ui.hud), `${k} pas sous le HUD`);
+          if (ui.bar) assert.ok(!hit(q, ui.bar), `${k} pas sous le bandeau`);
+          assert.ok(Math.abs(q.r - ui.btn.attack.r) < 1, `${k} aligne sur le bord droit d'ATTACK`);
+        }
+        assert.ok(ui.btn.super.b <= ui.btn.defense.t && ui.btn.defense.b <= ui.btn.attack.t, 'colonne SUPER / DEFENSE / ATTACK');
         if (device.startsWith('iPhone')) {
           const bar = await page.evaluate(() => { const e = document.querySelector('#a2hs'), h = document.querySelector('.hud'); const r = e.getBoundingClientRect(), q = h.getBoundingClientRect(); return { hidden: e.hidden, top: r.top, bottom: r.bottom, l: r.left, r: r.right, hud: q.bottom }; });
           assert.equal(bar.hidden, false, 'bandeau iPhone affiche');
@@ -109,6 +123,7 @@ for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
         }
       }
     }
+    if (process.env.SHOT_DIR) for (const [i, page] of pages.entries()) await page.screenshot({ path: `${process.env.SHOT_DIR}/${device.replace(/ /g, '-')}-${i ? 'B' : 'A'}.png` });
     assert.deepEqual(errors, []);
   });
 }
