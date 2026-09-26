@@ -50,9 +50,9 @@
   },
   "macron": {
     "name": "Macron", "hp": 100, "speed": 205, "sprite": "sprites/macron.png", "labKit": true, "fullBody": true, "shieldStyle": "sunglasses", "hint": "Baguettes rapides · Lunettes : protection brève · 49.3 ciblé",
-    "attack": {"type": "projectile", "damage": 8, "range": 90, "knockback": 140, "cooldown": 0.3, "label": "Triple baguette", "icon": "sprites/macron_baguettes.svg", "recovery": 0.12},
+    "attack": {"type": "projectile", "damage": 8, "range": 90, "knockback": 140, "cooldown": 0.3, "visual": "baguette", "label": "Triple baguette", "icon": "sprites/macron_baguettes.svg", "recovery": 0.12},
     "defense": {"type": "shield", "duration": 1.4, "cooldown": 7, "label": "Lunettes de soleil", "icon": "sprites/macron_sunglasses.svg"},
-    "super": {"type": "zone", "target": "enemy", "range": 520, "radius": 65, "delay": 0.6, "damage": 28, "knockback": 360, "cooldown": 6, "charge": 100, "label": "49.3", "icon": "sprites/macron_super.png"}
+    "super": {"type": "zone", "target": "enemy", "range": 520, "radius": 65, "delay": 0.6, "damage": 28, "knockback": 360, "cooldown": 6, "charge": 100, "visual": "decree", "label": "49.3", "icon": "sprites/macron_super.png"}
   },
   "zelensky": {
     "name": "Zelensky", "hp": 100, "speed": 205, "sprite": "zelensky",

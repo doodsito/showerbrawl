@@ -37,11 +37,11 @@ const BRICKS = {
   projectile(ctx, p, a) {
     const reach = Math.min(a.range || 70, MELEE_MAX);
     const e = nearestEnemy(ctx, p, reach + p.r * 2);
-    if (!e) { fx(ctx, 'whiff', p.x + p.fx * reach * .6, p.y + p.fy * reach * .6, { ux: p.fx, uy: p.fy }, .25); return; }
+    if (!e) { fx(ctx, 'whiff', p.x + p.fx * reach * .6, p.y + p.fy * reach * .6, { ux: p.fx, uy: p.fy, visual: a.visual }, .25); return; }
     face(p, e);
     const hx = (p.x + e.x) / 2, hy = (p.y + e.y) / 2;
     if (ctx.damage(e, a.damage ?? 10, p.id, p.x, p.y, a.knockback ?? 260, false, !a.charge, a.canRingOut)) fx(ctx, 'strike', hx, hy, { ux: p.fx, uy: p.fy, heavy: (a.damage ?? 10) >= 15, visual: a.visual });
-    else fx(ctx, 'whiff', hx, hy, { ux: p.fx, uy: p.fy }, .25);
+    else fx(ctx, 'whiff', hx, hy, { ux: p.fx, uy: p.fy, visual: a.visual }, .25);
   },
   // Onde de choc au sol centree sur le lanceur: ne vole pas, gros recul radial.
   burst(ctx, p, a) {
@@ -97,7 +97,7 @@ function targetedStrike(ctx, p, a) {
     ctx.zones.push({
       id: ctx.nextId(), kind: 'strike', owner: p.id, team: p.team,
       x: x - p.fy * off, y: y + p.fx * off, ux: p.fx, uy: p.fy,
-      r: a.radius || 90, age: 0, delay: delay + i * gap, duration: delay + i * gap + 0.4,
+      visual: a.visual, r: a.radius || 90, age: 0, delay: delay + i * gap, duration: delay + i * gap + 0.4,
       canRingOut: a.canRingOut, damage: a.damage ?? 25, knockback: a.knockback ?? 450, hit: false,
     });
   }

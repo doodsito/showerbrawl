@@ -28,10 +28,12 @@ export function getImage(sprite, charId) {
   const url = spriteUrl(sprite, charId);
   if (!url) return null;
   let im = images[url];
-  if (!im) {
+  if (!im || (im.failed && im.attempts < 3 && Date.now() >= im.retryAt)) {
+    const attempts = (im?.attempts || 0) + 1;
     im = images[url] = new Image();
+    im.attempts = attempts;
     im.onload = () => console.log('[sprites] PNG charge', url, im.naturalWidth + 'x' + im.naturalHeight);
-    im.onerror = () => { im.failed = true; if (isImage(sprite)) console.warn('[sprites] PNG introuvable', url, '-> crane genere'); };
+    im.onerror = () => { im.failed = true; im.retryAt = Date.now() + 3000; if (isImage(sprite)) console.warn('[sprites] PNG introuvable', url, '-> crane genere'); };
     im.src = url;
   }
   return im.complete && im.naturalWidth && !im.failed ? im : null;
