@@ -10,7 +10,9 @@
     "predev:all": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
     "dev:all": "concurrently -k \"node server/index.js\" \"vite\"",
     "start:all": "npm run dev:all",
-    "test": "node --test tests/*.test.js laboratoire/maison-blanche/tests/*.test.js"
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test tests/*.test.js laboratoire/maison-blanche/tests/*.test.js",
+    "test:e2e": "node --test tests/*.e2e.js"
   },
   "dependencies": {
     "express": "^5.2.1",
