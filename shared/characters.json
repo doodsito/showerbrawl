@@ -19,8 +19,8 @@
     "super":  {"type": "zone", "behavior": "cybertruck", "damage": 42, "cooldown": 6, "charge": 100, "label": "Cybertruck", "icon": "sprites/musk_super.png"}
   },
   "obama": {
-    "name": "Obama", "hp": 105, "speed": 195, "sprite": "sprites/obama.png", "labKit": true, "fullBody": true, "hint": "Energy: long-range energy shot · Dodge: dash away · Mic Drop: lands on the nearest enemy, charges in combat",
-    "attack": {"type": "projectile", "travel": true, "range": 600, "speed": 600, "damage": 11, "knockback": 200, "cooldown": 0.85, "recovery": 0.19, "label": "Energy", "icon": "sprites/obama_attack.png", "visual": "energy"},
+    "name": "Obama", "hp": 105, "speed": 195, "sprite": "sprites/obama.png", "labKit": true, "fullBody": true, "hint": "Energy: close-range energy strike · Dodge: dash away · Mic Drop: lands on the nearest enemy, charges in combat",
+    "attack": {"type": "projectile", "label": "Energy", "icon": "sprites/obama_attack.png", "visual": "energy"},
     "defense": {"type": "dash", "distance": 238, "duration": 0.28, "away": true, "invulnerable": false, "cooldown": 4, "label": "Dodge", "icon": "sprites/obama.png"},
     "super":  {"type": "zone", "behavior": "micDrop", "damage": 30, "radius": 110, "delay": 0.85, "cooldown": 5, "charge": 100, "label": "Mic Drop", "icon": "sprites/obama_super.png"}
   },
