@@ -11,6 +11,7 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY server ./server
+COPY shared ./shared
 COPY --from=build /app/client/dist ./client/dist
 EXPOSE 3000
 CMD ["node", "server/index.js"]
