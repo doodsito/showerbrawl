@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Garde-fou: si les tests ou le build echouent, rien n'est deploye et la prod garde la version precedente.
+  # Garde-fou: si les tests serveur/logique ou le build echouent, rien n'est deploye et la prod garde la version precedente.
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -21,8 +21,23 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --prefer-offline --no-audit --no-fund
-      - run: npm test
+      - run: npm run test:unit
       - run: npm run build
+
+  # Tests navigateur (Playwright): lances a chaque push, informatifs, ne bloquent pas le deploiement.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit --no-fund
+      - run: npm run build
+      - run: npm run test:e2e
 
   deploy:
     needs: test

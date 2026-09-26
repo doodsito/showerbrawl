@@ -6,7 +6,7 @@ import { createView } from './view.js';
 import { preloadCombatArt } from '../combat-assets.js';
 
 // Zoom camera de la vue de jeu (1 = decor entier en hauteur). Plus petite valeur (pas de 0.05 depuis 1.4) ou le perso colle
-// a chaque mur reste hors du joystick et des boutons sur iPhone 15 et Pixel 7 paysage (tests/play-camera.test.js).
+// a chaque mur reste hors du joystick et des boutons sur iPhone 15 et Pixel 7 paysage (tests/play-camera.e2e.js).
 // Si tu changes cette valeur, ajuste VIEW_HALF_WIDTH dans server/game.js (meme proportion inverse).
 const CAMERA_ZOOM = 1.45;
 
