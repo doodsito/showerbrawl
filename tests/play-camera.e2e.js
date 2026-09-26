@@ -106,7 +106,7 @@ for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
           await wait(50);
         }
         assert.ok(r.settled,'camera stabilisee apres le placement');
-        assert.ok(Math.abs(r.zoom - 1.45) < 1e-9, 'CAMERA_ZOOM applique');
+        assert.ok(Math.abs(r.zoom - 1.4) < 1e-9, 'CAMERA_ZOOM applique');
         assert.ok(r.tx <= 0 && r.ty <= 0 && r.tx + 960 * r.scale >= r.W - 1 && r.ty + 540 * r.scale >= r.H - 1, 'jamais hors decor');
         const me = r.players.find((p) => p.id === r.me);
         // Boutons atteignables au pouce: dans l'ecran, hors HUD/bandeau, en colonne au bord droit (SUPER, DEFENSE, ATTACK de haut en bas).
