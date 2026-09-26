@@ -302,3 +302,16 @@ socket.on(MSG.END, (d) => {
 
 socket.on('disconnect', () => { clearInput();st.joined = false;st.alive=false; /* wantJoin garde: re-JOIN auto a la reconnexion */ });
 renderSelect();
+
+// iPhone dans Safari (pas en mode app): bandeau unique pour installer sur l'ecran d'accueil.
+try {
+  const ios = /iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 && /Mobile/.test(navigator.userAgent));
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+  let seen = false; try { seen = localStorage.getItem('sb_a2hs') === '1'; } catch (e) {}
+  if (ios && !standalone && !seen) {
+    const bar = $('#a2hs'); bar.hidden = false;
+    const close = (e) => { e.preventDefault(); e.stopPropagation(); bar.hidden = true; try { localStorage.setItem('sb_a2hs', '1'); } catch (err) {} };
+    $('#a2hsClose').addEventListener('pointerup', close);
+    $('#a2hsClose').addEventListener('click', close);
+  }
+} catch (e) {}
