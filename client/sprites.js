@@ -15,7 +15,7 @@ const LOOKS = {
   zelensky: { skin: '#e3b999', hair: '#3b3b36', hairStyle: 'thin', glasses: false },
 };
 const images = {};
-const isImage = (id) => typeof id === 'string' && /\.(png|webp|gif|jpe?g)$/i.test(id);
+const isImage = (id) => typeof id === 'string' && /\.(png|svg|webp|gif|jpe?g)$/i.test(id);
 
 // URL du PNG pour un perso: le champ sprite s'il est un chemin, sinon sprites/<id>.png par convention.
 export function spriteUrl(sprite, charId) {

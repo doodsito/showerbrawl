@@ -36,8 +36,12 @@ const PROBE = (pts) => `((pts) => {
   const tx = Math.min(0, Math.max(W - 960 * scale, W / 2 - cam.x * scale));
   const ty = Math.min(0, Math.max(H - 540 * scale, H / 2 - cam.y * scale));
   const scr = (x, y) => { const nx = ((x - x0) / (x1 - x0)) * 2 - 1, ny = ((y - y0) / (y1 - y0)) * 2 - 1; return [tx + (480 + nx * 330) * scale, ty + (422 + ny * 70) * scale]; };
+  const self = last?.players.find(p=>p.id===cam.me);
+  const cx = self ? 480 + (((self.x-x0)/(x1-x0))*2-1)*330 + 55 : cam.x;
+  const cy = self ? 422 + (((self.y-y0)/(y1-y0))*2-1)*70 + 10 : cam.y;
+  const settled = Math.hypot(cam.x-cx,cam.y-cy)<1;
   const rects = [...document.querySelectorAll('#stick .ring, .btns .btn')].map((e) => e.getBoundingClientRect()).map((r) => ({ l: r.left, t: r.top, r: r.right, b: r.bottom }));
-  return { W, H, zoom: cam.zoom, tx, ty, scale, rects, me: v.camera.me, players: (last?.players || []).map((p) => ({ id: p.id, s: scr(p.x, p.y) })), pts: pts.map((p) => ({ id: p.id, s: scr(p.x, p.y) })) };
+  return { settled, W, H, zoom: cam.zoom, tx, ty, scale, rects, me: v.camera.me, players: (last?.players || []).map((p) => ({ id: p.id, s: scr(p.x, p.y) })), pts: pts.map((p) => ({ id: p.id, s: scr(p.x, p.y) })) };
 })(${JSON.stringify(pts)})`;
 
 for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
@@ -90,7 +94,15 @@ for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
     for (const [pa, pb] of spots) {
       for (let i = 0; i < 20; i++) { if (game.countdown > 0) game.countdown = 0; place(pa, pb); await wait(50); }
       for (const page of pages) {
-        const r = await page.evaluate(PROBE([a, b].map((p) => ({ id: p.id, x: p.x, y: p.y }))));
+        // Teleports in this fixture are much faster than gameplay movement. Wait for
+        // the smoothed camera, including background tabs, before measuring overlap.
+        let r;
+        for(let i=0;i<100;i++){
+          r=await page.evaluate(PROBE([a,b].map(p=>({id:p.id,x:p.x,y:p.y}))));
+          if(r.settled)break;
+          await wait(50);
+        }
+        assert.ok(r.settled,'camera stabilisee apres le placement');
         assert.ok(Math.abs(r.zoom - 1.45) < 1e-9, 'CAMERA_ZOOM applique');
         assert.ok(r.tx <= 0 && r.ty <= 0 && r.tx + 960 * r.scale >= r.W - 1 && r.ty + 540 * r.scale >= r.H - 1, 'jamais hors decor');
         const me = r.players.find((p) => p.id === r.me);

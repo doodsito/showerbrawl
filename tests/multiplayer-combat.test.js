@@ -98,7 +98,7 @@ test('snapshots carry authoritative wall, charge, dash and attack visual state',
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
- const {game,p,q}=setup(t,'biden','maduro');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
+ const {game,p,q}=setup(t,'schwarzenegger','maduro');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
  cast(game,p,'defense');assert.equal(p.invulnT,0);assert.ok(p.dashHit);
  q.char={...q.char,super:{type:'burst',radius:90,damage:9,knockback:300,cooldown:1}};cast(game,q,'super');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'),'burst = onde au sol');
  cast(game,q,'defense');assert.ok(q.shieldT>0);
@@ -157,7 +157,7 @@ test('chute hors du toit: evenement kill marque fell', t => {
 
 // Regle de design: attack/defense au corps a corps, super cible a distance avec alerte au sol (esquivable).
 const escapeRadius=s=>(s.radius||90)+(s.behavior==='decree'?70:0); // decree: onde de choc au sol autour du tampon
-const RANGED_SUPERS=['biden','obama','harris','maduro','sanders','schwarzenegger','macron','zelensky'];
+const RANGED_SUPERS=Object.keys(characters).filter(id=>characters[id].super.target==='enemy'||['micDrop','decree'].includes(characters[id].super.behavior));
 function duel(t,a){
   const {game,p,q}=setup(t,a,a==='biden'?'musk':'biden');
   Object.assign(p,{x:200,y:320,fx:1,fy:0});Object.assign(q,{x:400,y:320});return {game,p,q};
@@ -185,8 +185,8 @@ for(const id of RANGED_SUPERS){
   });
 }
 test('super cible sans ennemi a portee: frappe devant le lanceur a mi-portee',t=>{
-  const {game,p,q}=duel(t,'biden');q.x=p.x+2000;p.energy=100;cast(game,p,'super');
-  const z=game.zones.find(z=>z.kind==='strike');assert.ok(z);assert.ok(Math.abs(z.x-(p.x+characters.biden.super.range/2))<1);
+  const {game,p,q}=duel(t,'harris');q.x=p.x+2000;p.energy=100;cast(game,p,'super');
+  const z=game.zones.find(z=>z.kind==='strike');assert.ok(z);assert.ok(Math.abs(z.x-(p.x+characters.harris.super.range/2))<1);
 });
 test('super cible: sans charge d\'energie, pas de super',t=>{
   const {game,p}=duel(t,'sanders');p.energy=40;assert.equal(cast(game,p,'super'),false);

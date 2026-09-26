@@ -7,10 +7,46 @@
     "super":  {"type": "zone", "behavior": "fired", "damage": 30, "range": 130, "cooldown": 5, "charge": 100, "label": "You’re fired!"}
   },
   "biden": {
-    "name": "Biden", "hp": 105, "speed": 195, "sprite": "biden", "hint": "Aviators: standard hit up close · Nap Time: slow shoving charge · Executive Order: targeted ground strike, charges in combat",
-    "attack": {"type": "projectile", "label": "Aviators"},
-    "defense": {"type": "dash", "distance": 180, "duration": 0.26, "damage": 4, "knockback": 160, "cooldown": 5, "label": "Nap Time", "invulnerable": false},
-    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 90, "delay": 0.75, "damage": 26, "knockback": 320, "cooldown": 6, "charge": 100, "label": "Executive Order"}
+    "name": "Biden",
+    "hp": 105,
+    "speed": 195,
+    "sprite": "sprites/biden.png",
+    "hint": "Ice cream: projectile, range 400 · Nap Time: sleep, immobile and untouchable · Bicycle: runaway bike, range 650, charges in combat",
+    "attack": {
+      "type": "projectile",
+      "travel": true,
+      "range": 400,
+      "speed": 390,
+      "damage": 12,
+      "knockback": 180,
+      "cooldown": 0.75,
+      "recovery": 0.19,
+      "label": "Ice Cream",
+      "icon": "sprites/biden_icecream.svg",
+      "visual": "icecream"
+    },
+    "defense": {
+      "type": "shield",
+      "behavior": "nap",
+      "duration": 2.4,
+      "cooldown": 7,
+      "label": "Nap Time",
+      "icon": "sprites/biden_nap.svg"
+    },
+    "super": {
+      "type": "zone",
+      "behavior": "bicycle",
+      "range": 650,
+      "speed": 520,
+      "damage": 30,
+      "cooldown": 6,
+      "charge": 100,
+      "label": "Bicycle",
+      "icon": "sprites/biden_bicycle.svg"
+    },
+    "fullBody": true,
+    "labKit": true,
+    "chargeDealt": 2.08
   },
   "musk": {
     "name": "Musk", "hp": 105, "speed": 195, "sprite": "sprites/musk.png", "labKit": true, "fullBody": true, "hint": "Flamethrower: wide sustained cone, pushes and burns · Hyperloop: fast dash away · Cybertruck: truck rams across the roof, charges in combat",

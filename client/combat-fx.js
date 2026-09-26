@@ -276,6 +276,12 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
   return {wall,
     decree(drop,front=false){const [x,y]=project(drop.x,drop.y);decree({...drop,x,y},front);},
     projectile(shot){
+      if(shot.visual==='icecream'){
+        const [x,y]=project(shot.x,shot.y),img=getImage('sprites/biden_icecream.svg');
+        g.save();g.translate(x,y-34);g.rotate(Math.atan2(shot.vy*ky,shot.vx*kx)+Math.PI/2);
+        if(img)g.drawImage(img,-14,-22,28,40);else{poly([[-9,0],[9,0],[0,20]],'#d4a05d');rect(-10,-15,20,15,'#ffe6de');}
+        g.restore();return true;
+      }
       if(shot.visual==='energy'){
         const [x,y]=project(shot.x,shot.y),art=getImage('sprites/obama_attack.png');
         g.save();g.translate(x,y-36);g.rotate(Math.atan2(shot.vy*ky,shot.vx*kx));
@@ -314,6 +320,9 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       g.restore();
     },
     effect(e,front=false){const [x,y]=project(e.x,e.y);
+      if(e.visual==='icecream'||e.kind==='bikeWreck'){
+        if(front){g.save();g.globalAlpha=Math.max(0,1-e.age/e.duration);for(let i=0;i<12;i++){const a=i*2.399,r=8+e.age*70;rect(x+Math.cos(a)*r,y-15+Math.sin(a)*r*.4,4,4,e.kind==='bikeWreck'?'#e5bd62':i%2?'#ffe4d9':'#efb3c4');}g.restore();}return;
+      }
       if((e.kind==='strike'||e.kind==='whiff')&&e.visual==='baguette'){
         if(front){
           const t=Math.min(1,e.age/e.duration),hit=e.kind==='strike',ux=e.ux??1,uy=e.uy??0;
