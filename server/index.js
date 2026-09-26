@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { Server } from 'socket.io';
 import { networkInterfaces } from 'node:os';
+import { execSync } from 'node:child_process';
 import QRCode from 'qrcode';
 import { MSG } from '../shared/protocol.js';
 import { characters, arena, watchCharacters } from './loader.js';
@@ -27,7 +28,11 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
-app.get('/health', (req, res) => res.json({ ok: true, players: io.engine.clientsCount }));
+// SHA du commit qui tourne: injecte au build Docker (GIT_SHA), sinon lu dans git en local.
+let SHA = process.env.GIT_SHA && process.env.GIT_SHA !== 'dev' ? process.env.GIT_SHA : null;
+if (!SHA) { try { SHA = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { SHA = 'dev'; } }
+
+app.get('/health', (req, res) => res.json({ ok: true, players: io.engine.clientsCount, sha: SHA }));
 app.use(express.static(clientDist));
 
 let qr = null;
