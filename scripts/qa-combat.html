@@ -6,7 +6,7 @@
 import {render,pushEvents} from '/client/scene.js';
 import {getImage} from '/client/sprites.js';
 import {preloadCombatArt} from '/client/combat-assets.js';
-const data=await(await fetch('/fixtures')).json(),select=document.querySelector('#case'),canvas=document.querySelector('#game'),g=canvas.getContext('2d'),errors=document.querySelector('#errors');
+const data=await(await fetch('/fixtures'+location.search)).json(),select=document.querySelector('#case'),canvas=document.querySelector('#game'),g=canvas.getContext('2d'),errors=document.querySelector('#errors');
 preloadCombatArt(data.characters);
 for(const c of data.cases)select.add(new Option(c.id+' · '+c.label,c.id));
 let playing=true,started=performance.now(),frame=0,last=-1,current=data.cases[0];const drawn=new Set();

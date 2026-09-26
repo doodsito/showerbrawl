@@ -7,17 +7,22 @@ export function muskFX(g,project,kx,ky,quiet){
   return {
     flame(z){
       const img=getImage('sprites/musk_attack.png');
-      const [x,y]=project(z.x,z.y),dx=z.ux*kx,dy=z.uy*ky;
-      const length=Math.max(0,z.reach||0)*Math.hypot(dx,dy);
-      if(length<4)return;
+      const [x,y]=project(z.x,z.y),reach=Math.max(0,z.reach||0);
+      if(reach<4)return;
+      const angle=(z.halfAngle??24)*Math.PI/180;
       const envelope=Math.max(0,Math.min(1,z.age/.12,(z.duration-z.age)/.15));
-      g.save();g.translate(x,y-28);g.rotate(Math.atan2(dy,dx));g.globalAlpha=.75+.25*envelope;
-      const width=length*(quiet?1:.95+Math.sin(z.age*65)*.05),height=Math.max(16,length*.4*Math.tan((z.halfAngle??24)*Math.PI/180)/Math.tan(24*Math.PI/180))*envelope;
-      if(img)g.drawImage(img,4,-height/2,width,height);
-      else poly([[4,-3],[width,-height/2],[width,height/2],[4,3]],'#ffaf38');
-      if(!quiet)for(let i=0;i<12;i++){
-        const t=(z.age*3+i/12)%1;
-        rect(6+t*(length-6),Math.sin(i*2.4+z.age*17)*t*height*.45,3,3,i%2?'#ffeaa0':'#ff8f26');
+      // Project the world cone, not a screen rectangle: vertical shots must keep
+      // their width and every heading must agree with the server's hit area.
+      g.save();g.translate(x,y-28);
+      g.transform(z.ux*kx,z.uy*ky,-z.uy*kx,z.ux*ky,0,0);
+      g.beginPath();g.moveTo(0,0);g.arc(0,0,reach,-angle,angle);g.closePath();g.clip();
+      g.globalAlpha=.75+.25*envelope;
+      const width=reach*(quiet?1:.97+Math.sin(z.age*65)*.03),height=2*reach*Math.sin(angle)*envelope;
+      if(img)g.drawImage(img,0,-height/2,width,height);
+      else poly([[0,-3],[width,-height/2],[width,height/2],[0,3]],'#ffaf38');
+      if(!quiet)for(let i=0;i<18;i++){
+        const t=(z.age*3+i/18)%1;
+        rect(6+t*(reach-6),Math.sin(i*2.4+z.age*17)*t*height*.45,4,7,i%2?'#ffeaa0':'#ff8f26');
       }
       g.restore();
     },

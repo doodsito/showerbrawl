@@ -94,7 +94,7 @@ test('short mobile taps survive between server ticks, defense does not recast wh
 });
 test('snapshots carry authoritative wall, charge, dash and attack visual state',t=>{
  const {game,p,q,events}=setup(t);cast(game,p,'defense');p.energy=42;cast(game,q,'attack');cast(game,q,'defense');game.broadcast();
- const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,0);assert.ok(s.effects.some(e=>e.visual==='energy'),'visuel energy dans l etat');assert.ok(s.players[1].dash);
+ const s=events.at(-1).data;assert.equal(s.players[0].energy,42);assert.equal(s.walls.length,1);assert.equal(s.projectiles.length,1);assert.equal(s.projectiles[0].visual,'energy');assert.ok(s.players[1].dash);
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
@@ -162,7 +162,7 @@ function duel(t,a){
   const {game,p,q}=setup(t,a,a==='biden'?'musk':'biden');
   Object.assign(p,{x:200,y:320,fx:1,fy:0});Object.assign(q,{x:400,y:320});return {game,p,q};
 }
-for(const id of Object.keys(characters).filter(id=>!characters[id].attack.travel)){
+for(const id of Object.keys(characters).filter(id=>!characters[id].attack.travel&&!characters[id].attack.behavior)){
   test(`${id}: l'attaque de base ne touche pas a 200 unites`,t=>{
     const {game,p,q}=duel(t,id);const hp=q.hp;cast(game,p,'attack');advance(game,.6);
     assert.equal(q.hp,hp);assert.equal(game.projectiles.length,0);

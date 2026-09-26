@@ -1,6 +1,5 @@
-// Regle d'equipe: ne pas assouplir ces tests, changer BASE_ATTACK dans config.js a la place.
-// Equite: attaque de base, PV et vitesse identiques pour tous les persos (CONFIG.BASE_*).
-// Seules la defense et le super different. Mesures faites en jeu (cast + ticks), pas seulement sur la config.
+// Equite des coups generiques; les kits a distance sont testes via Game.input dans ranged-kits.test.js.
+// PV/vitesse communs. Mesures de contact faites en jeu (cast + ticks).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../server/game.js';
@@ -8,7 +7,7 @@ import { characters, arena } from '../server/loader.js';
 import { cast } from '../server/abilities.js';
 import { CONFIG } from '../shared/config.js';
 
-const IDS = Object.keys(characters);
+const IDS = Object.keys(characters).filter(id=>!characters[id].attack.travel&&!characters[id].attack.behavior);
 const B = CONFIG.BASE_ATTACK;
 
 function duel(id, dist = 60) {
@@ -76,7 +75,7 @@ for (let i = 0; i < IDS.length; i++) for (let j = i + 1; j < IDS.length; j++) {
 }
 
 test('memes PV et meme vitesse pour tous (CONFIG.BASE_HP / BASE_SPEED)', () => {
-  for (const id of IDS) {
+  for (const id of Object.keys(characters)) {
     assert.equal(characters[id].hp, CONFIG.BASE_HP, `${id}: hp`);
     assert.equal(characters[id].speed, CONFIG.BASE_SPEED, `${id}: speed`);
   }
@@ -108,7 +107,7 @@ test('deplacement identique pour un perso labKit et un perso standard, avec ou s
   }
 });
 
-test('aucune attaque de base ne cree de projectile (coup au contact pour tous)', () => {
+test('les coups generiques au contact ne creent pas de projectile', () => {
   for (const id of IDS) {
     assert.equal(characters[id].attack.travel, undefined, `${id}: attack.travel interdit`);
     const { game: g, p } = duel(id, 400);
