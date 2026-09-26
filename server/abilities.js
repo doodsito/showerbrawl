@@ -40,7 +40,7 @@ const BRICKS = {
     if (!e) { fx(ctx, 'whiff', p.x + p.fx * reach * .6, p.y + p.fy * reach * .6, { ux: p.fx, uy: p.fy }, .25); return; }
     face(p, e);
     const hx = (p.x + e.x) / 2, hy = (p.y + e.y) / 2;
-    if (ctx.damage(e, a.damage ?? 10, p.id, p.x, p.y, a.knockback ?? 260)) fx(ctx, 'strike', hx, hy, { ux: p.fx, uy: p.fy, heavy: (a.damage ?? 10) >= 15, visual: a.visual });
+    if (ctx.damage(e, a.damage ?? 10, p.id, p.x, p.y, a.knockback ?? 260, false, !a.charge)) fx(ctx, 'strike', hx, hy, { ux: p.fx, uy: p.fy, heavy: (a.damage ?? 10) >= 15, visual: a.visual });
     else fx(ctx, 'whiff', hx, hy, { ux: p.fx, uy: p.fy }, .25);
   },
   // Onde de choc au sol centree sur le lanceur: ne vole pas, gros recul radial.
@@ -49,7 +49,7 @@ const BRICKS = {
     fx(ctx, 'shockwave', p.x, p.y, { r, team: p.team }, .55);
     for (const o of ctx.players.values()) {
       if (!hitable(p, o) || Math.hypot(o.x - p.x, o.y - p.y) > r + o.r) continue;
-      if (ctx.damage(o, a.damage ?? 20, p.id, p.x, p.y, a.knockback ?? 480)) fx(ctx, 'strike', o.x, o.y, { heavy: true }, .4);
+      if (ctx.damage(o, a.damage ?? 20, p.id, p.x, p.y, a.knockback ?? 480, false, !a.charge)) fx(ctx, 'strike', o.x, o.y, { heavy: true }, .4);
     }
   },
   // Zone au sol centree sur le lanceur (le suit par defaut). onEnemy/range ignores: rien a distance.
@@ -57,7 +57,7 @@ const BRICKS = {
     const duration = a.duration || 2;
     ctx.zones.push({
       id: ctx.nextId(), owner: p.id, team: p.team, x: p.x, y: p.y, r: Math.min(a.radius || 120, 200),
-      dps: (a.damage ?? 20) / duration, ttl: duration, knockback: a.knockback ?? 60,
+      dps: (a.damage ?? 20) / duration, ttl: duration, knockback: a.knockback ?? 60, chargeSource: !a.charge,
       follow: a.follow !== false ? p.id : null,
     });
   },
@@ -96,7 +96,7 @@ export function dashHits(ctx, p) {
 
 export function cast(ctx, p, slot) {
   const a = p.char[slot];
-  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || (hasLabKit(p) && p.dashT > 0)) return false;
+  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
   const handler = ['flamethrower','hyperloop','cybertruck'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
   if (!handler || handler(ctx, p, a) === false) return false;
@@ -104,6 +104,7 @@ export function cast(ctx, p, slot) {
   p.cd[slot] = a.cooldown || 1;
   p.poseT = slot === 'super' ? .4 : slot === 'attack' ? .2 : 0;
   p.action = slot;
+  if (slot !== 'defense') p.recoveryT = a.recovery ?? (slot === 'super' ? .35 : .16);
   if (slot !== 'defense') p.protectT = 0;
   console.log(`[cast] ${p.name} ${slot} ${a.type} "${a.label || ''}"`);
   ctx.events?.push({ k: 'cast', id: p.id, slot, type: a.type, label: a.label || a.type, team: p.team, x: Math.round(p.x), y: Math.round(p.y), lab:hasLabKit(p) });
@@ -147,7 +148,7 @@ export function updateZones(ctx, dt) {
     }
     for (const o of ctx.players.values()) {
       if (!o.alive || o.team === z.team) continue;
-      if (Math.hypot(o.x - z.x, o.y - z.y) < z.r + o.r) ctx.damage(o, z.dps * dt, z.owner, z.x, z.y, z.knockback * dt * 10);
+      if (Math.hypot(o.x - z.x, o.y - z.y) < z.r + o.r) ctx.damage(o, z.dps * dt, z.owner, z.x, z.y, z.knockback * dt * 10, false, z.chargeSource !== false);
     }
     return z.ttl > 0;
   });

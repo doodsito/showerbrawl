@@ -20,7 +20,8 @@ export function firstWall(ctx, origin, dx, dy) {
 export function hitWall(ctx, wall, amount, owner) {
   wall.hp -= amount;
   effect(ctx, 'spark', wall.x, wall.y);
-  charge(ctx.players.get(owner), 12);
+  const attacker = ctx.players.get(owner);
+  if (attacker && attacker.team !== wall.team) charge(attacker, 12);
   if (wall.hp <= 0) {
     ctx.walls = ctx.walls.filter(w => w !== wall);
     effect(ctx, 'rubble', wall.x, wall.y);

@@ -24,7 +24,7 @@ export function castMusk(ctx,p,a) {
   const [ux,uy]=aim(ctx,p);p.fx=ux;p.fy=uy;
   if(a.behavior==='flamethrower'){
     ctx.zones.push({id:ctx.nextId(),kind:'flamethrower',owner:p.id,team:p.team,x:p.x,y:p.y,ux,uy,
-      r:a.range,reach:a.range,age:0,duration:a.duration,pulse:0,dps:a.dps,push:a.pushDistance,burnDps:a.burnDps,burnDuration:a.burnDuration,chargeHit:a.chargeHit});
+      r:a.range,reach:a.range,halfAngle:a.halfAngle??24,age:0,duration:a.duration,pulse:0,dps:a.dps,push:a.pushDistance,burnDps:a.burnDps,burnDuration:a.burnDuration,chargeHit:a.chargeHit});
     return true;
   }
   if(a.behavior==='cybertruck'){
@@ -80,7 +80,7 @@ export function updateMuskZone(ctx,z,dt){
       if(wall)hitWall(ctx,wall,5,null);
       for(const target of foes(ctx,owner)){
         const dx=target.x-z.x,dy=target.y-z.y,d=Math.hypot(dx,dy);
-        if(d>z.r+target.r||(d>0&&(dx*z.ux+dy*z.uy)/d<Math.cos(24*Math.PI/180))||!clearRay(ctx,z.x,z.y,dx,dy))continue;
+        if(d>z.r+target.r||(d>0&&(dx*z.ux+dy*z.uy)/d<Math.cos((z.halfAngle??24)*Math.PI/180))||!clearRay(ctx,z.x,z.y,dx,dy))continue;
         if(ctx.damage(target,z.dps*.1,z.owner,z.x,z.y,0,false,false)){
           charge(owner,z.chargeHit);
           if(target.alive){
