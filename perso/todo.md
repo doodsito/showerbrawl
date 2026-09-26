@@ -17,7 +17,7 @@ Brawl Stars avec des politiciens, 10v10 en ligne sur mobile (navigateur), octogo
 | Arène | Vue de dessus, octogone UFC sur le toit, 2 héliports (spawns), obstacles rectangulaires |
 | Style | Pixel art IA retouché main, grosses têtes |
 | Stack | Client Phaser 3 + Vite (JS). Serveur Node + Express + Socket.io, autoritaire 20 ticks/s |
-| Infra | 1 process (le serveur sert le client buildé), Docker Compose sur VM Oracle ARM (US) + cloudflared tunnel (HTTPS) |
+| Infra | 1 process (le serveur sert le client buildé), Docker Compose sur VM Oracle ARM (US) derrière nginx + Cloudflare, `showerbrawl.doodsito.com` |
 
 ## Architecture
 
@@ -36,7 +36,8 @@ showerbrawl/
     characters.js    config des 10 persos (stats + 3 capacités)
     protocol.js      noms des messages réseau
   Dockerfile
-  docker-compose.yml (app + cloudflared)
+  docker-compose.yml
+  infra/nginx/       config du site nginx
 ```
 
 ## Contrats à figer en première demi-heure (avant de se séparer)
@@ -62,7 +63,7 @@ trump: {
 - [ ] Repo : structure client/server/shared, Vite + Express + Socket.io
 - [ ] Figer `protocol.js` et le format de `characters.js`
 - [ ] Carré qui bouge, visible par plusieurs clients
-- [ ] Dockerfile + compose + cloudflared sur la VM Oracle, URL HTTPS accessible depuis un téléphone
+- [ ] Dockerfile + compose sur la VM Oracle, `showerbrawl.doodsito.com` accessible depuis un téléphone
 - [ ] Style graphique figé (1 perso de référence grosse tête)
 
 ### H1 - H3 : Combat jouable avec 2 persos
@@ -102,32 +103,39 @@ trump: {
 | 4 | Config persos, lobby, écran hôte/spectateur, écran de fin, intégration |
 
 ## À faire avant le jour J
-- [ ] Vérifier sur la VM Oracle : Docker installé, image ARM qui build, tunnel cloudflared fonctionnel
+- [ ] Vérifier sur la VM Oracle : Docker installé, image ARM qui build, `showerbrawl.doodsito.com` accessible en HTTPS
 - [ ] Préparer les prompts IA pour le style pixel art grosses têtes
 
 ## Chantier infra (Robin)
 
 Objectif : un pipeline de déploiement validé de bout en bout avant le jour J, sur lequel l'équipe n'a plus qu'à pousser son code.
 
+### État de la VM (vérifié)
+- Ubuntu 24.04 aarch64, 4 cœurs, 24 Go RAM, 36 Go libres, Docker 29 installé
+- Déjà en place : nginx (80/443) avec cert Cloudflare Origin wildcard `*.doodsito.com`, n8n (5678), eivom-api (127.0.0.1:8000)
+- DNS `doodsito.com` sur Cloudflare
+- Donc on réutilise ce pattern au lieu de cloudflared : `showerbrawl.doodsito.com` -> nginx (TLS) -> app Docker sur `127.0.0.1:3000`. URL fixe pour le QR code.
+
 ### Sur la VM Oracle (manuel)
-- [ ] `uname -m` -> confirmer `aarch64`
-- [ ] Installer Docker : `curl -fsSL https://get.docker.com | sh` puis `sudo usermod -aG docker $USER`
-- [ ] `git clone` du repo sur la VM
-- [ ] Aucun port à ouvrir : cloudflared sort en connexion sortante
+- [X] `uname -m` -> confirmer `aarch64`
+- [ ] Cloudflare : enregistrement A `showerbrawl` -> `141.253.101.248`, proxied (orange)
+- [ ] `sudo usermod -aG docker ubuntu` puis se reconnecter
+- [ ] `git clone` du repo dans `~/showerbrawl`
+- [ ] Installer le site nginx `showerbrawl.doodsito.com` (headers WebSocket `Upgrade`/`Connection`), puis `sudo nginx -t && sudo systemctl reload nginx`
 
 ### À coder ensemble (dans le repo)
 - [ ] `server/index.js` minimal : Express sert `client/dist`, Socket.io répond aux `ping`, route `/health`
 - [ ] Page de test `client/` : affiche la latence mesurée (téléphone -> serveur US) et le nombre de connectés
 - [ ] `Dockerfile` multi-stage : build Vite puis image Node slim (build ARM directement sur la VM)
-- [ ] `docker-compose.yml` : service `app` + service `cloudflared` (quick tunnel, URL `*.trycloudflare.com`)
-- [ ] `deploy.sh` : `git pull && docker compose up -d --build` puis affiche l'URL du tunnel
+- [ ] `docker-compose.yml` : service `app` lié à `127.0.0.1:3000`
+- [ ] `infra/nginx/showerbrawl.doodsito.com` : config nginx (copie du pattern eivom-api + WebSocket)
+- [ ] `deploy.sh` : `git pull && docker compose up -d --build` puis vérifie `/health`
 - [ ] `loadtest.js` : ouvre 20 clients Socket.io qui envoient des inputs à 20/s, mesure la latence (sert au test de H5)
 
 ### Validation
-- [ ] Ouvrir l'URL du tunnel sur un téléphone en 4G : page chargée, WebSocket connecté, latence affichée
+- [ ] Ouvrir https://showerbrawl.doodsito.com sur un téléphone en 4G : page chargée, WebSocket connecté, latence affichée
 - [ ] `loadtest.js` contre la VM : latence stable avec 20 clients
 
-Note : l'URL du quick tunnel change à chaque redémarrage. L'écran hôte génère donc le QR code à partir de sa propre URL (`window.location`), il est toujours juste. Si vous avez un domaine sur Cloudflare, passer à un tunnel nommé pour une URL fixe.
 
 ## Risques
 1. Latence depuis les US (100-150 ms) : compensée par l'auto-aim et l'interpolation, à valider au test de charge.
