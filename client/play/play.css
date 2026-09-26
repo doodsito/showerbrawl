@@ -49,3 +49,15 @@ input{padding:12px;border-radius:10px;border:0;font-size:16px;user-select:text;-
   .btn.big{transform:translateY(15px)}
   .btn span{font-size:11px}.btn img{height:22px;width:28px}
 }
+
+/* Retour de coup: vignette rouge, tremblement, haptique iOS cache, bouton vibrations */
+.hit{position:absolute;inset:0;pointer-events:none;z-index:5;opacity:0;box-shadow:inset 0 0 50px 18px #ff1a1acc}
+.hit.on{animation:hitflash 150ms ease-out}
+.hit.dead{box-shadow:inset 0 0 90px 40px #ff0000ee;animation:hitflash 450ms ease-out}
+@keyframes hitflash{0%{opacity:1}100%{opacity:0}}
+#pad.shake .stick,#pad.shake .btns{animation:padshake 150ms linear}
+@keyframes padshake{0%,100%{translate:0 0}25%{translate:-4px 2px}50%{translate:4px -2px}75%{translate:-2px -1px}}
+.hap{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;left:-10px;top:-10px}
+.vib{background:none;border:0;padding:0 0 0 8px;font-size:16px;line-height:1;opacity:.6;color:inherit}
+.vib.off{opacity:.25;filter:grayscale(1)}
+@media(prefers-reduced-motion:reduce){#pad.shake .stick,#pad.shake .btns{animation:none}}
