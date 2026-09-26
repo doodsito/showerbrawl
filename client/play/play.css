@@ -262,3 +262,5 @@ body[data-phase=playing] .hero{display:none!important}
 /* Bandeau iPhone Safari: installer en plein ecran */
 .a2hs{position:fixed;z-index:20;left:50%;bottom:calc(8px + var(--sb));transform:translateX(-50%);display:flex;align-items:center;gap:8px;max-width:calc(100% - 32px);padding:6px 6px 6px 12px;background:#08111fe6;border:2px solid var(--gold);border-radius:6px;color:var(--goldL);font-size:11px;text-transform:none;letter-spacing:0;box-shadow:0 3px 0 var(--line)}
 .a2hs button{min-width:32px;min-height:32px;border:0;background:none;color:var(--fg);font-size:20px;line-height:1;touch-action:manipulation}
+/* Bandeau en haut, sous le HUD: ne recouvre aucun bouton */
+.a2hs{top:calc(42px + var(--st));bottom:auto}
