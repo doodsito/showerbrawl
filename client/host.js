@@ -12,8 +12,9 @@ const ctx = canvas.getContext('2d');
 let lobby = null;
 let phase = 'lobby';
 
-// Interpolation: rendu à serverTime - 100 ms
-const RENDER_DELAY = 100;
+// Interpolation: rendu à serverTime - 70 ms, extrapolation courte (50 ms max) si le STATE suivant tarde.
+const RENDER_DELAY = 70;
+const MAX_EXTRAPOLATION = 50;
 let updates = [], firstT = 0, start = 0;
 function resetState() { updates = []; firstT = 0; start = 0; }
 function serverTime() { return firstT + (Date.now() - start) - RENDER_DELAY; }
@@ -26,7 +27,7 @@ function pushUpdate(u) {
   if (!firstT) { firstT = u.t; start = Date.now(); }
   updates.push(u);
   const b = baseIndex();
-  if (b > 0) updates.splice(0, b);
+  if (b > 1) updates.splice(0, b - 1); // garde le snapshot precedent pour pouvoir extrapoler
 }
 const lerp = (a, b, r) => a + (b - a) * r;
 function lerpList(l1, l2, r) {
@@ -43,7 +44,14 @@ function lerpList(l1, l2, r) {
 function currentState() {
   if (!firstT || !updates.length) return null;
   const b = baseIndex();
-  if (b < 0 || b === updates.length - 1) return updates[updates.length - 1];
+  if (b < 0) return updates[updates.length - 1];
+  if (b === updates.length - 1) {
+    // Aucun STATE plus recent: on prolonge le mouvement des joueurs au plus 50 ms pour eviter un gel.
+    const last = updates[b], prev = updates[b - 1];
+    if (!prev || last.t <= prev.t) return last;
+    const ahead = Math.min(MAX_EXTRAPOLATION, Math.max(0, serverTime() - last.t));
+    return { ...last, players: lerpList(prev.players, last.players, 1 + ahead / (last.t - prev.t)) };
+  }
   const a = updates[b], n = updates[b + 1];
   const r = (serverTime() - a.t) / ((n.t - a.t) || 1);
   return { ...n, players: lerpList(a.players, n.players, r), projectiles: lerpList(a.projectiles, n.projectiles, r), zones: lerpList(a.zones, n.zones, r), walls: lerpList(a.walls,n.walls,r), effects: lerpList(a.effects,n.effects,r) };
