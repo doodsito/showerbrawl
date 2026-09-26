@@ -1,4 +1,5 @@
-// Musique de fond de l'ecran hote, 100% synthetisee en WebAudio (aucun fichier audio).
+// Musique de fond de l'ecran hote en WebAudio. Lobby: boucle chiptune synthetisee.
+// Combat: /sounds/music_circus.mp3 en boucle (AudioBuffer), repli sur la boucle chiptune tant qu'il n'est pas charge.
 // Module autonome: son propre AudioContext, independant de sfx.js (sons d'action).
 // Deux boucles chiptune: "lobby" (attente avant le combat) et "combat" (marche/hymne detourne, fight-night).
 
@@ -7,6 +8,8 @@ const FADE = 0.6;             // fondu entre les boucles (s)
 const LOOKAHEAD = 0.12;       // fenetre de programmation (s)
 const TICK_MS = 25;
 const STORE_KEY = 'sb_music_muted';
+const TRACK_URL = '/sounds/music_circus.mp3';
+const TRACK_GAIN = 1;         // mesure: RMS moyen du MP3 x VOLUME ~ niveau de la boucle synthetisee, pas d'attenuation
 
 // Notes -> frequence (A4 = 440)
 const NOTE = {};
@@ -64,6 +67,24 @@ try { muted = localStorage.getItem(STORE_KEY) === '1'; } catch (e) {}
 let wanted = null;            // boucle demandee par la phase ('lobby' | 'combat')
 let current = null;           // { name, bus, step, next }
 let timer = null;
+let track = null, trackState = 'idle'; // AudioBuffer du combat: 'idle' | 'loading' | 'ready' | 'failed'
+
+// Chargement en arriere-plan (apres le premier geste). Echec => on garde la boucle synthetisee.
+function loadTrack() {
+  if (trackState !== 'idle' || !ctx) return;
+  trackState = 'loading';
+  fetch(TRACK_URL)
+    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+    .then((b) => new Promise((ok, ko) => { const p = ctx.decodeAudioData(b, ok, ko); if (p && p.catch) p.catch(ko); }))
+    .then((buf) => {
+      track = buf; trackState = 'ready';
+      console.log('[music] combat track loaded', buf.duration.toFixed(1) + 's');
+      if (wanted === 'combat') switchTo('combat');
+    })
+    .catch((e) => { trackState = 'failed'; console.warn('[music] combat track failed, keeping chiptune', e && e.message); });
+}
+// Nom effectif de la boucle: le combat passe sur le MP3 des qu'il est pret.
+const resolve = (name) => (name === 'combat' && track ? 'combatTrack' : name);
 
 function ensureCtx() {
   if (ctx) return ctx;
@@ -126,7 +147,7 @@ function scheduleStep(song, bus, i, t) {
 }
 
 function tick() {
-  if (!ctx || !current) return;
+  if (!ctx || !current || current.src) return;
   const song = SONGS[current.name];
   const sd = 60 / song.bpm / 4;
   while (current.next < ctx.currentTime + LOOKAHEAD) {
@@ -139,6 +160,7 @@ function tick() {
 // Bascule avec fondu: l'ancienne boucle s'eteint, la nouvelle monte.
 function switchTo(name) {
   if (!ctx || ctx.state !== 'running') return;
+  name = resolve(name);
   if (current && current.name === name) return;
   const now = ctx.currentTime;
   if (current) {
@@ -146,6 +168,8 @@ function switchTo(name) {
     old.gain.cancelScheduledValues(now);
     old.gain.setValueAtTime(old.gain.value, now);
     old.gain.linearRampToValueAtTime(0, now + FADE);
+    const oldSrc = current.src;
+    if (oldSrc) try { oldSrc.stop(now + FADE + 0.05); } catch (e) {}
     setTimeout(() => { try { old.disconnect(); } catch (e) {} }, (FADE + 1) * 1000);
   }
   if (!name) { current = null; return; }
@@ -154,6 +178,13 @@ function switchTo(name) {
   bus.gain.linearRampToValueAtTime(1, now + FADE);
   bus.connect(master);
   current = { name, bus, step: 0, next: now + 0.05 };
+  if (name === 'combatTrack') {
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = track; src.loop = true; g.gain.value = TRACK_GAIN;
+    src.connect(g).connect(bus); src.start(now + 0.02);
+    current.src = src;
+  }
+  console.log('[music] playing', name);
   if (!timer) timer = setInterval(tick, TICK_MS);
 }
 
@@ -167,7 +198,7 @@ export const Music = {
   unlock() {
     try {
       if (!ensureCtx()) return;
-      const go = () => { if (wanted) switchTo(wanted); };
+      const go = () => { loadTrack(); if (wanted) switchTo(wanted); };
       if (ctx.state !== 'running') {
         // Safari exige un son joue pendant le geste: buffer muet d'un echantillon.
         const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, 22050); s.connect(ctx.destination); s.start(0);
@@ -185,8 +216,9 @@ export const Music = {
       master.gain.setValueAtTime(master.gain.value, now);
       master.gain.linearRampToValueAtTime(muted ? 0 : VOLUME, now + 0.2);
     }
+    console.log('[music] muted', muted);
     return muted;
   },
   // Pour les tests / debug.
-  state() { return { ctx: ctx ? ctx.state : 'none', playing: current ? current.name : null, muted }; },
+  state() { return { ctx: ctx ? ctx.state : 'none', playing: current ? current.name : null, muted, track: trackState }; },
 };
