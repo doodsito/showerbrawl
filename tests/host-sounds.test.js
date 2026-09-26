@@ -79,13 +79,15 @@ test('host joue les MP3 de Trump, le synthe pour Biden et fx_victory', { timeout
     }
   }
   game.score.A = 1; game.end();
-  await wait(1000);
+  // Attente explicite: ecran de fin affiche puis log fx_victory (pas de delai fixe).
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#end')).display !== 'none', null, { timeout: 30000 });
+  for (let i = 0; i < 300 && !logs.some((l) => l.includes('[sfx] fichier joue fx_victory.mp3')); i++) await wait(100);
 
   for (const slot of ['attack', 'defense', 'super']) {
     assert.ok(logs.some((l) => l.includes(`[sfx] fichier joue trump_${slot}.mp3`)), `trump_${slot} non joue\n${logs.join('\n')}`);
     assert.ok(logs.some((l) => l.includes(`[sfx] synth biden_${slot}`)), `biden_${slot} pas en synthe`);
   }
   assert.ok(!logs.some((l) => l.includes('fichier joue biden_')));
-  assert.ok(logs.some((l) => l.includes('[sfx] fichier joue fx_victory.mp3')), 'fx_victory non joue');
+  assert.ok(logs.some((l) => l.includes('[sfx] fichier joue fx_victory.mp3')), `fx_victory non joue\n${logs.join('\n')}`);
   assert.deepEqual(errors, []);
 });
