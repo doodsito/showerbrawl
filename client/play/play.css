@@ -192,3 +192,19 @@ body[data-phase=playing][data-alive="0"] .halo{opacity:.06}
   .btn{width:min(82%,68px)}.btn[data-k=attack]{width:min(100%,84px)}
   .btn span{font-size:9px}.btn.big span{font-size:11px}
 }
+
+/* ---------- Cleanup v3: la manette n'affiche que score, timer, vibration (l'ecran hote porte le reste) ---------- */
+#hp,.kit-hint,.hints,.stick>small,.who span,.tag,.status{display:none!important}
+.band{right:auto;max-width:44%;height:32px;padding:1px 8px 1px 3px;gap:6px;border-top-width:3px}
+.chip{flex-basis:24px;height:24px}.chip img{width:22px;height:22px}.chip b{font-size:13px}
+.who b{font-size:11px}
+.hud{top:calc(4px + var(--st));left:auto;right:calc(6px + var(--sr));transform:none;height:32px;padding:0 10px;font-size:13px}
+.wait,.respawn{top:calc(48px + var(--st))}
+.hero{top:calc(40px + var(--st));height:calc(100vh - 40px - min(40vh,300px) + 20px - var(--st) - var(--sb))}
+.stick{top:calc(44px + var(--st));bottom:calc(10px + var(--sb))}
+.btns{bottom:calc(14px + var(--sb))}
+@media(max-height:520px){
+  .band{height:30px;max-width:40%}
+  .hud{height:30px}
+  .stick,.btns{top:calc(42px + var(--st))}
+}
