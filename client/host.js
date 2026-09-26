@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
 import { render, pushEvents } from './scene.js';
+import { preloadCombatArt } from './combat-assets.js';
 
 // Hook d'evenements de combat pour les sons d'action (ou tout autre effet), independant des projectiles.
 // Usage: import { onCombatEvent } from './host.js'; onCombatEvent((e) => { if (e.k === 'hit') ... });
@@ -110,6 +111,7 @@ addEventListener('resize', resize); resize();
 function showLobby(d) {
   try {
     lobby = d; phase = d.phase || 'lobby';
+    preloadCombatArt(d.characters);
     Music.setPhase(phase);
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
     $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
