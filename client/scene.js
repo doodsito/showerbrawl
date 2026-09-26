@@ -1,5 +1,6 @@
 import { getSprite, getImage } from './sprites.js';
 import { combatFX } from './combat-fx.js';
+import { spriteLayout } from './sprite-layout.js';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const poses = new Map();
 const seen = new Set();
@@ -211,7 +212,7 @@ function drawFx(ctx, state, b) {
 function drawPlayer(ctx, p, characters, time) {
   const R=15, col=TEAM_COL[p.team]||'#fff', quiet=reducedMotion.matches;
   const img=getImage(characters?.[p.character]?.sprite||p.character,p.character);
-  const cfg=characters?.[p.character]||{}, full=img&&!!cfg.fullBody, h=full?76:51; // rendu en pied: champ fullBody du perso
+  const cfg=characters?.[p.character]||{}, {full,h}=spriteLayout(cfg,!!img); // rendu en pied: champ fullBody du perso
   let pose=poses.get(p.id);
   if(!pose){pose={x:p.x,y:p.y,t:time,phase:0,walk:0};poses.set(p.id,pose);}
   const dt=Math.min(.1,Math.max(0,time-pose.t)),distance=Math.hypot(p.x-pose.x,(p.y-pose.y)*3);

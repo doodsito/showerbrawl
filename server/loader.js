@@ -5,8 +5,8 @@ import { ABILITY_TYPES } from '../shared/protocol.js';
 const read = (f) => JSON.parse(readFileSync(fileURLToPath(new URL(`../shared/${f}`, import.meta.url)), 'utf8'));
 const SLOTS = ['attack', 'defense', 'super'];
 
-function loadCharacters() {
-  const raw = read('characters.json');
+// Normalise un objet characters (meme regles pour le fichier et pour les tests).
+export function normalizeCharacters(raw) {
   const out = {};
   for (const [id, c] of Object.entries(raw)) {
     if (id.startsWith('_') || !c || typeof c !== 'object') continue;
@@ -20,6 +20,10 @@ function loadCharacters() {
     out[id] = ch;
   }
   return out;
+}
+
+function loadCharacters() {
+  return normalizeCharacters(read('characters.json'));
 }
 
 function loadArena() {
