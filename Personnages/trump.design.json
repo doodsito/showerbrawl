@@ -1,21 +1,21 @@
 {
-  "schemaVersion": "1.0.0",
+  "_status": "Document de design (Leo), NON branche au moteur. La source de verite du jeu est shared/characters.json. Differences chiffrees listees dans le README (section Personnages: design vs jeu).",
   "format_version": 2,
-  "asset_name": "musk",
-  "role": "player_character",
+  "asset_name": "trump",
+  "schemaVersion": "1.0.0",
   "visual": {
     "style": "16-bit pixel-art arcade",
     "perspective": "top_down_3_4",
-    "description": "Veste en cuir noir, t-shirt sombre, silhouette high-tech et posture de combattant.",
+    "description": "Costume rouge et bleu, silhouette imposante, poings fermés; posture lourde et assurée.",
     "assetRequirements": {
       "frameSource": "sprite_atlas",
       "frameIndexing": "zero_based",
-      "note": "Les PNG existants sont des illustrations fixes, pas une spritesheet. Les indices frames sont des emplacements logiques à relier à un atlas animé avant intégration moteur."
+      "note": "Les images sources disponibles sont des illustrations fixes, pas des spritesheets. Les indices frames ci-dessous sont des emplacements logiques à relier à un atlas animé avant intégration moteur."
     }
   },
   "physics": {
     "speed": {
-      "value": 185,
+      "value": 150,
       "unit": "pixels_per_second"
     },
     "pivot": {
@@ -25,8 +25,8 @@
     },
     "hitbox": {
       "shape": "rectangle",
-      "width": 24,
-      "height": 13,
+      "width": 26,
+      "height": 14,
       "unit": "pixels",
       "offset": {
         "x": 0,
@@ -84,43 +84,11 @@
           6,
           7,
           8,
-          9,
-          10,
-          11,
-          12,
-          13,
-          14,
-          15,
-          16,
-          17
+          9
         ],
-        "frameRate": 18,
+        "frameRate": 14,
         "loop": false,
-        "nextState": "recovery",
-        "events": [
-          {
-            "frame": 2,
-            "event": "start_flame_spray"
-          },
-          {
-            "frame": 17,
-            "event": "stop_flame_spray"
-          }
-        ]
-      },
-      "recovery": {
-        "frames": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5,
-          6
-        ],
-        "frameRate": 12,
-        "loop": false,
-        "nextState": "idle"
+        "nextState": "recovery"
       },
       "ultimate": {
         "frames": [
@@ -177,42 +145,11 @@
           50,
           51,
           52,
-          53,
-          54,
-          55
+          53
         ],
         "frameRate": 18,
         "loop": false,
-        "nextState": "idle",
-        "events": [
-          {
-            "frame": 8,
-            "event": "spawn_cybertruck"
-          },
-          {
-            "frame": 36,
-            "event": "resolve_vehicle_collision"
-          },
-          {
-            "frame": 37,
-            "event": "steel_ball_and_dogecoin_burst"
-          }
-        ]
-      },
-      "taunt": {
-        "frames": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7
-        ],
-        "frameRate": 8,
-        "loop": true,
-        "nextState": null
+        "nextState": "idle"
       },
       "hit": {
         "frames": [
@@ -243,6 +180,65 @@
         "frameRate": 10,
         "loop": false,
         "nextState": null
+      },
+      "recovery": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "frameRate": 12,
+        "loop": false,
+        "nextState": "idle"
+      },
+      "taunt": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "frameRate": 12,
+        "loop": true,
+        "nextState": null,
+        "events": [
+          {
+            "frame": 0,
+            "event": "ymca_step_1"
+          },
+          {
+            "frame": 4,
+            "event": "ymca_step_2"
+          },
+          {
+            "frame": 8,
+            "event": "ymca_step_3"
+          },
+          {
+            "frame": 12,
+            "event": "ymca_step_4"
+          }
+        ],
+        "sync": {
+          "steps": 4,
+          "tempoBpm": 120,
+          "framesPerStep": 4
+        }
       }
     },
     "transitions": [
@@ -264,7 +260,7 @@
       {
         "from": "attack_light",
         "to": "recovery",
-        "when": "attack_released_or_max_duration"
+        "when": "animation_complete"
       },
       {
         "from": "recovery",
@@ -285,6 +281,16 @@
         "from": "any_non_death",
         "to": "death",
         "when": "health_zero"
+      },
+      {
+        "from": "idle",
+        "to": "taunt",
+        "when": "taunt_pressed"
+      },
+      {
+        "from": "taunt",
+        "to": "idle",
+        "when": "taunt_released"
       }
     ],
     "statePriority": [
@@ -299,110 +305,83 @@
   },
   "attacks": {
     "light": {
-      "name": "Flamethrower Spray",
-      "type": "continuous_cone",
-      "triggerFrame": 2,
-      "durationFrames": 16,
-      "damagePerSecond": 34,
-      "cone": {
-        "range": 150,
-        "angleDegrees": 48,
-        "unit": "pixels",
-        "tickRateHz": 10
+      "name": "POW!",
+      "type": "melee",
+      "range": 34,
+      "unit": "pixels",
+      "damage": 18,
+      "hitbox": {
+        "shape": "rectangle",
+        "width": 30,
+        "height": 20,
+        "durationFrames": 3
       },
-      "projectile": {
-        "speed": 300,
-        "unit": "pixels_per_second",
-        "behavior": "continuous_flame_stream"
-      },
-      "impact": {
-        "shape": "cone",
-        "statusEffect": {
-          "type": "burn",
-          "durationMs": 900,
-          "damagePerSecond": 8
-        }
-      },
-      "boundary_clamp": {
-        "enabled": true,
-        "mode": "clip_cone_to_arena"
+      "triggerFrame": 3,
+      "knockback": 90,
+      "unitForKnockback": "pixels_per_second",
+      "vfx": {
+        "asset": "punch_fx",
+        "text": "POW!"
       }
     },
     "ultimate": {
-      "name": "Cybertruck Rampage",
-      "type": "vehicle_charge",
+      "name": "MAGA Wall Drop",
+      "type": "arena_hazard",
+      "damage": 42,
       "triggerFrame": 8,
-      "damage": 48,
-      "vehicle": {
-        "asset": "cybertruck",
-        "speed": 620,
-        "unit": "pixels_per_second",
-        "path": "straight_line",
-        "width": 92,
-        "height": 48,
-        "durationMs": 1600
-      },
-      "range": "arena_width",
-      "collision": {
-        "against": "arena_wall",
-        "wallDamage": 180,
-        "event": "steel_ball_and_dogecoin_burst"
+      "spawn": {
+        "asset": "maga_wall",
+        "position": "target_ground_point",
+        "warningDurationMs": 650
       },
       "impact": {
         "shape": "rectangle",
-        "damage": 48,
-        "knockback": 300
+        "width": 128,
+        "height": 42,
+        "durationMs": 1800,
+        "knockback": 260
       },
-      "onWallImpact": {
-        "trigger": "vehicle_wall_collision",
-        "burst": {
-          "distribution": "radial_360",
-          "count": 24,
-          "damage": 12,
-          "projectiles": [
-            {
-              "asset": "steel_ball",
-              "name": "Stainless Steel Ball",
-              "speed": 340,
-              "range": 190
-            },
-            {
-              "asset": "dogecoin",
-              "name": "Dogecoin",
-              "speed": 260,
-              "range": 150
-            }
-          ]
-        },
-        "boundary_clamp": {
-          "enabled": true,
-          "mode": "clamp_vehicle_and_burst_origin_inside_arena",
-          "margin": 12
-        }
+      "physics": {
+        "solid": true,
+        "blocksMovement": true,
+        "destructible": true,
+        "health": 120
       },
+      "range": 420,
+      "unit": "pixels",
       "boundary_clamp": {
         "enabled": true,
-        "mode": "clamp_vehicle_path_to_arena",
-        "margin": 12
+        "mode": "clamp_spawn_and_collision_to_arena",
+        "margin": 8
       }
     }
   },
   "assets": {
-    "character": "Musk.png",
-    "lightAttackVfx": "flamme.png",
-    "ultimateVehicle": "cybertruck.png",
-    "steelBall": "generated_projectile_steel_ball",
-    "dogecoin": "generated_projectile_dogecoin"
+    "character": "sprites/trump.png",
+    "lightAttackVfx": "sprites/fx_punch.png",
+    "ultimateProp": "sprites/trump_defense.png"
   },
   "arena": {
     "coordinateSpace": "world_pixels",
     "boundaryClamp": true
   },
   "meta": {
-    "displayName": "Elon Musk",
+    "displayName": "Donald Trump",
     "entityType": "player_character",
     "style": "16-bit pixel-art arcade",
     "perspective": "top_down_3_4",
-    "description": "Veste en cuir noir, t-shirt sombre, silhouette high-tech et posture de combattant."
+    "description": "Costume rouge et bleu, silhouette imposante, poings fermés; posture lourde et assurée.",
+    "id": "trump"
+  },
+  "runtimeIntegration": {
+    "runtimeFile": "shared/characters.json",
+    "supportedAbilityTypes": [
+      "projectile",
+      "burst",
+      "zone",
+      "dash",
+      "shield"
+    ],
+    "note": "Les animations et capacités décrites ici documentent le design. Le moteur actuel ne lit pas encore cette machine à états ni les comportements de cône continu et de véhicule."
   }
 }

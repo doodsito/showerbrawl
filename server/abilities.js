@@ -1,4 +1,5 @@
-import { charge, isLabFighter, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
+import { castMusk, updateMuskZone } from './musk-combat.js';
+import { charge, hasLabKit, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
 // 5 briques generiques, parametrees par le JSON du pouvoir. Aucune classe en dur.
 // ctx = { players: Map, projectiles: [], zones: [], physics, damage(target, amount, src, fromX, fromY, kb), nextId() }
 
@@ -13,7 +14,7 @@ export function nearestEnemy(ctx, p, maxRange = Infinity) {
   return best;
 }
 
-// Combat 100% corps a corps: rien ne vole a travers l'arene.
+// Generic bricks remain melee. Musk's lab behaviors are dispatched separately below.
 // Les 5 types de protocol.js sont conserves mais interpretes en melee:
 //   projectile -> coup au contact (ennemi le plus proche a portee de bras)
 //   burst      -> onde de choc au sol centree sur le lanceur (tous les ennemis proches)
@@ -95,9 +96,9 @@ export function dashHits(ctx, p) {
 
 export function cast(ctx, p, slot) {
   const a = p.char[slot];
-  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || (isLabFighter(p) && p.dashT > 0)) return false;
+  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || (hasLabKit(p) && p.dashT > 0)) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
-  const handler = a.behavior ? castLab : BRICKS[a.type];
+  const handler = ['flamethrower','hyperloop','cybertruck'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
   if (!handler || handler(ctx, p, a) === false) return false;
   if (a.charge) p.energy = 0;
   p.cd[slot] = a.cooldown || 1;
@@ -105,7 +106,7 @@ export function cast(ctx, p, slot) {
   p.action = slot;
   if (slot !== 'defense') p.protectT = 0;
   console.log(`[cast] ${p.name} ${slot} ${a.type} "${a.label || ''}"`);
-  ctx.events?.push({ k: 'cast', id: p.id, slot, type: a.type, label: a.label || a.type, team: p.team, x: Math.round(p.x), y: Math.round(p.y), lab:isLabFighter(p) });
+  ctx.events?.push({ k: 'cast', id: p.id, slot, type: a.type, label: a.label || a.type, team: p.team, x: Math.round(p.x), y: Math.round(p.y), lab:hasLabKit(p) });
   return true;
 }
 
@@ -116,7 +117,7 @@ export function updateProjectiles(ctx, dt) {
     for (let i = 0; i < steps; i++) {
       const dx = pr.vx * stepTime / steps, dy = pr.vy * stepTime / steps;
       const wall = firstWall(ctx, pr, dx, dy);
-      if (wall) { hitWall(ctx, wall, pr.wallDamage??12, pr.visual==='baguette'||pr.visual==='decree'?null:pr.owner); return false; }
+      if (wall) { hitWall(ctx, wall, pr.wallDamage??12, pr.chargeHit===0||pr.visual==='baguette'||pr.visual==='decree'?null:pr.owner); return false; }
       pr.x += dx; pr.y += dy;
       if (physics.collidesWithWall(pr.x, pr.y, pr.r, false)) return false;
       for (const o of ctx.players.values()) {
@@ -137,6 +138,7 @@ export function updateProjectiles(ctx, dt) {
 
 export function updateZones(ctx, dt) {
   ctx.zones = ctx.zones.filter((z) => {
+    if(z.kind==='flamethrower'||z.kind==='cybertruck')return updateMuskZone(ctx,z,dt);
     if (z.kind === 'micDrop' || z.kind === 'decree') return updateMicDrop(ctx, z, dt);
     z.ttl -= dt;
     if (z.follow) {

@@ -1,9 +1,10 @@
+import { updateMuskBurns } from './musk-combat.js';
 // Boucle autoritaire: une salle publique, 2 equipes, manche au timer.
 import { CONFIG } from '../shared/config.js';
 import { MSG } from '../shared/protocol.js';
 import { makePhysics } from './physics.js';
 import { cast, updateProjectiles, updateZones, dashHits } from './abilities.js';
-import { isLabFighter, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
+import { hasLabKit, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
 
 const SLOTS = ['attack', 'defense', 'super'];
 const END_SCREEN = 6; // s d'ecran de victoire avant retour lobby
@@ -88,7 +89,7 @@ export class Game {
       p.x = s[0]; p.y = s[1];
     }
     Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
-      energy: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
+      muskBurn:null, carriedBy:null, energy: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
       input: {dx: 0, dy: 0}, pending: {}, shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
       fx: p.team === 'A' ? 1 : -1, fy: 0, cd: { attack: 0, defense: 0, super: 0 } });
   }
@@ -121,14 +122,14 @@ export class Game {
     if (t.protectT > 0 || t.invulnT > 0) return false;
     if (t.shieldT > 0) {
       this.physics.push(t, fromX, fromY, kb * .3);
-      if(!t._blkT || Date.now()-t._blkT>250){t._blkT=Date.now();this.events.push({k:'block',id:t.id,x:Math.round(t.x),y:Math.round(t.y),lab:isLabFighter(t)});}
+      if(!t._blkT || Date.now()-t._blkT>250){t._blkT=Date.now();this.events.push({k:'block',id:t.id,x:Math.round(t.x),y:Math.round(t.y),lab:hasLabKit(t)});}
       return false;
     }
     t.hp = Math.max(0, t.hp - amount); t.flashT = .18;
     if(chargeSource)charge(this.players.get(srcId), amount * 2.2); charge(t, amount);
     if (amount >= 1 || !t._hitEvT || Date.now() - t._hitEvT > 250) {
       t._hitEvT = Date.now();
-      this.events.push({ k:'hit', id:t.id, x:Math.round(t.x), y:Math.round(t.y), amount:Math.round(amount*10)/10, team:t.team, lab:isLabFighter(t)||isLabFighter(this.players.get(srcId)||{}) });
+      this.events.push({ k:'hit', id:t.id, x:Math.round(t.x), y:Math.round(t.y), amount:Math.round(amount*10)/10, team:t.team, lab:hasLabKit(t)||hasLabKit(this.players.get(srcId)||{}) });
     }
     t.lastHit = srcId; t.lastHitT = 3;
     if (kb) this.physics.push(t, fromX, fromY, kb);
@@ -190,7 +191,7 @@ export class Game {
           p.dashT = Math.max(0, p.dashT - step);
         } else if (p.stunT <= 0) {
           let speed = p.char.speed;
-          if (isLabFighter(p)) {
+          if (hasLabKit(p)) {
             const near = [...this.players.values()].filter(o => o !== p && o.alive && o.team !== p.team)
               .sort((a, b) => Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
             const d = near && Math.hypot(p.x-near.x,p.y-near.y);
@@ -202,7 +203,7 @@ export class Game {
         this.physics.applyKnockback(p, dt);
       }
       for (const slot of SLOTS) {
-        const pressed = p.pending[slot] || (p.input[slot] && (slot === 'attack' || !isLabFighter(p)));
+        const pressed = p.pending[slot] || (p.input[slot] && (slot === 'attack' || !hasLabKit(p)));
         if (pressed) cast(this, p, slot);
       }
       p.pending = {};
@@ -210,8 +211,9 @@ export class Game {
 
     const alive = [...this.players.values()].filter((p) => p.alive);
     for (let i = 0; i < alive.length; i++)
-      for (let j = i + 1; j < alive.length; j++) if (!alive[i].launch && !alive[j].launch) this.physics.separate(alive[i], alive[j], CONFIG.PLAYER_RADIUS);
+      for (let j = i + 1; j < alive.length; j++) if (!alive[i].launch && !alive[j].launch && !alive[i].carriedBy && !alive[j].carriedBy) this.physics.separate(alive[i], alive[j], CONFIG.PLAYER_RADIUS);
 
+    updateMuskBurns(this, dt);
     updateProjectiles(this, dt);
     updateZones(this, dt);
 
@@ -251,12 +253,12 @@ export class Game {
         dash: p.dashT > 0 ? {x:p.dashVx,y:p.dashVy,remaining:p.dashT} : null,
         shove: p.shove ? {ux:p.shove.ux,uy:p.shove.uy,progress:1-p.shove.remaining/p.shove.duration} : null,
         launch: p.launch ? {ux:p.launch.ux,uy:p.launch.uy,progress:p.launch.age/p.launch.duration} : null,
-        recoil: p.recoilT,
+        recoil: p.recoilT, burning:!!p.muskBurn, carried:!!p.carriedBy,
 
         cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
       })),
       projectiles: this.projectiles.map((p) => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, team: p.team, visual:p.visual, vx:p.vx, vy:p.vy })),
-      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit })),
+      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit, ux:z.ux, uy:z.uy, reach:z.reach, owner:z.owner })),
       events: this.events.splice(0),
       walls: this.walls.map(w => ({...w})), effects: this.effects.map(e => ({...e})),
       score: this.score,

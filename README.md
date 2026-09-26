@@ -12,6 +12,33 @@ Elle libère d'abord le port 3000 (tue le process qui l'occupe, pour éviter `EA
 
 Écran hôte : http://localhost:5173/ · Manette : scanner le QR affiché (ou http://<IP LAN>:5173/play/).
 
+## Avant le jury
+
+**Rollback en une ligne :** GitHub > Actions > **Rollback** > Run workflow > coller le SHA d'une version qui marchait (visible sur `/health` ou en bas de l'écran hôte) : la prod revient à ce commit en ~1-2 min. Le prochain push sur `main` redéploie normalement la dernière version.
+
+Chaque push lance d'abord `npm test` + `npm run build` : si ça échoue, rien n'est déployé et la prod garde la version précédente.
+
+## Personnages : design vs jeu (à trancher)
+
+`shared/characters.json` est la **seule source de vérité** du jeu. `Personnages/trump.design.json` et `Personnages/obama.design.json` (Leo) sont des documents de design **non branchés**. Écarts chiffrés :
+
+| Perso | Élément | Design (Leo) | Jeu (`characters.json`) |
+|---|---|---|---|
+| Trump | Vitesse | 150 | 200 |
+| Trump | Attaque | « POW! », melee, portée 34, dégâts 18, knockback 90 | « Direct », portée 85, dégâts 9, poussée courte (11 unités) |
+| Trump | Défense | aucune | « Mur MAGA » (mur 6 s, 36 PV) |
+| Trump | Super | « MAGA Wall Drop », mur-piège à distance, portée 420, dégâts 42, knockback 260, mur 120 PV | « You're fired! », portée 130, dégâts 30, projection jusqu'au bord, charge 100 |
+| Obama | Vitesse | 175 | 205 |
+| Obama | Attaque | « Hope Burst », projectile portée 380, dégâts 14 | « Énergie », corps à corps portée 75, dégâts 11, knockback 240 |
+| Obama | Défense | aucune | « Esquive », dash 238 en arrière |
+| Obama | Super | « Mic Drop Strike », ciblé à distance, portée 560, rayon 76, dégâts 55, knockback 220 | « Mic Drop », centré sur Obama (portée 0), rayon 110, dégâts 28, poussée 100, charge 100 |
+
+Le design de Leo prévoit des attaques à distance, alors que le jeu est désormais 100 % corps à corps.
+
+### Ajouter un perso sans toucher au code
+
+Tout se déclare dans `shared/characters.json` (rechargé à chaud par le serveur) : `name`, `hp`, `speed`, `sprite` (PNG dans `client/public/sprites/` ou crâne généré), 3 pouvoirs parmi les 5 types, et optionnellement `fullBody` (rendu en pied), `labKit` (règles du kit labo), `shieldStyle`, `hint` (aide manette). Un pouvoir avec `behavior` passe par le code labo, sinon par les briques génériques.
+
 ## Déploiement automatique
 
 **Pousser sur `main` = déploiement automatique** sur https://showerbrawl.doodsito.com, sans intervention. Délai habituel : **~1 à 2 min** après le push.
@@ -63,3 +90,16 @@ Macron rejoint les kits Trump et Obama :
 - **49.3** : à 100 % de charge, le tampon cible la position de l’ennemi le plus proche. Impact après 0,55 seconde, 28 dégâts dans un rayon de 60, recul et destruction des murs dans la zone. Neuf projectiles partent ensuite vers l’extérieur, dans les limites du terrain. Le super ne recharge pas sa propre jauge.
 
 Le ciblage, les dégâts, le bouclier et la charge sont décidés par le serveur ; les alliés ne subissent pas de dégâts. Les icônes des baguettes et des lunettes viennent du labo, et le tampon est animé en Canvas.
+
+
+## Musk — kit multijoueur du lab
+
+Musk utilise le sprite de l’équipe (`Musk perso/Musk.png`) sur l’hôte et la manette. Ses capacités sont calculées côté serveur dans `server/musk-combat.js` ; l’hôte dessine les mêmes zones et trajectoires.
+
+- **Lance-flammes** : cône de 48°, portée 150, jet de 0,85 s. 34 dégâts/s, brûlure de 8 dégâts/s pendant 0,9 s. Chaque pulsation repousse de 6 unités sans étourdir et donne 5 % de charge. Les murs, boucliers et protections de réapparition bloquent les dégâts.
+- **Hyperloop** : esquive de 260 unités en 0,18 s, direction du joystick ou recul par défaut. Recharge 4 s ; bloque sur les murs et joueurs, sans dégâts ni invulnérabilité.
+- **Cybertruck** : nécessite 100 % de charge. Après 0,44 s, avance à 620 unités/s et inflige 48 dégâts par ennemi touché, puis entraîne les cibles vers le bord. Le choc contre un obstacle libère les cibles et émet des billes d’acier/Dogecoins (6 dégâts chacun), sans recharger le super. Les alliés sont épargnés. La mort d’une cible transportée est comptée à sa libération.
+
+Les autres kits conservent les règles de corps à corps de l’équipe. Le lab reste indépendant ; ce port ne publie pas les changements locaux de Biden.
+
+Vérification ciblée : `node --test tests/musk-combat.test.js tests/multiplayer-combat.test.js`, puis `npm run build`.

@@ -1,7 +1,7 @@
 {
-  "_schema": {"note": "Un objet par perso. type DOIT etre dans: projectile, burst, zone, dash, shield. Rien d'autre. L'equipe persos remplit ce fichier, ne touche pas au code.", "fields": {"name": "affiche a l'ecran", "hp": "points de vie", "speed": "vitesse px/s", "sprite": "chemin d'un PNG servi par Vite (ex: sprites/trump.png, fichier dans client/public/sprites/) OU id de crane genere au runtime (client/sprites.js) si pas de PNG", "attack/defense/super": "un pouvoir chacun, parametre une des 5 briques"}},
+  "_schema": {"note": "Un objet par perso. type DOIT etre dans: projectile, burst, zone, dash, shield. Rien d'autre. L'equipe persos remplit ce fichier, ne touche pas au code.", "fields": {"name": "affiche a l'ecran", "hp": "points de vie", "speed": "vitesse px/s", "sprite": "chemin d'un PNG servi par Vite (ex: sprites/trump.png, fichier dans client/public/sprites/) OU id de crane genere au runtime (client/sprites.js) si pas de PNG", "attack/defense/super": "un pouvoir chacun, parametre une des 5 briques", "labKit": "optionnel, true = regles du kit labo: acceleration au contact, defense/super a l'appui seulement, pas de pouvoir pendant un dash, effets labo cote client", "fullBody": "optionnel, true = sprite PNG dessine en pied (grande taille) au lieu du format tete", "shieldStyle": "optionnel, 'sunglasses' = bulle bleue + lunettes de soleil sur le sprite pendant le bouclier", "hint": "optionnel, texte d'aide affiche sur la manette sous les boutons", "behavior (dans un pouvoir)": "optionnel, un pouvoir avec behavior passe par le code labo (server/lab-combat.js), sinon par les 5 briques"}},
   "trump": {
-    "name": "Trump", "hp": 100, "speed": 200, "sprite": "sprites/trump.png",
+    "name": "Trump", "hp": 100, "speed": 200, "sprite": "sprites/trump.png", "labKit": true, "fullBody": true, "hint": "Direct au contact · Mur devant toi · Super chargé en combat",
     "attack": {"type": "zone", "behavior": "punch", "damage": 9, "range": 85, "cooldown": 0.42, "label": "Direct", "icon": "sprites/fx_punch.png"},
     "defense": {"type": "shield", "behavior": "wall", "duration": 6, "cooldown": 9, "label": "Mur MAGA", "icon": "sprites/trump_defense.png"},
     "super":  {"type": "zone", "behavior": "fired", "damage": 30, "range": 130, "cooldown": 1.1, "charge": 100, "label": "You’re fired!"}
@@ -13,13 +13,13 @@
     "super":  {"type": "burst", "radius": 140, "damage": 22, "knockback": 480, "cooldown": 13, "label": "Executive Order"}
   },
   "musk": {
-    "name": "Musk", "hp": 95, "speed": 210, "sprite": "musk",
-    "attack": {"type": "projectile", "damage": 7, "range": 70, "knockback": 170, "cooldown": 0.22, "label": "Tweet 3h du mat"},
-    "defense": {"type": "dash", "distance": 280, "duration": 0.12, "damage": 10, "knockback": 380, "cooldown": 4, "label": "Hyperloop"},
-    "super":  {"type": "zone", "radius": 130, "damage": 34, "duration": 1.2, "knockback": 120, "cooldown": 15, "label": "Starlink"}
+    "name": "Musk", "hp": 95, "speed": 210, "sprite": "sprites/musk.png", "labKit": true, "fullBody": true, "hint": "Lance-flammes : recul et brûlure · Hyperloop : esquive · Cybertruck chargé en combat",
+    "attack": {"type":"zone","behavior":"flamethrower","range":150,"duration":0.85,"dps":34,"pushDistance":6,"burnDps":8,"burnDuration":0.9,"chargeHit":5,"cooldown":1.1,"label":"Lance-flammes","icon":"sprites/musk_attack.png"},
+    "defense": {"type":"dash","behavior":"hyperloop","distance":260,"duration":0.18,"invulnerable":false,"away":true,"cooldown":4,"label":"Hyperloop","icon":"sprites/musk_hyperloop.svg"},
+    "super": {"type":"zone","behavior":"cybertruck","damage":48,"cooldown":1.1,"charge":100,"label":"Cybertruck","icon":"sprites/musk_super.png"}
   },
   "obama": {
-    "name": "Obama", "hp": 100, "speed": 205, "sprite": "sprites/obama.png",
+    "name": "Obama", "hp": 100, "speed": 205, "sprite": "sprites/obama.png", "labKit": true, "fullBody": true,
     "attack": {"type": "projectile", "damage": 11, "range": 75, "knockback": 240, "cooldown": 0.42, "label": "Énergie", "icon": "sprites/obama_attack.png"},
     "defense": {"type": "dash", "distance": 238, "duration": 0.28, "away": true, "invulnerable": false, "cooldown": 3.5, "label": "Esquive", "icon": "sprites/obama.png"},
     "super":  {"type": "zone", "behavior": "micDrop", "damage": 28, "radius": 110, "range": 0, "delay": 0.85, "cooldown": 1.1, "charge": 100, "label": "Mic Drop", "icon": "sprites/obama_super.png"}
@@ -49,7 +49,7 @@
     "super":  {"type": "projectile", "damage": 42, "range": 100, "knockback": 700, "cooldown": 14, "label": "I'll Be Back"}
   },
   "macron": {
-    "name": "Macron", "hp": 100, "speed": 200, "sprite": "sprites/macron.png",
+    "name": "Macron", "hp": 100, "speed": 200, "sprite": "sprites/macron.png", "labKit": true, "fullBody": true, "shieldStyle": "sunglasses", "hint": "Baguettes : +25 % par impact · Lunettes : bouclier · 49.3 ciblé",
     "attack": {"type": "projectile", "damage": 6, "range": 80, "knockback": 180, "cooldown": 0.3, "label": "Triple baguette", "icon": "sprites/macron_baguettes.svg"},
     "defense": {"type": "shield", "duration": 1.6, "cooldown": 6, "label": "Lunettes de soleil", "icon": "sprites/macron_sunglasses.svg"},
     "super":  {"type": "burst", "radius": 150, "damage": 26, "knockback": 520, "cooldown": 1.1, "label": "49.3", "icon": "sprites/macron_super.png", "charge": 100}

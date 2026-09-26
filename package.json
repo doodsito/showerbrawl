@@ -9,7 +9,8 @@
     "loadtest": "node scripts/loadtest.js",
     "predev:all": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
     "dev:all": "concurrently -k \"node server/index.js\" \"vite\"",
-    "start:all": "npm run dev:all"
+    "start:all": "npm run dev:all",
+    "test": "node --test tests/*.test.js laboratoire/maison-blanche/tests/*.test.js"
   },
   "dependencies": {
     "express": "^5.2.1",
