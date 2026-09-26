@@ -7,6 +7,7 @@ import { cast, updateProjectiles, updateZones, dashHits } from './abilities.js';
 import { hasLabKit, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
 
 const SLOTS = ['attack', 'defense', 'super'];
+const RECOVERY_MOVE_SCALE = 0.65; // ralentissement post-attaque, identique pour tous
 // Vue manette: zoom ~2x sur le decor => ~465 unites monde visibles en largeur; x1.5 de marge => +-360 autour du joueur.
 // L'arene tient entierement en hauteur a ce zoom: on ne filtre que sur x.
 const VIEW_HALF_WIDTH = 360;
@@ -217,14 +218,10 @@ export class Game {
           dashHits(this, p);
           p.dashT = Math.max(0, p.dashT - step);
         } else if (p.stunT <= 0) {
+          // Equite: meme vitesse pour tous (BASE_SPEED via characters.json), meme ralentissement juste apres une attaque.
+          // Plus d'acceleration pres d'un ennemi ni de regle reservee aux persos labKit.
           let speed = p.char.speed;
-          {
-            const near = [...this.players.values()].filter(o => o !== p && o.alive && o.team !== p.team)
-              .sort((a, b) => Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
-            const d = near && Math.hypot(p.x-near.x,p.y-near.y);
-            if (p.recoveryT > 0) speed *= p.char.attackMoveScale ?? .65;
-            else if (d > 0 && d < 160 && p.dx*(p.x-near.x)+p.dy*(p.y-near.y) > d*.35) speed = Math.min(300, speed * (p.char.retreatMultiplier ?? 1.35));
-          }
+          if (p.recoveryT > 0) speed *= RECOVERY_MOVE_SCALE;
           this.physics.moveWithWalls(p, p.dx * speed * dt, p.dy * speed * dt, p.r);
         }
         this.physics.applyKnockback(p, dt);
