@@ -1,0 +1,387 @@
+{
+  "_status": "Document de design (Leo), NON branche au moteur. La source de verite du jeu est shared/characters.json. Differences chiffrees listees dans le README (section Personnages: design vs jeu).",
+  "format_version": 2,
+  "asset_name": "trump",
+  "schemaVersion": "1.0.0",
+  "visual": {
+    "style": "16-bit pixel-art arcade",
+    "perspective": "top_down_3_4",
+    "description": "Costume rouge et bleu, silhouette imposante, poings fermés; posture lourde et assurée.",
+    "assetRequirements": {
+      "frameSource": "sprite_atlas",
+      "frameIndexing": "zero_based",
+      "note": "Les images sources disponibles sont des illustrations fixes, pas des spritesheets. Les indices frames ci-dessous sont des emplacements logiques à relier à un atlas animé avant intégration moteur."
+    }
+  },
+  "physics": {
+    "speed": {
+      "value": 150,
+      "unit": "pixels_per_second"
+    },
+    "pivot": {
+      "x": 0.5,
+      "y": 0.9,
+      "anchor": "feet"
+    },
+    "hitbox": {
+      "shape": "rectangle",
+      "width": 26,
+      "height": 14,
+      "unit": "pixels",
+      "offset": {
+        "x": 0,
+        "y": -2
+      },
+      "anchor": "pivot"
+    },
+    "movement": {
+      "mode": "pixel_perfect_grid",
+      "diagonalNormalization": true
+    },
+    "depth": {
+      "sortBy": "pivot.y"
+    }
+  },
+  "animationStateMachine": {
+    "initialState": "idle",
+    "states": {
+      "idle": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "frameRate": 8,
+        "loop": true,
+        "nextState": null
+      },
+      "walk": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "frameRate": 12,
+        "loop": true,
+        "nextState": "idle"
+      },
+      "attack_light": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "frameRate": 14,
+        "loop": false,
+        "nextState": "recovery"
+      },
+      "ultimate": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53
+        ],
+        "frameRate": 18,
+        "loop": false,
+        "nextState": "idle"
+      },
+      "hit": {
+        "frames": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "frameRate": 12,
+        "loop": false,
+        "nextState": "idle"
+      },
+      "death": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "frameRate": 10,
+        "loop": false,
+        "nextState": null
+      },
+      "recovery": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "frameRate": 12,
+        "loop": false,
+        "nextState": "idle"
+      },
+      "taunt": {
+        "frames": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "frameRate": 12,
+        "loop": true,
+        "nextState": null,
+        "events": [
+          {
+            "frame": 0,
+            "event": "ymca_step_1"
+          },
+          {
+            "frame": 4,
+            "event": "ymca_step_2"
+          },
+          {
+            "frame": 8,
+            "event": "ymca_step_3"
+          },
+          {
+            "frame": 12,
+            "event": "ymca_step_4"
+          }
+        ],
+        "sync": {
+          "steps": 4,
+          "tempoBpm": 120,
+          "framesPerStep": 4
+        }
+      }
+    },
+    "transitions": [
+      {
+        "from": "idle",
+        "to": "walk",
+        "when": "movement_input"
+      },
+      {
+        "from": "walk",
+        "to": "idle",
+        "when": "movement_stopped"
+      },
+      {
+        "from": "idle|walk",
+        "to": "attack_light",
+        "when": "light_attack_pressed"
+      },
+      {
+        "from": "attack_light",
+        "to": "recovery",
+        "when": "animation_complete"
+      },
+      {
+        "from": "recovery",
+        "to": "idle",
+        "when": "recovery_complete"
+      },
+      {
+        "from": "idle|walk",
+        "to": "ultimate",
+        "when": "ultimate_pressed"
+      },
+      {
+        "from": "any_non_death",
+        "to": "hit",
+        "when": "damage_received"
+      },
+      {
+        "from": "any_non_death",
+        "to": "death",
+        "when": "health_zero"
+      },
+      {
+        "from": "idle",
+        "to": "taunt",
+        "when": "taunt_pressed"
+      },
+      {
+        "from": "taunt",
+        "to": "idle",
+        "when": "taunt_released"
+      }
+    ],
+    "statePriority": [
+      "death",
+      "hit",
+      "ultimate",
+      "attack_light",
+      "taunt",
+      "walk",
+      "idle"
+    ]
+  },
+  "attacks": {
+    "light": {
+      "name": "POW!",
+      "type": "melee",
+      "range": 34,
+      "unit": "pixels",
+      "damage": 18,
+      "hitbox": {
+        "shape": "rectangle",
+        "width": 30,
+        "height": 20,
+        "durationFrames": 3
+      },
+      "triggerFrame": 3,
+      "knockback": 90,
+      "unitForKnockback": "pixels_per_second",
+      "vfx": {
+        "asset": "punch_fx",
+        "text": "POW!"
+      }
+    },
+    "ultimate": {
+      "name": "MAGA Wall Drop",
+      "type": "arena_hazard",
+      "damage": 42,
+      "triggerFrame": 8,
+      "spawn": {
+        "asset": "maga_wall",
+        "position": "target_ground_point",
+        "warningDurationMs": 650
+      },
+      "impact": {
+        "shape": "rectangle",
+        "width": 128,
+        "height": 42,
+        "durationMs": 1800,
+        "knockback": 260
+      },
+      "physics": {
+        "solid": true,
+        "blocksMovement": true,
+        "destructible": true,
+        "health": 120
+      },
+      "range": 420,
+      "unit": "pixels",
+      "boundary_clamp": {
+        "enabled": true,
+        "mode": "clamp_spawn_and_collision_to_arena",
+        "margin": 8
+      }
+    }
+  },
+  "assets": {
+    "character": "sprites/trump.png",
+    "lightAttackVfx": "sprites/fx_punch.png",
+    "ultimateProp": "sprites/trump_defense.png"
+  },
+  "arena": {
+    "coordinateSpace": "world_pixels",
+    "boundaryClamp": true
+  },
+  "meta": {
+    "displayName": "Donald Trump",
+    "entityType": "player_character",
+    "style": "16-bit pixel-art arcade",
+    "perspective": "top_down_3_4",
+    "description": "Costume rouge et bleu, silhouette imposante, poings fermés; posture lourde et assurée.",
+    "id": "trump"
+  },
+  "runtimeIntegration": {
+    "runtimeFile": "shared/characters.json",
+    "supportedAbilityTypes": [
+      "projectile",
+      "burst",
+      "zone",
+      "dash",
+      "shield"
+    ],
+    "note": "Les animations et capacités décrites ici documentent le design. Le moteur actuel ne lit pas encore cette machine à états ni les comportements de cône continu et de véhicule."
+  }
+}

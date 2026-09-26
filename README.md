@@ -18,6 +18,27 @@ Elle libère d'abord le port 3000 (tue le process qui l'occupe, pour éviter `EA
 
 Chaque push lance d'abord `npm test` + `npm run build` : si ça échoue, rien n'est déployé et la prod garde la version précédente.
 
+## Personnages : design vs jeu (à trancher)
+
+`shared/characters.json` est la **seule source de vérité** du jeu. `Personnages/trump.design.json` et `Personnages/obama.design.json` (Leo) sont des documents de design **non branchés**. Écarts chiffrés :
+
+| Perso | Élément | Design (Leo) | Jeu (`characters.json`) |
+|---|---|---|---|
+| Trump | Vitesse | 150 | 200 |
+| Trump | Attaque | « POW! », melee, portée 34, dégâts 18, knockback 90 | « Direct », portée 85, dégâts 9, poussée courte (11 unités) |
+| Trump | Défense | aucune | « Mur MAGA » (mur 6 s, 36 PV) |
+| Trump | Super | « MAGA Wall Drop », mur-piège à distance, portée 420, dégâts 42, knockback 260, mur 120 PV | « You're fired! », portée 130, dégâts 30, projection jusqu'au bord, charge 100 |
+| Obama | Vitesse | 175 | 205 |
+| Obama | Attaque | « Hope Burst », projectile portée 380, dégâts 14 | « Énergie », corps à corps portée 75, dégâts 11, knockback 240 |
+| Obama | Défense | aucune | « Esquive », dash 238 en arrière |
+| Obama | Super | « Mic Drop Strike », ciblé à distance, portée 560, rayon 76, dégâts 55, knockback 220 | « Mic Drop », centré sur Obama (portée 0), rayon 110, dégâts 28, poussée 100, charge 100 |
+
+Le design de Leo prévoit des attaques à distance, alors que le jeu est désormais 100 % corps à corps.
+
+### Ajouter un perso sans toucher au code
+
+Tout se déclare dans `shared/characters.json` (rechargé à chaud par le serveur) : `name`, `hp`, `speed`, `sprite` (PNG dans `client/public/sprites/` ou crâne généré), 3 pouvoirs parmi les 5 types, et optionnellement `fullBody` (rendu en pied), `labKit` (règles du kit labo), `shieldStyle`, `hint` (aide manette). Un pouvoir avec `behavior` passe par le code labo, sinon par les briques génériques.
+
 ## Déploiement automatique
 
 **Pousser sur `main` = déploiement automatique** sur https://showerbrawl.doodsito.com, sans intervention. Délai habituel : **~1 à 2 min** après le push.

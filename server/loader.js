@@ -5,12 +5,13 @@ import { ABILITY_TYPES } from '../shared/protocol.js';
 const read = (f) => JSON.parse(readFileSync(fileURLToPath(new URL(`../shared/${f}`, import.meta.url)), 'utf8'));
 const SLOTS = ['attack', 'defense', 'super'];
 
-function loadCharacters() {
-  const raw = read('characters.json');
+// Normalise un objet characters (meme regles pour le fichier et pour les tests).
+export function normalizeCharacters(raw) {
   const out = {};
   for (const [id, c] of Object.entries(raw)) {
     if (id.startsWith('_') || !c || typeof c !== 'object') continue;
-    const ch = { id, name: c.name || id, hp: c.hp || 100, speed: c.speed || 200, sprite: c.sprite || id };
+    // Tous les champs du perso sont transmis (labKit, fullBody, hint...): un nouveau perso marche sans toucher au code.
+    const ch = { ...c, id, name: c.name || id, hp: c.hp || 100, speed: c.speed || 200, sprite: c.sprite || id };
     for (const s of SLOTS) {
       const a = c[s];
       if (a && ABILITY_TYPES.includes(a.type)) ch[s] = { cooldown: 1, ...a };
@@ -19,6 +20,10 @@ function loadCharacters() {
     out[id] = ch;
   }
   return out;
+}
+
+function loadCharacters() {
+  return normalizeCharacters(read('characters.json'));
 }
 
 function loadArena() {
