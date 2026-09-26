@@ -227,3 +227,9 @@ function loop() {
   requestAnimationFrame(loop);
 }
 loop();
+
+// Version qui tourne (SHA du commit), discrete en bas de l'ecran. Rafraichie toutes les 60 s.
+function showVersion() {
+  fetch('/health', { cache: 'no-store' }).then((r) => r.json()).then((h) => { $('version').textContent = h.sha ? `v ${h.sha}` : ''; }).catch(() => {});
+}
+showVersion(); setInterval(showVersion, 60000);
