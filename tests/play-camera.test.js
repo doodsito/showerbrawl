@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { ensureBuild } from './build-once.js';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import express from 'express';
@@ -46,7 +46,7 @@ const PROBE = (pts) => `((pts) => {
 
 for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
   test(`camera manette ${device}: 2 joueurs eloignes visibles, perso degage`, { timeout: 120000 }, async (t) => {
-    if (!existsSync(`${dist}/index.html`)) execSync('npx vite build', { cwd: root, stdio: 'ignore' });
+    await ensureBuild();
     const browser = await launch();
     if (!browser) return t.skip('aucun Chromium disponible');
     t.after(() => browser.close());
