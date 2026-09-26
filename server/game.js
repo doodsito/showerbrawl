@@ -7,6 +7,17 @@ import { cast, updateProjectiles, updateZones, dashHits } from './abilities.js';
 import { hasLabKit, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
 
 const SLOTS = ['attack', 'defense', 'super'];
+// Vue manette: zoom ~2x sur le decor => ~465 unites monde visibles en largeur; x1.5 de marge => +-360 autour du joueur.
+// L'arene tient entierement en hauteur a ce zoom: on ne filtre que sur x.
+const VIEW_HALF_WIDTH = 360;
+const VIEW_DROP = new Set(['cd', 'kills', 'deaths']);
+const VIEW_KEEP = new Set(['x', 'y', 'hp', 'alive', 'maxHp']); // jamais omis, meme a 0/false
+// Objet allege pour le VIEW: sans champs vides (false/null/undefined/0) ni champs deja envoyes par ME.
+function slim(o) {
+  const out = {};
+  for (const k in o) { const v = o[k]; if (VIEW_DROP.has(k) || (!VIEW_KEEP.has(k) && (v === false || v == null || v === 0))) continue; out[k] = v; }
+  return out;
+}
 const END_SCREEN = 6; // s d'ecran de victoire avant retour lobby
 const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
 
@@ -40,7 +51,10 @@ export class Game {
   lobbyPayload() {
     const teams = { A: [], B: [] };
     for (const p of this.players.values()) teams[p.team]?.push({ id: p.id, name: p.name, character: p.character });
-    return { phase: this.phase, teams, characters: this.characters,
+    // Jouer sans ecran hote: si aucun hote n'est connecte, le premier joueur inscrit peut lancer la manche.
+    const hasHost = (this.io.sockets?.adapter?.rooms?.get('hosts')?.size ?? 0) > 0;
+    const firstPlayer = this.players.keys().next().value ?? null;
+    return { phase: this.phase, teams, characters: this.characters, hasHost, firstPlayer,
       arena: { cellSize: this.arena.cellSize, grid: this.arena.grid, spawns: this.arena.spawns, obstacles: this.arena.obstacles },
       ...this.lobbyExtra };
   }
@@ -287,13 +301,33 @@ export class Game {
         score: this.score, timeLeft: state.timeLeft, countdown: state.countdown,
       });
     }
+    // VIEW: chaque joueur recoit le combat filtre autour de son perso (jouer sur son telephone sans ecran hote).
+    if (rooms) {
+      const near = (me, o) => o && Math.abs((o.x ?? me.x) - me.x) <= VIEW_HALF_WIDTH;
+      const vs = this._viewStats || (this._viewStats = { bytes: 0, n: 0 });
+      for (const me of state.players) {
+        const view = {
+          t: state.t, countdown: state.countdown, score: state.score, timeLeft: state.timeLeft, me: me.id,
+          players: state.players.filter((o) => o.id === me.id || near(me, o)).map(slim),
+          projectiles: state.projectiles.filter((o) => near(me, o)),
+          zones: state.zones.filter((o) => near(me, o)).map(slim),
+          walls: state.walls.filter((o) => near(me, o)),
+          effects: state.effects.filter((o) => near(me, o)).map(slim),
+          events: state.events.filter((e) => e.k === 'kill' || e.id === me.id || near(me, e)),
+        };
+        this.io.to(me.id).emit(MSG.VIEW, view);
+        vs.bytes += JSON.stringify(view).length; vs.n++;
+      }
+    }
     // Mesure: taille moyenne du STATE et nombre d'ecrans hotes, toutes les 10 s.
     const m = this._stateStats || (this._stateStats = { bytes: 0, n: 0, since: Date.now() });
     m.bytes += JSON.stringify(state).length; m.n++;
     if (Date.now() - m.since >= 10000) {
       const hosts = this.io.sockets?.adapter?.rooms?.get('hosts')?.size ?? 0;
       console.log(`[net] STATE moyen ${Math.round(m.bytes / m.n)} octets (${m.n} envois), ecrans hotes: ${hosts}`);
-      this._stateStats = { bytes: 0, n: 0, since: Date.now() };
+      const vs = this._viewStats;
+      if (vs?.n) console.log(`[net] VIEW moyen ${Math.round(vs.bytes / vs.n)} octets (${vs.n} envois, objectif < 1024)`);
+      this._stateStats = { bytes: 0, n: 0, since: Date.now() }; this._viewStats = { bytes: 0, n: 0 };
     }
   }
 }

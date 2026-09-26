@@ -200,3 +200,26 @@ test('chaque super cible laisse le temps d\'esquiver au perso le plus lent (rayo
     assert.ok(s.radius+18<=minSpeed*s.delay,`${id}: rayon ${s.radius} trop grand pour un delai de ${s.delay}s`);
   }
 });
+
+test('VIEW: chaque joueur recoit le combat filtre autour de lui, compact (< 1 Ko), ME inchange', () => {
+  const sent=[];const to=(room)=>({emit:(name,data)=>sent.push({room,name,data})});
+  const game=new Game({emit:()=>{},to},{characters,arena,autoTick:false});
+  try{
+    const ids=['a','b','c','d','e','f'];
+    ids.forEach((id,i)=>game.join({id},{team:i%2?'B':'A',character:Object.keys(characters)[i],name:'P'+id}));
+    game.start();game.countdown=0;
+    const P=id=>game.players.get(id);
+    Object.assign(P('a'),{x:150,y:320});Object.assign(P('b'),{x:250,y:300});Object.assign(P('c'),{x:700,y:320});
+    Object.assign(P('d'),{x:180,y:400});Object.assign(P('e'),{x:650,y:250});Object.assign(P('f'),{x:600,y:380});
+    P('d').alive=false;P('d').hp=0;
+    game.broadcast();
+    const view=sent.find(m=>m.room==='a'&&m.name==='view').data;
+    assert.equal(view.me,'a');
+    assert.deepEqual(view.players.map(p=>p.id).sort(),['a','b','d'],'seulement les joueurs proches');
+    const dead=view.players.find(p=>p.id==='d');assert.equal(dead.alive,false);assert.equal(dead.hp,0);
+    for(const k of ['score','timeLeft','countdown'])assert.ok(k in view);
+    assert.ok(JSON.stringify(view).length<1024,`VIEW ${JSON.stringify(view).length} octets`);
+    assert.ok(sent.some(m=>m.room==='a'&&m.name==='me'),'ME toujours envoye');
+    assert.ok(sent.some(m=>m.room==='hosts'&&m.name==='state'),'STATE toujours aux hotes');
+  }finally{game.dispose();}
+});
