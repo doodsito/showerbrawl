@@ -105,6 +105,30 @@ trump: {
 - [ ] Vérifier sur la VM Oracle : Docker installé, image ARM qui build, tunnel cloudflared fonctionnel
 - [ ] Préparer les prompts IA pour le style pixel art grosses têtes
 
+## Chantier infra (Robin)
+
+Objectif : un pipeline de déploiement validé de bout en bout avant le jour J, sur lequel l'équipe n'a plus qu'à pousser son code.
+
+### Sur la VM Oracle (manuel)
+- [ ] `uname -m` -> confirmer `aarch64`
+- [ ] Installer Docker : `curl -fsSL https://get.docker.com | sh` puis `sudo usermod -aG docker $USER`
+- [ ] `git clone` du repo sur la VM
+- [ ] Aucun port à ouvrir : cloudflared sort en connexion sortante
+
+### À coder ensemble (dans le repo)
+- [ ] `server/index.js` minimal : Express sert `client/dist`, Socket.io répond aux `ping`, route `/health`
+- [ ] Page de test `client/` : affiche la latence mesurée (téléphone -> serveur US) et le nombre de connectés
+- [ ] `Dockerfile` multi-stage : build Vite puis image Node slim (build ARM directement sur la VM)
+- [ ] `docker-compose.yml` : service `app` + service `cloudflared` (quick tunnel, URL `*.trycloudflare.com`)
+- [ ] `deploy.sh` : `git pull && docker compose up -d --build` puis affiche l'URL du tunnel
+- [ ] `loadtest.js` : ouvre 20 clients Socket.io qui envoient des inputs à 20/s, mesure la latence (sert au test de H5)
+
+### Validation
+- [ ] Ouvrir l'URL du tunnel sur un téléphone en 4G : page chargée, WebSocket connecté, latence affichée
+- [ ] `loadtest.js` contre la VM : latence stable avec 20 clients
+
+Note : l'URL du quick tunnel change à chaque redémarrage. L'écran hôte génère donc le QR code à partir de sa propre URL (`window.location`), il est toujours juste. Si vous avez un domaine sur Cloudflare, passer à un tunnel nommé pour une URL fixe.
+
 ## Risques
 1. Latence depuis les US (100-150 ms) : compensée par l'auto-aim et l'interpolation, à valider au test de charge.
 2. Volume de contenu (30 capacités, 10 sprites) : tient uniquement si tout passe par les 5 briques.
