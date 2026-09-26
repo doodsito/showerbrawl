@@ -63,13 +63,13 @@ export class Game {
   join(socket, data = {}) {
     const team = CONFIG.TEAMS.includes(data.team) ? data.team : null;
     const char = this.characters[data.character];
-    if (!team || !char) return { ok: false, error: 'equipe ou perso invalide' };
+    if (!team || !char) return { ok: false, error: 'invalid team or character' };
     const existing = this.players.get(socket.id);
-    if (!existing && this.players.size >= CONFIG.MAX_PLAYERS) return { ok: false, error: 'salle pleine' };
+    if (!existing && this.players.size >= CONFIG.MAX_PLAYERS) return { ok: false, error: 'room is full' };
     // Perso unique par equipe tant qu'il en reste un libre; sinon doublons autorises (10v10 avec peu de persos).
     const usedInTeam = new Set([...this.players.values()].filter((o) => o.id !== socket.id && o.team === team).map((o) => o.character));
     const freeLeft = Object.keys(this.characters).some((c) => !usedInTeam.has(c));
-    if (freeLeft && usedInTeam.has(data.character)) return { ok: false, error: 'perso deja pris' };
+    if (freeLeft && usedInTeam.has(data.character)) return { ok: false, error: 'character already taken' };
     const name = String(data.name || char.name).slice(0, 16);
     const p = existing || { id: socket.id, kills: 0, deaths: 0, input: { dx: 0, dy: 0 } };
     Object.assign(p, { team, character: data.character, char, name, maxHp: char.hp, r: CONFIG.PLAYER_RADIUS });
