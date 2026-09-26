@@ -15,7 +15,7 @@
     grid-template-areas:"brand brand brand" "blue join red" "roster roster roster";
     background:radial-gradient(ellipse 34vw 46vh at 50% 52%,#08111fb0,#08111f00 100%)}
   .meta{position:absolute;top:1.8vh;font-size:clamp(9px,1.25vh,13px);letter-spacing:.2em;color:var(--muted);text-shadow:0 1px 0 #000}
-  .meta.l{left:2vw}.meta.r{right:2vw}
+  .meta.l{left:calc(2vw + 44px)}.meta.r{right:2vw}
   #brand{grid-area:brand;text-align:center;line-height:1;max-height:18vh}
   #brand h1{margin:0;font:900 clamp(26px,7vh,72px)/1 var(--mono);letter-spacing:.08em;color:var(--white);
     text-shadow:3px 0 0 var(--red),-3px 0 0 var(--blue),0 4px 0 var(--black),0 0 18px #0008}
@@ -56,6 +56,8 @@
   @media (max-width:900px){.meta,#roster .t{display:none}#roster .r span{display:none}}
   #version{position:fixed;left:8px;bottom:6px;z-index:6;font:10px ui-monospace,Menlo,Consolas,monospace;color:#9aa7b880;pointer-events:none}
   #game{position:fixed;inset:0;display:none}
+  #mute{position:fixed;top:10px;left:10px;z-index:7;width:34px;height:34px;padding:0;border:2px solid #ffffff22;border-radius:4px;background:#08111fb0;color:#f2efe4;font-size:16px;line-height:1;cursor:pointer;opacity:.55}
+  #mute:hover{opacity:1}
   #reset{position:fixed;top:12px;right:12px;z-index:5;display:none;font:800 18px system-ui;padding:10px 18px;border:0;border-radius:10px;background:#ef4444;color:#fff;cursor:pointer;box-shadow:0 2px 10px #0008}
   #end{position:fixed;inset:0;display:none;background:#000c;align-items:center;justify-content:center}
   #endBox{background:#141a33;padding:28px 40px;border-radius:16px;min-width:420px;text-align:center}
@@ -82,6 +84,7 @@
 </div>
 <canvas id="game"></canvas>
 <div id="version"></div>
+<button id="mute" aria-label="Musique" aria-pressed="false">🔊</button>
 <button id="reset">ARRÊTER LA MANCHE</button>
 <div id="end"><div id="endBox"></div></div>
 <script type="module" src="./host.js"></script>

@@ -2,6 +2,7 @@ import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
 import { render, pushEvents } from './scene.js';
 import { SFX } from './sfx.js';
+import { Music } from './music.js';
 import { createDecor, DECOR_W, DECOR_H } from './decor.js';
 import { getSprite, getImage, spriteUrl } from './sprites.js';
 
@@ -76,6 +77,7 @@ addEventListener('resize', resize); resize();
 function showLobby(d) {
   try {
     lobby = d; phase = d.phase || 'lobby';
+    Music.setPhase(phase);
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
     $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
@@ -191,7 +193,7 @@ socket.on(MSG.LOBBY, (d) => { console.log('[host] LOBBY', d.phase, (d.teams?.A?.
 socket.on(MSG.STATE, (s) => {
   if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
-    if (phase !== 'playing') { phase = 'playing'; $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
+    if (phase !== 'playing') { phase = 'playing'; Music.setPhase(phase); $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
     pushUpdate(s); sounds(s); pushEvents(s.events);
   } catch (e) {}
 });
@@ -217,6 +219,12 @@ window.__sbResetHandler = (e) => {
 };
 document.addEventListener('click', window.__sbResetHandler);
 addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
+
+// Musique: demarre au premier geste (autoplay policy, Safari compris), bouton mute retenu.
+for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => Music.unlock(), { capture: true });
+function paintMute() { try { const b = $('mute'); const m = Music.isMuted(); b.textContent = m ? '🔇' : '🔊'; b.title = m ? 'Activer la musique' : 'Couper la musique'; b.setAttribute('aria-pressed', String(m)); } catch (e) {} }
+try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); Music.unlock(); Music.toggleMute(); paintMute(); }); } catch (e) {}
+paintMute();
 
 function loop() {
   try { if (phase === 'lobby') drawLobbyBg(); } catch (e) {}
