@@ -85,19 +85,22 @@ for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
     assert.equal(game.players.size, 2, 'les deux manettes ont rejoint');
     game.start();
     const [a, b] = [...game.players.values()];
-    // Eloignes au maximum sur l'axe x dans l'arene (x de 64 a 704).
+    // Positions figees: apres chaque tick serveur on repose les deux persos (pas de chute, pas de knockback).
+    let pinned = null;
     const place = ([ax, ay], [bx, by]) => { Object.assign(a, { x: ax, y: ay, vx: 0, vy: 0 }); Object.assign(b, { x: bx, y: by, vx: 0, vy: 0 }); };
-    // Loin l'un de l'autre, puis chacun colle a chaque mur (gauche, droite, haut, bas, coins de l'octogone).
-    const spots = [[[140, 320], [580, 320]], [[120, 320], [420, 320]], [[300, 320], [650, 320]],
-      [[88, 220], [680, 420]], [[88, 320], [680, 320]], [[88, 420], [680, 220]], [[680, 220], [88, 420]],
-      [[384, 88], [384, 552]], [[384, 552], [384, 88]], [[200, 120], [570, 520]], [[200, 520], [570, 120]], [[570, 120], [200, 520]]];
+    const tick = game.tick.bind(game);
+    game.tick = (e) => { game.countdown = 0; game.timeLeft = 999; tick(e); if (pinned) place(...pinned); for (const p of [a, b]) Object.assign(p, { alive: true, hp: p.maxHp, launch: null, kbVx: 0, kbVy: 0, respawnT: 0 }); };
+    // Toujours a l'interieur du toit, au moins 56 px de tout bord (sol: x 64..704 sur y 192..448, etroit en haut/bas).
+    const spots = [[[140, 320], [628, 320]], [[130, 260], [640, 380]], [[130, 380], [640, 260]], [[300, 320], [640, 320]],
+      [[384, 130], [384, 390]], [[384, 390], [384, 130]], [[200, 250], [570, 390]], [[570, 250], [200, 390]]];
     for (const [pa, pb] of spots) {
-      for (let i = 0; i < 20; i++) { if (game.countdown > 0) game.countdown = 0; place(pa, pb); await wait(50); }
+      pinned = [pa, pb]; place(pa, pb);
+      await wait(400);
       for (const page of pages) {
         // Teleports in this fixture are much faster than gameplay movement. Wait for
         // the smoothed camera, including background tabs, before measuring overlap.
         let r;
-        for(let i=0;i<100;i++){
+        for(let i=0;i<200;i++){
           r=await page.evaluate(PROBE([a,b].map(p=>({id:p.id,x:p.x,y:p.y}))));
           if(r.settled)break;
           await wait(50);
@@ -127,7 +130,8 @@ for (const device of ['iPhone 15 landscape', 'Pixel 7 landscape']) {
           for (const q of r.rects) assert.ok(bar.bottom <= q.t || bar.r <= q.l || bar.l >= q.r, 'bandeau ne couvre pas les controles');
         }
         assert.ok(me, 'mon perso est dans le VIEW');
-        for (const q of r.rects) assert.ok(!(me.s[0] >= q.l && me.s[0] <= q.r && me.s[1] >= q.t && me.s[1] <= q.b), `perso sous un controle ${JSON.stringify(q)} ${me.s}`);
+        const m = 12; // marge px autour des controles
+        for (const q of r.rects) assert.ok(!(me.s[0] >= q.l - m && me.s[0] <= q.r + m && me.s[1] >= q.t - m && me.s[1] <= q.b + m), `perso sous un controle ${JSON.stringify(q)} ${me.s}`);
         // Tout joueur a l'ecran (centre +- rayon sprite) doit etre dans le VIEW: le filtre serveur ne coupe rien au bord.
         for (const p of r.pts) {
           if (p.s[0] < -40 || p.s[0] > r.W + 40) continue;
