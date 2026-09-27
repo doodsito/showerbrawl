@@ -34,7 +34,7 @@ test('perso "test" ajoute par config: charge, rendu en pied et 3 capacites sans 
   assert.equal(layout.h, spriteLayout(characters.trump, true).h, 'meme taille que Trump');
 
   const events = [];
-  const game = new Game({ emit: (name, data) => events.push({ name, data }) }, { characters, arena, autoTick: false });
+  const game = new Game({ emit: (name, data) => events.push({ name, data }) }, { characters, arena, autoTick: false, fixedTeams: true });
   t.after(() => game.dispose());
   game.join({ id: 'a' }, { team: 'A', character: 'test' }); game.join({ id: 'b' }, { team: 'B', character: 'biden' });
   game.start(); game.countdown = 0;

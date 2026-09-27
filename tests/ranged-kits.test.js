@@ -5,7 +5,7 @@ import {characters,arena} from '../server/loader.js';
 
 function setup(t,character,distance=260){
  const packets=[],io={emit(){},to:room=>({emit:(name,data)=>packets.push({room,name,data})})};
- const g=new Game(io,{characters,arena,autoTick:false});t.after(()=>g.dispose());
+ const g=new Game(io,{characters,arena,autoTick:false, fixedTeams: true});t.after(()=>g.dispose());
  g.join({id:'a'},{team:'A',character});g.join({id:'b'},{team:'B',character:'trump'});g.start();g.countdown=0;
  const p=g.players.get('a'),q=g.players.get('b');Object.assign(p,{x:200,y:320,fx:1,fy:0,protectT:0});Object.assign(q,{x:200+distance,y:320,protectT:0});
  return {g,p,q,packets};

@@ -11,7 +11,7 @@ const IDS = Object.keys(characters).filter(id=>!characters[id].attack.travel&&!c
 const B = CONFIG.BASE_ATTACK;
 
 function duel(id, dist = 60) {
-  const game = new Game({ emit: () => {} }, { characters, arena, autoTick: false });
+  const game = new Game({ emit: () => {} }, { characters, arena, autoTick: false, fixedTeams: true });
   game.join({ id: 'a' }, { team: 'A', character: id }); game.join({ id: 'b' }, { team: 'B', character: 'biden' });
   game.start(); game.countdown = 0;
   const p = game.players.get('a'), q = game.players.get('b');
@@ -83,7 +83,7 @@ test('memes PV et meme vitesse pour tous (CONFIG.BASE_HP / BASE_SPEED)', () => {
 
 // Deplacement: meme distance en 2 s pour un perso labKit et un perso standard, avec ou sans ennemi proche.
 function run2s(id, enemyNear, dir) {
-  const game = new Game({ emit: () => {} }, { characters, arena, autoTick: false });
+  const game = new Game({ emit: () => {} }, { characters, arena, autoTick: false, fixedTeams: true });
   game.join({ id: 'a' }, { team: 'A', character: id }); game.join({ id: 'b' }, { team: 'B', character: 'biden' });
   game.start(); game.countdown = 0;
   const p = game.players.get('a'), q = game.players.get('b');

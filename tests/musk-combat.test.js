@@ -6,7 +6,7 @@ import { cast } from '../server/abilities.js';
 const FLAME=characters.musk.attack;
 
 function setup(t){
-  const events=[],game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false});
+  const events=[],game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false, fixedTeams: true});
   t.after(()=>game.dispose());
   for(const [id,team,character,x] of [['m','A','musk',300],['e','B','trump',400],['friend','A','obama',425]]){
     game.join({id},{team,character});

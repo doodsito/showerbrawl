@@ -5,7 +5,7 @@ import {characters,arena} from '../server/loader.js';
 import {isExtracted,EXFIL} from '../shared/exfiltration.js';
 const step=(g,s)=>{for(let t=0;t<s-1e-8;t+=.025)g.tick(Math.min(.025,s-t));};
 function setup(t,id='maduro',target='trump',distance=350){
- const packets=[],g=new Game({emit(){},to:room=>({emit:(name,data)=>packets.push({room,name,data})})},{characters,arena,autoTick:false});t.after(()=>g.dispose());
+ const packets=[],g=new Game({emit(){},to:room=>({emit:(name,data)=>packets.push({room,name,data})})},{characters,arena,autoTick:false, fixedTeams: true});t.after(()=>g.dispose());
  g.join({id:'a'},{character:id,team:'A'});g.join({id:'b'},{character:target,team:'B'});g.start();g.countdown=0;
  const p=g.players.get('a'),q=g.players.get('b');Object.assign(p,{x:150,y:320,fx:1,fy:0,protectT:0,energy:100});Object.assign(q,{x:150+distance,y:320,protectT:0});return {g,p,q,packets};
 }

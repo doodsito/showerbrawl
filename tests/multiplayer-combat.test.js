@@ -8,7 +8,7 @@ import { wallContact } from '../shared/wall-geometry.js';
 
 function setup(t, a='trump', b='obama') {
   const events=[];
-  const game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false});
+  const game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false, fixedTeams: true});
   t.after(()=>game.dispose());
   game.join({id:'a'},{team:'A',character:a});game.join({id:'b'},{team:'B',character:b});game.start();game.countdown=0; // tests de combat: on saute le 3-2-1
   const p=game.players.get('a'),q=game.players.get('b');
@@ -117,7 +117,7 @@ test('burst shockwave damages and knocks back every nearby enemy, not the far on
 
 test('countdown 3-2-1: players frozen, inputs ignored and match timer stopped until FIGHT', () => {
   const events=[];
-  const game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false});
+  const game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false, fixedTeams: true});
   try {
     game.join({id:'a'},{team:'A',character:'biden'});game.join({id:'b'},{team:'B',character:'musk'});game.start();
     const p=game.players.get('a'),x0=p.x,t0=game.timeLeft;
@@ -208,7 +208,7 @@ test('chaque super cible laisse le temps d\'esquiver au perso le plus lent (rayo
 
 test('VIEW: chaque joueur recoit le combat filtre autour de lui, compact (< 1 Ko), ME inchange', () => {
   const sent=[];const to=(room)=>({emit:(name,data)=>sent.push({room,name,data})});
-  const game=new Game({emit:()=>{},to},{characters,arena,autoTick:false});
+  const game=new Game({emit:()=>{},to},{characters,arena,autoTick:false, fixedTeams: true});
   try{
     const ids=['a','b','c','d','e','f'];
     ids.forEach((id,i)=>game.join({id},{team:i%2?'B':'A',character:Object.keys(characters)[i],name:'P'+id}));
@@ -231,7 +231,7 @@ test('VIEW: chaque joueur recoit le combat filtre autour de lui, compact (< 1 Ko
 });
 
 test('perso retire du jeu: le joueur est renvoye au choix de perso, sans crash',t=>{
-  const chars={...characters};const game=new Game({emit(){}},{characters:chars,arena,autoTick:false});t.after(()=>game.dispose());
+  const chars={...characters};const game=new Game({emit(){}},{characters:chars,arena,autoTick:false, fixedTeams: true});t.after(()=>game.dispose());
   game.join({id:'a'},{team:'A',character:'trump'});game.join({id:'b'},{team:'B',character:'obama'});game.start();game.countdown=0;
   delete chars.obama;assert.deepEqual(game.dropMissingCharacters(),['b']);assert.ok(!game.players.has('b'));
   advance(game,.5);assert.ok(game.players.has('a'));

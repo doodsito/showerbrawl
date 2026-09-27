@@ -9,7 +9,7 @@ import {hitWall} from '../server/lab-combat.js';
 import {makePhysics} from '../server/physics.js';
 
 function duel(t,a='obama',b='trump'){
- const game=new Game({emit(){}},{characters,arena,autoTick:false});t.after(()=>game.dispose());
+ const game=new Game({emit(){}},{characters,arena,autoTick:false, fixedTeams: true});t.after(()=>game.dispose());
  game.join({id:'a'},{team:'A',character:a});game.join({id:'b'},{team:'B',character:b});game.start();game.countdown=0;
  const p=game.players.get('a'),q=game.players.get('b');
  Object.assign(p,{x:250,y:320,protectT:0});Object.assign(q,{x:650,y:320,protectT:0});

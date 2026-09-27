@@ -5,7 +5,7 @@ import {characters,arena} from '../server/loader.js';
 import {cast,standardAttack} from '../server/abilities.js';
 
 test('Obama energy travels across the arena and hits a distant enemy after flight',t=>{
- const g=new Game({emit(){}},{characters,arena,autoTick:false});t.after(()=>g.dispose());
+ const g=new Game({emit(){}},{characters,arena,autoTick:false, fixedTeams: true});t.after(()=>g.dispose());
  g.join({id:'a'},{team:'A',character:'obama'});g.join({id:'b'},{team:'B',character:'trump'});g.start();g.countdown=0;
  const p=g.players.get('a'),q=g.players.get('b');
  Object.assign(p,{x:120,y:320,protectT:0,fx:1,fy:0});Object.assign(q,{x:620,y:320,protectT:0});

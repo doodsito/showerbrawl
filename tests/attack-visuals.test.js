@@ -8,7 +8,7 @@ import {cast} from '../server/abilities.js';
 import {CONFIG} from '../shared/config.js';
 
 function setup(t,id){
- let state;const game=new Game({emit:(name,data)=>{if(name==='state')state=data;}},{characters,arena,autoTick:false});t.after(()=>game.dispose());
+ let state;const game=new Game({emit:(name,data)=>{if(name==='state')state=data;}},{characters,arena,autoTick:false, fixedTeams: true});t.after(()=>game.dispose());
  game.join({id:'a'},{team:'A',character:id});game.join({id:'b'},{team:'B',character:'trump'});game.start();game.countdown=0;
  const p=game.players.get('a'),q=game.players.get('b');Object.assign(p,{x:300,y:320,protectT:0,energy:100});Object.assign(q,{x:360,y:320,protectT:0});
  return {game,p,q,snapshot:()=>{game.broadcast();return state;}};
