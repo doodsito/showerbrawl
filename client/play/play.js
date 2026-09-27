@@ -44,7 +44,7 @@ socket.on('connect', () => {
   console.log('[play] socket connecte', socket.id);
   if (!st.wantJoin) setBanner(false);
   // Reconnexion (veille du tel, reseau): on rejoint automatiquement avec le meme choix.
-  if (st.wantJoin && st.character) doJoin();
+  if (st.wantJoin && st.character && !st.returning) doJoin();
 });
 socket.on('kicked', () => { st.joined = false; st.wantJoin = false; setJoined(false); $('#err').textContent = 'Removed by the host'; renderSelect(); show('select'); });
 socket.on('connect_error', (e) => {
@@ -116,9 +116,12 @@ function renderSelect() {
   $('#join').disabled = !st.character;
 }
 
+let joinAttempt = 0;
 function doJoin() {
+  const attempt = ++joinAttempt;
   const name = ($('#name').value || '').trim().slice(0, 16);
   socket.emit(MSG.JOIN, { character: st.character, name, playerKey }, (res) => {
+    if (attempt !== joinAttempt || st.returning) return;
     console.log('[play] JOIN ack', res);
     if (res && res.repick) { st.character = null; try { localStorage.removeItem('sb_char'); } catch (e) {} }
     if (res && res.ok === false) {
@@ -142,6 +145,30 @@ $('#join').onclick = () => {
     doJoin();
   } catch (e) {}
 };
+
+// Le serveur confirme la liberation avant de permettre un nouveau choix.
+function backToSelect() {
+  if (st.returning || !socket.connected) return;
+  clearInput();
+  st.returning = true; ++joinAttempt;
+  socket.timeout(4000).emit('leave', (error, res) => {
+    st.returning = false;
+    if (error || !res?.ok) {
+      // Ack perdu : reprendre la session avant une nouvelle tentative de retour.
+      if (socket.connected && st.wantJoin) doJoin();
+      return;
+    }
+    st.joined = false; st.wantJoin = false; st.alive = false;
+    st.lastHp = null; st.wasAlive = false; st.energy = 0;
+    setJoined(false); setBanner(false);
+    try { sessionStorage.removeItem('sb_release_rejoin'); } catch {}
+    for (const k of Object.keys(cds)) cds[k] = 0;
+    $('#respawn').hidden = true; $('#err').textContent = '';
+    stick?.destroy(); stick = null;
+    renderSelect(); show('select'); syncView();
+  });
+}
+document.querySelectorAll('.back-select').forEach(b => b.addEventListener('click', backToSelect));
 
 let stick = null;
 let lastStickLog = 0;
@@ -216,6 +243,7 @@ document.querySelectorAll('.btn').forEach((b) => {
 function cdLoop() {
   try {
     const now = performance.now();
+    document.querySelectorAll('.back-select').forEach(b => { b.disabled = !!st.returning || !socket.connected; });
     document.querySelectorAll('.btn').forEach((b) => {
       const k = b.dataset.k;
       const cdRaw = Number(st.characters[st.character]?.[k]?.cooldown) || 0;
@@ -239,7 +267,7 @@ function cdLoop() {
 requestAnimationFrame(cdLoop);
 
 let lastSend=0,pendingSend=null;
-function sendInput(){lastSend=performance.now();if(st.joined&&socket.connected)socket.emit(MSG.INPUT,{...input});}
+function sendInput(){lastSend=performance.now();if(st.joined&&!st.returning&&socket.connected)socket.emit(MSG.INPUT,{...input});}
 // Envoi immediat a chaque mouvement du joystick, throttle a 30 ms (le setInterval reste en filet de securite).
 function pushInput(){
   const wait=30-(performance.now()-lastSend);
@@ -297,7 +325,7 @@ socket.on(MSG.LOBBY, (d) => {
       try { localStorage.removeItem('sb_char'); } catch (e) {}
     }
     // Le serveur fait foi: si on est dans une equipe, on est en manette (y compris en cours de manche).
-    if (inTeam && st.phase !== 'ended') { st.joined = true; st.wantJoin = true; setupPad(); show('pad'); }
+    if (inTeam && !st.returning && st.phase !== 'ended') { st.joined = true; st.wantJoin = true; setupPad(); show('pad'); }
     // Reprise en cours (wantJoin): on reste sur la manette, pas de retour a la selection.
     if (!st.joined && !st.wantJoin) { renderSelect(); show('select'); } else renderSelect();
     syncView();
@@ -359,6 +387,7 @@ socket.on(MSG.ME, (me) => {
 });
 
 socket.on(MSG.END, (d) => {
+  if (!st.joined) return;
   try {
     st.phase = 'ended';
     Object.assign(input, { dx: 0, dy: 0, attack: false, defense: false, super: false });

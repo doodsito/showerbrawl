@@ -24,6 +24,7 @@
 </section>
 <section id="pad" hidden>
   <canvas id="view" hidden></canvas>
+  <button class="back-select" type="button" aria-label="Change character"><span aria-hidden="true">←</span> BACK</button>
   <header class="band">
     <div class="chip"><img id="meImg" alt="" hidden><b id="meInit">?</b></div>
     <div class="who"><b id="meName">PLAYER</b><span id="meChar">--</span><i id="meTeam" class="tag">TEAM</i></div>
@@ -45,7 +46,7 @@
     <button class="btn big" data-k="attack" data-l="A"><img alt="" hidden><span></span><i class="cd"></i><em></em></button>
   </div>
 </section>
-<section id="end" hidden><div class="endcard"><small>MATCH OVER</small><h2 id="endTitle"></h2><p id="endScore"></p><p id="endMvp"></p><p>Waiting for the next match...</p></div></section>
+<section id="end" hidden><div class="endcard"><small>MATCH OVER</small><h2 id="endTitle"></h2><p id="endScore"></p><p id="endMvp"></p><p>Waiting for the next match...</p><button class="back-select" type="button">← CHANGE CHARACTER</button></div></section>
 <div id="a2hs" class="a2hs" hidden><span>For fullscreen: Share &gt; Add to Home Screen</span><button id="a2hsClose" type="button" aria-label="Close">&times;</button></div>
 <script type="module" src="./play.js"></script>
 </body>

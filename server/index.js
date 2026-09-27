@@ -58,6 +58,11 @@ io.on('connection', (socket) => {
     console.log(`[join] ${socket.id} key=${String(data?.playerKey || '').slice(0, 8)} char=${data?.character} ->`, res.ok ? 'ok' : `${res.error} (${res.takenBy || ''})`);
     if (typeof ack === 'function') ack(res);
   });
+  // Retour volontaire au roster : liberation immediate, sans delai de reconnexion.
+  socket.on('leave', (ack) => {
+    game.leave(socket.id);
+    if (typeof ack === 'function') ack({ ok: true });
+  });
   socket.on(MSG.INPUT, (d) => { try { game.input(socket.id, d); } catch {} });
   socket.on(MSG.START, (ack) => {
     try { game.start(); } catch (e) { console.warn('[start] erreur', e.message); }

@@ -299,3 +299,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 #name{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;font-size:max(16px,1em)}
 #select,#end{touch-action:manipulation}
 #pad,#stick,#stick *,.btns,.btn,#view{touch-action:none}
+
+
+/* Retour au roster, hors des zones de joystick et d’attaque. */
+.back-select{min-height:44px;padding:8px 10px;border:2px solid var(--gold);border-radius:4px;background:var(--panel);color:var(--goldL);font:900 11px var(--font);touch-action:manipulation;cursor:pointer}
+.back-select:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.back-select:disabled{opacity:.5;cursor:wait}
+#pad>.back-select{position:absolute;z-index:7;top:calc(4px + var(--st));left:calc(6px + var(--sl));width:76px}
+#pad .band{left:calc(88px + var(--sl));max-width:calc(48% - 88px)}
+@media(max-width:480px){#pad .band .chip{display:none}#pad .band{max-width:calc(100% - 250px);padding-right:3px}}
