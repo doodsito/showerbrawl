@@ -34,6 +34,6 @@ export const VOLUME = {
 
 Un son trop fort : ajouter une ligne `nom_du_fichier: 0.5,` et c'est tout. Le MP3 n'est pas touché.
 
-Les coups répétés d'une zone continue (lance-flammes, brûlure) passent par `SFX.burnHit(cible)` : un seul son par cible toutes les 0,3 s, à 50 % (`BURN_HIT_INTERVAL`, `BURN_HIT_VOLUME` dans `sfx.js`).
+Le bip de coup pendant le lance-flammes de Musk (jet et brûlure) est limité à un par cible toutes les 0,3 s, à 50 % du volume (`FLAME_HIT_GAP` / `FLAME_HIT_VOL` dans `client/host.js`).
 
 Sons générés avec ElevenLabs (offre gratuite) : créditer `elevenlabs.io` dans le jeu.

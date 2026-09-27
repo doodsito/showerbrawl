@@ -6,15 +6,13 @@ const FX = ['victory', 'defeat'];
 const VOICE_VOLUME = 0.8;   // au-dessus de la musique (0,16)
 const MAX_VOICES = 4;
 // Volume par fichier (gain de lecture 0..1, sans reencoder le MP3). Absent = 1. Cle = nom du fichier sans .mp3.
+// Son trop fort: ajouter une ligne `nom_du_fichier: 0.5`.
 export const VOLUME = {
   musk_attack: 0.4, // lance-flammes: trop fort a 1
 };
-// Coups repetes d'une zone continue (lance-flammes, brulure): un seul son par cible toutes les 0,3 s, a 50 %.
-const BURN_HIT_INTERVAL = 0.3;
-const BURN_HIT_VOLUME = 0.5;
 export const SFX = {
   ctx: null, master: null, out: null, voice: null, muted: false,
-  buffers: new Map(), wanted: new Set(FX.map((n) => `fx_${n}`)), loading: new Set(), playing: new Map(), burnHits: new Map(),
+  buffers: new Map(), wanted: new Set(FX.map((n) => `fx_${n}`)), loading: new Set(), playing: new Map(),
   init() {
     try {
       if (this.ctx) { if (this.ctx.state !== 'running') this._resume(); this._preload(); return; }
@@ -100,16 +98,6 @@ export const SFX = {
     const name = draw ? 'fx_defeat' : 'fx_victory';
     if (!this.play(name)) this.win();
   },
-  // Coup pris dans une zone continue (lance-flammes, brulure): limite a 1 son par cible toutes les BURN_HIT_INTERVAL s, volume BURN_HIT_VOLUME.
-  burnHit(targetId) {
-    try {
-      if (!this.ctx) return;
-      const now = this.ctx.currentTime, last = this.burnHits.get(targetId);
-      if (last !== undefined && now - last < BURN_HIT_INTERVAL) return;
-      this.burnHits.set(targetId, now);
-      this.hit(BURN_HIT_VOLUME);
-    } catch (e) {}
-  },
   _tone(type, f0, f1, dur, vol = 1, delay = 0) {
     try {
       if (!this.ctx) return;
@@ -139,6 +127,7 @@ export const SFX = {
     } catch (e) {}
   },
   shoot() { this._tone('square', 880, 220, 0.12, 0.25); },
+  // vol: multiplicateur (1 = coup normal, 0.5 = bip attenue du lance-flammes).
   hit(vol = 1) { this._noise(0.1, 0.4 * vol); this._tone('sawtooth', 300, 80, 0.1, 0.2 * vol); },
   death() { this._tone('triangle', 500, 60, 0.6, 0.5); this._noise(0.3, 0.3, 0.05); },
   win() { [523, 659, 784, 1046].forEach((f, i) => this._tone('square', f, f, 0.18, 0.3, i * 0.15)); },
