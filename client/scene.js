@@ -106,14 +106,9 @@ export function render(ctx, W, H, arena, state, characters, camera) {
 
   ctx.save();
   if (camera) {
-    // Open the phone framing during extraction so the aircraft and parachute
-    // remain visible above the arena, then return smoothly to the normal view.
-    const extraction=Math.max(0,...(state?.players||[]).filter(p=>p.alive&&p.exfil).map(p=>
-      reducedMotion.matches?1:Math.max(0,Math.min(1,p.exfil.age/.2,(EXFIL.end-p.exfil.age)/.35))));
-    // Cadrage fixe (camera.fit: scale/tx/ty calcules par la manette), ouvert vers le decor entier pendant l'extraction.
-    const full = Math.min(W / DECOR_W, H / DECOR_H), f = camera.fit || { scale: full, tx: (W - DECOR_W * full) / 2, ty: (H - DECOR_H * full) / 2 };
-    const mix = (a, b) => a + (b - a) * extraction;
-    const scale = mix(f.scale, full), tx = mix(f.tx, (W - DECOR_W * full) / 2), ty = mix(f.ty, (H - DECOR_H * full) / 2);
+    // Cadrage fixe sur l'octogone (camera.fit: scale/tx/ty calcules par la manette), sans exception.
+    const full = Math.min(W / DECOR_W, H / DECOR_H);
+    const { scale, tx, ty } = camera.fit || { scale: full, tx: (W - DECOR_W * full) / 2, ty: (H - DECOR_H * full) / 2 };
     ctx.translate(Math.round(tx), Math.round(ty));
     ctx.scale(scale, scale);
   } else {
