@@ -17,11 +17,6 @@
   #brand{grid-area:brand;justify-self:center;display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1;max-width:100%}
   #brand h1{margin:0;font:900 clamp(26px,7vh,72px)/1 var(--mono);letter-spacing:.08em;color:var(--white);
     text-shadow:3px 0 0 var(--red),-3px 0 0 var(--blue),0 4px 0 var(--black),0 0 18px #0008}
-  /* Tagline: meme famille/graisse que le logo, chromatisme rouge/bleu reduit, hierarchie plus petite */
-  #brand .tag{margin:1vh 0 0;padding:.6vh 1.4vw;background:#08111fc4;box-shadow:0 0 0 2px #08111f80;border-radius:2px;font:900 clamp(10px,1.85vh,18px)/1.32 var(--mono);letter-spacing:.06em;color:var(--white);
-    text-transform:uppercase;text-shadow:1px 0 0 var(--red),-1px 0 0 var(--blue),0 2px 0 var(--black)}
-  #brand .tag span{display:block;white-space:nowrap}
-  #brand .tag span:last-child{color:var(--gold)}
   .frame{background:linear-gradient(var(--panel2),var(--panel));border:3px solid var(--black);border-radius:2px;
     box-shadow:inset 0 0 0 2px #ffffff14,0 6px 0 #0009,0 0 24px #0007}
   #join{grid-area:join;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4vh;min-height:0}
@@ -108,7 +103,7 @@
 <body>
 <canvas id="lobbyBg" width="960" height="540"></canvas>
 <div id="lobby">
-  <div id="brand"><h1>SHOWER BRAWL</h1><p class="tag"><span>Politics is already a fight. We made it real.</span><span>Pick a leader, and brawl your friends.</span><span>In the end, there will be only one left.</span></p></div>
+  <div id="brand"><h1>SHOWER BRAWL</h1></div>
   <div id="teams">
     <div class="team frame" id="teamA"><h2 class="A">CONSPIRACY CREW</h2><ul></ul></div>
     <div class="team frame" id="teamB"><h2 class="B">CANCEL CLUB</h2><ul></ul></div>
