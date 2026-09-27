@@ -82,8 +82,8 @@ test('memes PV et meme vitesse pour tous (CONFIG.BASE_HP / BASE_SPEED)', () => {
 });
 
 // Deplacement: meme distance en 2 s pour un perso labKit et un perso standard, avec ou sans ennemi proche.
-function run2s(id, enemyNear, dir) {
-  const game = new Game({ emit: () => {} }, { characters, arena, autoTick: false, fixedTeams: true });
+function run2s(id, enemyNear, dir, labKit) {
+  const game = new Game({ emit: () => {} }, { characters: {...characters, [id]: {...characters[id], labKit}}, arena, autoTick: false, fixedTeams: true });
   game.join({ id: 'a' }, { team: 'A', character: id }); game.join({ id: 'b' }, { team: 'B', character: 'biden' });
   game.start(); game.countdown = 0;
   const p = game.players.get('a'), q = game.players.get('b');
@@ -97,13 +97,12 @@ function run2s(id, enemyNear, dir) {
   return Math.round(Math.abs(p.x - x0));
 }
 test('deplacement identique pour un perso labKit et un perso standard, avec ou sans ennemi proche', () => {
-  const lab = Object.keys(characters).find((id) => characters[id].labKit), std = Object.keys(characters).find((id) => !characters[id].labKit);
-  assert.ok(lab && std);
-  const ref = run2s(std, false, 1);
+  const id = 'trump'; // Exercise both modes even when the entire roster has custom kits.
+  const ref = run2s(id, false, 1, false);
   assert.ok(ref > 300, `distance de reference ${ref}`);
-  for (const id of [lab, std]) for (const near of [false, true]) {
+  for (const labKit of [true, false]) for (const near of [false, true]) {
     // s'eloigner de l'ennemi (ancien bonus de fuite) et avancer normalement
-    assert.equal(run2s(id, near, 1), ref, `${id} ennemi proche=${near}`);
+    assert.equal(run2s(id, near, 1, labKit), ref, `labKit=${labKit} ennemi proche=${near}`);
   }
 });
 

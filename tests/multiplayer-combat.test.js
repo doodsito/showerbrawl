@@ -41,7 +41,7 @@ test('invalid wall placement has no cooldown; a placed wall expires and reset cl
  game.reset();assert.equal(game.effects.length,0);assert.equal(game.zones.length,0);assert.equal(p.energy,0);
 });
 test('melee strike: misses at range, hits and pushes at contact, never spawns a projectile',t=>{
- const {game,p,q}=setup(t,'harris','trump');cast(game,p,'attack');assert.equal(game.projectiles.length,0);advance(game,.4);assert.equal(q.hp,q.maxHp);
+ const {game,p,q}=setup(t,'tester','trump');cast(game,p,'attack');assert.equal(game.projectiles.length,0);advance(game,.4);assert.equal(q.hp,q.maxHp);
  Object.assign(q,{x:340});p.cd.attack=0;cast(game,p,'attack');assert.equal(q.hp,q.maxHp-CONFIG.BASE_ATTACK.damage);assert.equal(game.projectiles.length,0);
  const atHit=q.x;advance(game,.3);assert.ok(q.x-atHit>20,'knockback pousse la cible');
  assert.ok(game.effects.some(e=>e.kind==='strike'),'effet au point d\'impact');
@@ -104,7 +104,7 @@ test('snapshots carry authoritative wall, charge, dash and attack visual state',
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
- const {game,p,q}=setup(t,'tester','harris');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
+ const {game,p,q}=setup(t,'tester','macron');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
  cast(game,p,'defense');assert.equal(p.invulnT,0);assert.ok(p.dashHit);
  q.char={...q.char,super:{type:'burst',radius:90,damage:9,knockback:300,cooldown:1}};cast(game,q,'super');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'),'burst = onde au sol');
  cast(game,q,'defense');assert.ok(q.shieldT>0);

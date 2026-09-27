@@ -1,3 +1,4 @@
+import {castKamala, updateLaugh} from './kamala-combat.js';
 import {isExtracted} from '../shared/exfiltration.js';
 import {castExfiltration} from './exfiltration.js';
 import {castBiden} from './biden-combat.js';
@@ -168,7 +169,7 @@ export function cast(ctx, p, slot) {
   const a = slot === 'attack' ? standardAttack(p.char.attack) : p.char[slot];
   if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0 || p.napT > 0 || p.cycleT > 0 || p.exfil) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
-  const handler = a.behavior==='exfiltration' ? castExfiltration : a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
+  const handler = ['sonicLaugh','speaking'].includes(a.behavior) ? castKamala : a.behavior==='exfiltration' ? castExfiltration : a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
   if (!handler || handler(ctx, p, {...a, canRingOut: slot === 'super'}) === false) return false;
   if (a.charge) p.energy = 0;
   p.cd[slot] = a.cooldown || 1;
@@ -188,7 +189,7 @@ export function updateProjectiles(ctx, dt) {
     for (let i = 0; i < steps; i++) {
       const dx = pr.vx * stepTime / steps, dy = pr.vy * stepTime / steps;
       const wall = firstWall(ctx, pr, dx, dy);
-      if (wall) { hitWall(ctx, wall, pr.wallDamage??12, pr.chargeHit===0||pr.visual==='baguette'||pr.visual==='decree'?null:pr.owner); return false; }
+      if (wall) { hitWall(ctx, wall, pr.wallDamage??12, pr.chargeHit===0||pr.visual==='baguette'||pr.visual==='decree'||pr.visual==='sonicLaugh'?null:pr.owner); return false; }
       pr.x += dx; pr.y += dy;
       if (physics.collidesWithWall(pr.x, pr.y, pr.r, false)) return false;
       for (const o of ctx.players.values()) {
@@ -197,6 +198,7 @@ export function updateProjectiles(ctx, dt) {
           const hit = ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * .01, pr.y - pr.vy * .01, pr.pushDistance ? 0 : pr.knockback, !!pr.pushDistance, pr.chargeHit == null, !!pr.canRingOut);
           if (pr.visual === 'energy' || pr.visual === 'baguette' || pr.visual === 'icecream' || pr.visual==='maduroOil' || pr.visual==='xiStar') fx(ctx, hit ? 'strike' : 'whiff', pr.x, pr.y, {visual:pr.visual,ux:pr.vx/Math.hypot(pr.vx,pr.vy),uy:pr.vy/Math.hypot(pr.vx,pr.vy)}, .35);
           if(hit && pr.chargeHit != null)charge(ctx.players.get(pr.owner),pr.chargeHit);
+          if(pr.nudge && o.alive){const speed=Math.hypot(pr.vx,pr.vy)||1, distance=hit?pr.nudge:o.shieldT>0?3:0;ctx.physics.moveWithWalls(o,pr.vx/speed*distance,pr.vy/speed*distance,o.r);}
           if (hit && pr.pushDistance) shove(o, pr.vx, pr.vy, pr.pushDistance);
           return false;
         }
@@ -210,6 +212,7 @@ export function updateProjectiles(ctx, dt) {
 
 export function updateZones(ctx, dt) {
   ctx.zones = ctx.zones.filter((z) => {
+    if(z.kind==='sonicLaugh')return updateLaugh(ctx,z,dt);
     if(z.kind==='flamethrower'||z.kind==='cybertruck'||z.kind==='bicycle')return updateMuskZone(ctx,z,dt);
     if (z.kind === 'micDrop' || z.kind === 'decree') return updateMicDrop(ctx, z, dt);
     if (z.kind === 'strike') return updateStrike(ctx, z, dt);

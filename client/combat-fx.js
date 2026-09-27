@@ -1,3 +1,4 @@
+import {drawSonicWave,drawSpeaking} from './kamala-fx.js';
 import {getImage} from './sprites.js';
 import {wallCorners} from '../shared/wall-geometry.js';
 
@@ -276,6 +277,7 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
   return {wall,
     decree(drop,front=false){const [x,y]=project(drop.x,drop.y);decree({...drop,x,y},front);},
     projectile(shot){
+      if(shot.visual==='sonicLaugh'){drawSonicWave(g,shot,project,kx,ky);return true;}
       if(shot.visual==='maduroOil'||shot.visual==='xiStar'){
         const [x,y]=project(shot.x,shot.y),star=shot.visual==='xiStar',img=getImage(star?'sprites/xi_attack.png':'sprites/maduro_attack.png');
         g.save();g.translate(x,y-34);g.rotate(Math.atan2(shot.vy*ky,shot.vx*kx));
@@ -338,6 +340,7 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       g.imageSmoothingEnabled=false;g.drawImage(img,i*cw,0,cw,chh,x-w/2,y+z.r*ky*.6-h,w,h);g.restore();
     },
     effect(e,front=false){const [x,y]=project(e.x,e.y);
+      if(e.kind==='speaking'){drawSpeaking(g,e,project,kx,ky,front);return;}
       if(e.visual==='maduroOil'||e.visual==='xiStar'){
         if(front){g.save();g.globalAlpha=Math.max(0,1-e.age/e.duration);for(let i=0;i<12;i++){const a=i*2.399,r=6+e.age*55;rect(x+Math.cos(a)*r,y-25+Math.sin(a)*r*.5,3,3,e.visual==='xiStar'?(i%2?'#ed5148':'#eac56a'):'#645b44');}g.restore();}return;
       }
