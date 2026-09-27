@@ -18,7 +18,6 @@ function emitCombatEvents(events) {
 }
 window.showerBrawl = Object.assign(window.showerBrawl || {}, { onCombatEvent });
 import { SFX } from './sfx.js';
-import { Music } from './music.js';
 import { createDecor, DECOR_W, DECOR_H } from './decor.js';
 import { getSprite, getImage, spriteUrl } from './sprites.js';
 
@@ -89,9 +88,9 @@ function currentState() {
 // Pouvoirs: sounds/<perso>_<slot>.mp3 sur l'event cast, synthetise si le fichier manque.
 let lastHp = new Map();
 const charById = new Map();
-// Lance-flammes: un seul bip par cible toutes les 0,3 s, a 50 % du volume.
-const FLAME_HIT_GAP = 300, FLAME_HIT_VOL = 0.5;
-const lastFlameHit = new Map();
+// Lance-flammes: un seul bip de brulure toutes les 0,3 s TOUTES cibles confondues (plus d'empilement a plusieurs cibles), a 30 %.
+const FLAME_HIT_GAP = 300, FLAME_HIT_VOL = 0.3;
+let lastFlameHit = 0;
 onCombatEvent((e) => { if (e.k === 'cast') SFX.cast(e.id, charById.get(e.id), e.slot); });
 function sounds(s) {
   try {
@@ -106,12 +105,13 @@ function sounds(s) {
         else if (p.hp < prev.hp) {
           const byFlame = p.burning || [...flamed].some((t) => t !== p.team);
           if (!byFlame) hit = true;
-          else if (now - (lastFlameHit.get(p.id) || 0) >= FLAME_HIT_GAP) { lastFlameHit.set(p.id, now); flameHit = true; }
+          else flameHit = true;
         }
       }
       lastHp.set(p.id, { hp: p.hp, alive: p.alive });
     }
-    if (death) SFX.death(); else if (hit) SFX.hit(); else if (flameHit) SFX.hit(FLAME_HIT_VOL);
+    if (death) SFX.death(); else if (hit) SFX.hit();
+    else if (flameHit && now - lastFlameHit >= FLAME_HIT_GAP) { lastFlameHit = now; SFX.hit(FLAME_HIT_VOL); }
   } catch (e) {}
 }
 
@@ -123,7 +123,6 @@ function showLobby(d) {
     lobby = d; phase = d.phase || 'lobby';
     checkVersion();
     preloadCombatArt(d.characters);
-    Music.setPhase(phase);
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
     $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
@@ -145,6 +144,31 @@ function spriteEl(ch, id) {
   return im;
 }
 
+// Sprites a padding interne variable: recadre sur les pixels opaques (bbox alpha) pour une baseline et une taille reelles communes.
+function trimTo(src) {
+  try {
+    const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+    if (!w || !h) return null;
+    const k = document.createElement('canvas'); k.width = w; k.height = h;
+    const g = k.getContext('2d'); g.drawImage(src, 0, 0);
+    const d = g.getImageData(0, 0, w, h).data;
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    const out = document.createElement('canvas'); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    const og = out.getContext('2d'); og.imageSmoothingEnabled = false; og.drawImage(k, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    out.className = 'trim';
+    return out;
+  } catch (e) { return null; }
+}
+function trimmedSprite(ch, id) {
+  const el = spriteEl(ch, id);
+  const swap = (n) => { const t = trimTo(n); if (t && n.parentNode) n.replaceWith(t); };
+  if (el.tagName === 'CANVAS') { const t = trimTo(el); return t || el; }
+  el.addEventListener('load', () => swap(el), { once: true });
+  return el;
+}
+
 const SLOTS_PER_TEAM = 4;
 function renderSlots(d) {
   for (const t of ['A', 'B']) {
@@ -163,12 +187,11 @@ function renderSlots(d) {
       } else {
         const ch = d.characters && d.characters[p.character];
         li.className = 'slot on';
-        const spr = document.createElement('span'); spr.className = 'spr'; spr.appendChild(spriteEl(ch, p.character));
+        const spr = document.createElement('span'); spr.className = 'spr'; spr.appendChild(trimmedSprite(ch, p.character));
         const txt = document.createElement('span'); txt.className = 'txt';
         const pn = document.createElement('span'); pn.className = 'pn'; pn.textContent = p.name || '?';
         const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = ch ? ch.name : p.character;
         txt.append(pn, cn);
-        if (t === 'B') { li.style.flexDirection = 'row-reverse'; txt.style.alignItems = 'flex-end'; }
         li.append(spr, txt);
         if (p.offline) li.classList.add('offline');
         // KICK discret: libere a la main un perso bloque (fantome).
@@ -191,7 +214,7 @@ function renderRoster(chars) {
   const box = $('roster'); box.innerHTML = '';
   for (const id of ids) {
     const r = document.createElement('div'); r.className = 'r';
-    const s = document.createElement('div'); s.className = 'spr'; s.appendChild(spriteEl(chars[id], id));
+    const s = document.createElement('div'); s.className = 'spr'; s.appendChild(trimmedSprite(chars[id], id));
     const n = document.createElement('span'); n.textContent = chars[id].name || id;
     r.append(s, n); box.appendChild(r);
   }
@@ -219,10 +242,10 @@ function showEnd(d) {
   try {
     const box = $('endBox');
     const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const win = d.winner === 'A' ? ['A', 'BLUE TEAM WINS'] : d.winner === 'B' ? ['B', 'RED TEAM WINS'] : ['draw', 'DRAW'];
+    const win = d.winner === 'A' ? ['A', 'CONSPIRACY CREW WINS'] : d.winner === 'B' ? ['B', 'CANCEL CLUB WINS'] : ['draw', 'DRAW'];
     box.innerHTML = `<div class="victory">${win[0] === 'draw' ? 'MATCH OVER' : 'VICTORY'}</div>
       <div class="winner ${win[0]}">${win[1]}</div>
-      <div class="score"><div class="A">${d.score?.A ?? 0}<small>BLUE</small></div><div class="vs">VS</div><div class="B">${d.score?.B ?? 0}<small>RED</small></div></div>
+      <div class="score"><div class="A">${d.score?.A ?? 0}<small>CONSPIRACY CREW</small></div><div class="vs">VS</div><div class="B">${d.score?.B ?? 0}<small>CANCEL CLUB</small></div></div>
       <div class="mvp"></div>
       <div class="foot"><span id="endCount"></span><button id="replay">REMATCH</button></div>`;
     const m = d.mvp, chars = (lobby && lobby.characters) || {};
@@ -253,7 +276,7 @@ socket.on(MSG.LOBBY, (d) => { try { SFX.setCharacters(Object.keys(d.characters |
 socket.on(MSG.STATE, (s) => {
   if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
-    if (phase !== 'playing') { phase = 'playing'; Music.setPhase(phase); $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
+    if (phase !== 'playing') { phase = 'playing'; $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
     pushUpdate(s); sounds(s); pushEvents(s.events); emitCombatEvents(s.events);
   } catch (e) {}
 });
@@ -280,12 +303,15 @@ window.__sbResetHandler = (e) => {
 document.addEventListener('click', window.__sbResetHandler);
 addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
 
-// Musique: demarre au premier geste (autoplay policy, Safari compris), bouton mute retenu.
-for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => { Music.unlock(); try { SFX.init(); } catch (e) {} }, { capture: true });
-function paintMute() { try { const b = $('mute'); const m = Music.isMuted(); b.textContent = m ? '🔇' : '🔊'; b.title = m ? 'Unmute music' : 'Mute music'; b.setAttribute('aria-pressed', String(m)); } catch (e) {} }
-try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); Music.unlock(); Music.toggleMute(); SFX.setMuted(Music.isMuted()); paintMute(); }); } catch (e) {}
+// Aucune musique: seuls les effets sonores (SFX) jouent, debloques au premier geste. Le bouton coupe/retablit les SFX.
+const MUTE_KEY = 'sb_sfx_muted';
+let sfxMuted = false;
+try { sfxMuted = localStorage.getItem(MUTE_KEY) === '1'; } catch (e) {}
+for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => { try { SFX.init(); } catch (e) {} }, { capture: true });
+function paintMute() { try { const b = $('mute'); b.textContent = sfxMuted ? '🔇' : '🔊'; b.title = sfxMuted ? 'Unmute sound' : 'Mute sound'; b.setAttribute('aria-pressed', String(sfxMuted)); } catch (e) {} }
+try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); sfxMuted = !sfxMuted; try { localStorage.setItem(MUTE_KEY, sfxMuted ? '1' : '0'); } catch (err) {} SFX.init(); SFX.setMuted(sfxMuted); paintMute(); console.log('[sfx] muted', sfxMuted); }); } catch (e) {}
 paintMute();
-SFX.setMuted(Music.isMuted());
+SFX.setMuted(sfxMuted);
 
 // Compte a rebours au START: 3, 2, 1 pilotes par state.countdown (serveur), puis FIGHT! 1 s.
 let cdShown = '', fightUntil = 0, lastCd = 0;

@@ -1,7 +1,7 @@
-// Musique de l'ecran hote: chiptune au lobby, music_circus.mp3 en combat, retour chiptune, mute.
+// Ecran hote: aucune musique (lobby, combat, fin), les effets sonores restent actifs, mute coupe les SFX.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import express from 'express';
@@ -26,7 +26,7 @@ async function launch() {
   return null;
 }
 
-// Niveau RMS de la sortie musique: analyseur branche sur chaque gain qui va vers destination.
+// Niveau RMS de la sortie audio: analyseur branche sur chaque gain qui va vers destination.
 const TAP = () => {
   const orig = AudioNode.prototype.connect;
   AudioNode.prototype.connect = function (dst, ...rest) {
@@ -45,11 +45,12 @@ const TAP = () => {
   };
 };
 
-test('music_circus.mp3 compresse: mono, moins de 700 Ko', () => {
-  assert.ok(statSync(`${root}/client/public/sounds/music_circus.mp3`).size < 700 * 1024);
+test('plus aucun fichier ni module de musique', () => {
+  assert.equal(existsSync(`${root}/client/public/sounds/music_circus.mp3`), false);
+  assert.equal(existsSync(`${root}/client/music.js`), false);
 });
 
-test('host: chiptune au lobby, MP3 en combat, retour lobby, mute', { timeout: 120000 }, async (t) => {
+test('host: silence au lobby et en combat (pas de musique), SFX joues, mute', { timeout: 120000 }, async (t) => {
   await ensureBuild();
   const browser = await launch();
   if (!browser) return t.skip('aucun Chromium disponible');
@@ -72,38 +73,39 @@ test('host: chiptune au lobby, MP3 en combat, retour lobby, mute', { timeout: 12
 
   const page = await browser.newPage();
   await page.addInitScript(TAP);
-  const logs = [], errors = [];
+  const logs = [], errors = [], requests = [];
   page.on('console', (m) => logs.push(m.text()));
   page.on('pageerror', (e) => errors.push(e.message));
+  page.on('request', (r) => requests.push(r.url()));
   await page.goto(url);
-  await page.mouse.click(5, 5); // premier geste: deblocage audio + chargement du MP3
-  const until = async (s, ms = 8000) => { for (let i = 0; i < ms / 100 && !logs.some((l) => l.includes(s)); i++) await wait(100); return logs.some((l) => l.includes(s)); };
-
-  assert.ok(await until('[music] playing lobby'), logs.join('\n'));
-  assert.ok(await until('[music] combat track loaded'), logs.join('\n'));
-  await wait(800);
+  await page.mouse.click(5, 5); // premier geste: deblocage audio
+  await wait(1500);
   const lobbyRms = await page.evaluate(() => window.__rms());
+  assert.ok(lobbyRms < 0.002, `son au lobby: ${lobbyRms}`);
 
   const c = ioc(url, { transports: ['websocket'] }); t.after(() => c.close());
-  await new Promise((ok) => c.on('connect', () => c.emit(MSG.JOIN, { team: 'A', character: 'trump', name: 'T' }, ok)));
+  await new Promise((ok) => c.on('connect', () => c.emit(MSG.JOIN, { character: 'musk', name: 'M' }, ok)));
   await page.click('#start');
-  assert.ok(await until('[music] playing combatTrack'), logs.join('\n'));
-  await wait(1500);
-  const combatRms = await page.evaluate(() => window.__rms());
-  console.log('rms lobby', lobbyRms.toFixed(4), 'combat', combatRms.toFixed(4));
-  assert.ok(combatRms > 0.005, 'combat silencieux');
-  assert.ok(!logs.some((l) => l.includes('[music] playing combat') && !l.includes('combatTrack')), 'chiptune de combat jouee alors que le MP3 etait pret');
+  await wait(4500); // compte a rebours
+  const idleRms = await page.evaluate(() => window.__rms());
+  assert.ok(idleRms < 0.002, `musique en combat: ${idleRms}`);
 
-  const n = logs.length;
-  game.score.A = 1; game.end();
-  assert.ok(await until('[music] playing lobby'), logs.slice(n).join('\n'));
+  c.emit(MSG.INPUT, { dx: 0, dy: 0, attack: true });
+  let peak = 0;
+  for (let i = 0; i < 10; i++) { await wait(60); peak = Math.max(peak, await page.evaluate(() => window.__rms())); }
+  c.emit(MSG.INPUT, { dx: 0, dy: 0 });
+  assert.ok(peak > 0.003, `lance-flammes inaudible: ${peak}`);
+  assert.ok(logs.some((l) => l.includes('[sfx] fichier joue musk_attack.mp3 x 0.22')), logs.join('\n'));
 
   await page.click('#mute');
-  assert.ok(await until('[music] muted true'));
-  await wait(600);
-  const mutedRms = await page.evaluate(() => window.__rms());
-  assert.ok(mutedRms < 0.002, `mute inefficace: ${mutedRms}`);
-  await page.click('#mute');
-  assert.ok(await until('[music] muted false'));
+  assert.ok(logs.some((l) => l.includes('[sfx] muted true')));
+  await wait(1200);
+  c.emit(MSG.INPUT, { dx: 0, dy: 0, attack: true });
+  let mutedPeak = 0;
+  for (let i = 0; i < 8; i++) { await wait(60); mutedPeak = Math.max(mutedPeak, await page.evaluate(() => window.__rms())); }
+  assert.ok(mutedPeak < 0.002, `mute inefficace: ${mutedPeak}`);
+
+  assert.ok(!logs.some((l) => l.includes('[music]')), 'log musique');
+  assert.ok(!requests.some((u) => u.includes('music_')), 'fichier musique demande');
   assert.deepEqual(errors, []);
 });

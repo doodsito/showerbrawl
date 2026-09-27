@@ -140,7 +140,11 @@ export class Game {
   smallestTeam() {
     const n = { A: 0, B: 0 };
     for (const p of this.players.values()) if (p.team in n) n[p.team]++;
-    return n.A === n.B ? (Math.random() < 0.5 ? 'A' : 'B') : n.A < n.B ? 'A' : 'B';
+    if (n.A !== n.B) return n.A < n.B ? 'A' : 'B';
+    // Egalite: alternance serveur (depart tire au sort), jamais la meme equipe favorisee a chaque fois.
+    if (!this.tieTeam) this.tieTeam = Math.random() < 0.5 ? 'A' : 'B';
+    const t = this.tieTeam; this.tieTeam = t === 'A' ? 'B' : 'A';
+    return t;
   }
   // Tirage au sort: melange Fisher-Yates puis alternance A/B (ecart <= 1), equipe de depart aleatoire.
   shuffleTeams() {

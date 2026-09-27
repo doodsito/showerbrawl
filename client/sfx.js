@@ -3,12 +3,12 @@
 // Un fichier absent (404) est ignore: le son synthetise prend le relais.
 const SLOTS = ['attack', 'defense', 'super'];
 const FX = ['victory', 'defeat'];
-const VOICE_VOLUME = 0.8;   // au-dessus de la musique (0,16)
+const VOICE_VOLUME = 0.8;
 const MAX_VOICES = 4;
 // Volume par fichier (gain de lecture 0..1, sans reencoder le MP3). Absent = 1. Cle = nom du fichier sans .mp3.
 // Son trop fort: ajouter une ligne `nom_du_fichier: 0.5`.
 export const VOLUME = {
-  musk_attack: 0.4, // lance-flammes: trop fort a 1
+  musk_attack: 0.22, // lance-flammes: souffle large bande de 0,9 s, domine a 0,4 (-45 %)
 };
 export const SFX = {
   ctx: null, master: null, out: null, voice: null, muted: false,
@@ -32,7 +32,7 @@ export const SFX = {
       this._preload();
     } catch (e) {}
   },
-  // Safari: un son joue pendant le geste + resume explicite (meme deblocage que music.js).
+  // Safari: un son joue pendant le geste + resume explicite.
   _resume() {
     try {
       const s = this.ctx.createBufferSource(); s.buffer = this.ctx.createBuffer(1, 1, 22050); s.connect(this.ctx.destination); s.start(0);
@@ -128,7 +128,7 @@ export const SFX = {
     } catch (e) {}
   },
   shoot() { this._tone('square', 880, 220, 0.12, 0.25); },
-  // vol: multiplicateur (1 = coup normal, 0.5 = bip attenue du lance-flammes).
+  // vol: multiplicateur (1 = coup normal, 0.3 = bip attenue du lance-flammes).
   hit(vol = 1) { this._noise(0.1, 0.4 * vol); this._tone('sawtooth', 300, 80, 0.1, 0.2 * vol); },
   death() { this._tone('triangle', 500, 60, 0.6, 0.5); this._noise(0.3, 0.3, 0.05); },
   win() { [523, 659, 784, 1046].forEach((f, i) => this._tone('square', f, f, 0.18, 0.3, i * 0.15)); },

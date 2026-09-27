@@ -11,7 +11,8 @@ import { preloadCombatArt } from '../combat-assets.js';
 const CAMERA_ZOOM = 1.4;
 
 const $ = (s) => document.querySelector(s);
-const socket = io();
+// Reconnexion sans recharger: websocket d'abord, tentatives illimitees, 500 ms a 3 s.
+const socket = io({ transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 500, reconnectionDelayMax: 3000 });
 // Identifiant persistant du joueur: genere une seule fois, envoye a chaque JOIN (reprise du perso apres rechargement/veille).
 const playerKey = (() => {
   const gen = () => (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36));
@@ -19,13 +20,38 @@ const playerKey = (() => {
 })();
 const setJoined = (on) => { try { on ? localStorage.setItem('sb_joined', '1') : localStorage.removeItem('sb_joined'); } catch (e) {} };
 let stateLogged = false;
+// Bandeau discret pendant une coupure, retire des que le JOIN de reprise est accepte.
+const banner = document.createElement('div');
+banner.id = 'reconnecting'; banner.textContent = 'Reconnecting...'; banner.hidden = true;
+banner.style.cssText = 'position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:9999;padding:3px 12px;font:700 12px/1.4 monospace;letter-spacing:.1em;color:#fff;background:#000b;border:1px solid #fff3;border-top:0;border-radius:0 0 6px 6px;pointer-events:none';
+document.body.appendChild(banner);
+const setBanner = (on) => { banner.hidden = !on; };
+socket.on('disconnect', () => { if (st.wantJoin) setBanner(true); });
+
+// Ecran allume (Screen Wake Lock): des l'ecran de selection, pendant lobby et match, redemande au retour de visibilite.
+let wakeLock = null;
+async function keepAwake() {
+  try {
+    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible' || (wakeLock && !wakeLock.released)) return;
+    wakeLock = await navigator.wakeLock.request('screen');
+  } catch (e) { /* non supporte ou refuse: ignore */ }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+document.addEventListener('pointerdown', keepAwake, { passive: true }); // certains navigateurs exigent un geste
+keepAwake();
+
 socket.on('connect', () => {
   console.log('[play] socket connecte', socket.id);
+  if (!st.wantJoin) setBanner(false);
   // Reconnexion (veille du tel, reseau): on rejoint automatiquement avec le meme choix.
   if (st.wantJoin && st.character) doJoin();
 });
 socket.on('kicked', () => { st.joined = false; st.wantJoin = false; setJoined(false); $('#err').textContent = 'Removed by the host'; renderSelect(); show('select'); });
-socket.on('connect_error', (e) => console.warn('[play] serveur injoignable', e.message));
+socket.on('connect_error', (e) => {
+  console.warn('[play] serveur injoignable', e.message);
+  // Refus cote serveur (socket.active false): socket.io ne retente plus seul, on relance nous-memes.
+  if (!socket.active) setTimeout(() => { if (!socket.connected) socket.connect(); }, 1000);
+});
 const st = { phase: 'lobby', teams: { A: [], B: [] }, characters: {}, team: null, character: null, joined: false, lastHp: null, energy: 0, alive: false };
 const input = { dx: 0, dy: 0, attack: false, defense: false, super: false };
 const cds = { attack: 0, defense: 0, super: 0 };
@@ -83,11 +109,11 @@ function doJoin() {
     console.log('[play] JOIN ack', res);
     if (res && res.repick) { st.character = null; try { localStorage.removeItem('sb_char'); } catch (e) {} }
     if (res && res.ok === false) {
-      st.joined = false; st.wantJoin = false; setJoined(false);
+      st.joined = false; st.wantJoin = false; setJoined(false); setBanner(false);
       $('#err').textContent = res.takenBy ? `Character already taken by ${res.takenBy}${res.takenOffline ? ' (disconnected, freed in 5 s)' : ''}` : (res.error || 'Could not join');
       renderSelect(); show('select'); return;
     }
-    setJoined(true);
+    setJoined(true); setBanner(false);
     st.joined = true; st.wantJoin = true; st.lastHp = null;
     setupPad(); if (st.phase !== 'ended') show('pad');
   });
@@ -114,7 +140,7 @@ function logStick() {
 function applyTeam() {
   document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : st.team === 'B' ? 'var(--b)' : 'var(--gold)');
   document.body.dataset.team = st.team || '';
-  $('#meTeam').textContent = st.team === 'A' ? 'BLUE TEAM' : st.team === 'B' ? 'RED TEAM' : 'TEAM';
+  $('#meTeam').textContent = st.team === 'A' ? 'CONSPIRACY CREW' : st.team === 'B' ? 'CANCEL CLUB' : 'TEAM';
 }
 function setupPad() {
   const ch = st.characters[st.character] || {};
@@ -259,7 +285,8 @@ socket.on(MSG.LOBBY, (d) => {
     }
     // Le serveur fait foi: si on est dans une equipe, on est en manette (y compris en cours de manche).
     if (inTeam && st.phase !== 'ended') { st.joined = true; st.wantJoin = true; setupPad(); show('pad'); }
-    if (!st.joined) { renderSelect(); show('select'); } else renderSelect();
+    // Reprise en cours (wantJoin): on reste sur la manette, pas de retour a la selection.
+    if (!st.joined && !st.wantJoin) { renderSelect(); show('select'); } else renderSelect();
     syncView();
   } catch (e) {}
 });
