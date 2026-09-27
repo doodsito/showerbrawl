@@ -47,7 +47,11 @@ socket.on('connect', () => {
   if (st.wantJoin && st.character) doJoin();
 });
 socket.on('kicked', () => { st.joined = false; st.wantJoin = false; setJoined(false); $('#err').textContent = 'Removed by the host'; renderSelect(); show('select'); });
-socket.on('connect_error', (e) => console.warn('[play] serveur injoignable', e.message));
+socket.on('connect_error', (e) => {
+  console.warn('[play] serveur injoignable', e.message);
+  // Refus cote serveur (socket.active false): socket.io ne retente plus seul, on relance nous-memes.
+  if (!socket.active) setTimeout(() => { if (!socket.connected) socket.connect(); }, 1000);
+});
 const st = { phase: 'lobby', teams: { A: [], B: [] }, characters: {}, team: null, character: null, joined: false, lastHp: null, energy: 0, alive: false };
 const input = { dx: 0, dy: 0, attack: false, defense: false, super: false };
 const cds = { attack: 0, defense: 0, super: 0 };
