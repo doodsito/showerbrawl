@@ -75,11 +75,10 @@ export class Game {
     if (!char) return { ok: false, error: 'invalid character' };
     const existing = this.players.get(socket.id);
     if (!existing && this.players.size >= MAX_PLAYERS) return { ok: false, error: 'game is full' };
-    // Un perso = un joueur tant qu'il en reste un libre; sinon doublons autorises.
+    // Un perso = un seul joueur, toutes equipes confondues, sans exception.
     const forced = this.fixedTeams && CONFIG.TEAMS.includes(data.team) ? data.team : null;
-    // Un perso = un joueur, toutes equipes confondues, sans exception.
-    const owner = [...this.players.values()].find((o) => o.id !== socket.id && o.character === data.character);
-    if (owner) return { ok: false, error: 'character already taken' };
+    const holder = [...this.players.values()].find((o) => o.id !== socket.id && o.character === data.character);
+    if (holder) return { ok: false, error: 'character already taken', takenBy: holder.name };
     const team = forced || existing?.team || this.smallestTeam();
     const name = String(data.name || char.name).slice(0, 16);
     const p = existing || { id: socket.id, kills: 0, deaths: 0, input: { dx: 0, dy: 0 } };
