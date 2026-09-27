@@ -3,6 +3,7 @@
 // Un fichier absent (404) est ignore: le son synthetise prend le relais.
 const SLOTS = ['attack', 'defense', 'super'];
 const FX = ['victory', 'defeat'];
+const SFX_MASTER = 0.2;    // gain maitre des effets (avant 0.35), VOICE_VOLUME et VOLUME s'appliquent par-dessus
 const VOICE_VOLUME = 0.8;
 const MAX_VOICES = 4;
 // Volume par fichier (gain de lecture 0..1, sans reencoder le MP3). Absent = 1. Cle = nom du fichier sans .mp3.
@@ -23,7 +24,7 @@ export const SFX = {
       this.out.gain.value = this.muted ? 0 : 1;
       this.out.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.35;
+      this.master.gain.value = SFX_MASTER;
       this.master.connect(this.out);
       this.voice = this.ctx.createGain();
       this.voice.gain.value = VOICE_VOLUME;
