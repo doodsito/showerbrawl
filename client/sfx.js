@@ -5,6 +5,11 @@ const SLOTS = ['attack', 'defense', 'super'];
 const FX = ['victory', 'defeat'];
 const VOICE_VOLUME = 0.8;   // au-dessus de la musique (0,16)
 const MAX_VOICES = 4;
+// Volume par fichier (1 = volume d'origine), applique au gain de lecture sans reencoder le MP3.
+// Son trop fort: ajouter une ligne `nom_du_fichier: 0.5`.
+export const VOLUME = {
+  musk_attack: 0.4,
+};
 export const SFX = {
   ctx: null, master: null, out: null, voice: null, muted: false,
   buffers: new Map(), wanted: new Set(FX.map((n) => `fx_${n}`)), loading: new Set(), playing: new Map(),
@@ -69,7 +74,9 @@ export const SFX = {
       if (!buf || !this.ctx) return false;
       if (this.playing.has(key)) return true;
       if (this.playing.size >= MAX_VOICES) return true;
-      const s = this.ctx.createBufferSource(); s.buffer = buf; s.connect(this.voice);
+      const s = this.ctx.createBufferSource(); s.buffer = buf;
+      const vol = VOLUME[name] ?? 1;
+      if (vol !== 1) { const g = this.ctx.createGain(); g.gain.value = vol; s.connect(g); g.connect(this.voice); } else s.connect(this.voice);
       this.playing.set(key, s);
       s.onended = () => { if (this.playing.get(key) === s) this.playing.delete(key); };
       s.start();
@@ -118,7 +125,7 @@ export const SFX = {
     } catch (e) {}
   },
   shoot() { this._tone('square', 880, 220, 0.12, 0.25); },
-  hit() { this._noise(0.1, 0.4); this._tone('sawtooth', 300, 80, 0.1, 0.2); },
+  hit(vol = 1) { this._noise(0.1, 0.4 * vol); this._tone('sawtooth', 300, 80, 0.1, 0.2 * vol); },
   death() { this._tone('triangle', 500, 60, 0.6, 0.5); this._noise(0.3, 0.3, 0.05); },
   win() { [523, 659, 784, 1046].forEach((f, i) => this._tone('square', f, f, 0.18, 0.3, i * 0.15)); },
 };
