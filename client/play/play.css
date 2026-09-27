@@ -333,14 +333,3 @@ body[data-phase=playing] #pad .band{left:calc(6px + var(--sl));max-width:44%}
   #pad .btns .btn:not(.cool) em{font-size:12px;bottom:7px}
   #pad .btns .btn[data-k=super]:not(.cool) em{font-size:13px}
 }
-/* Match: aucun filtre CSS ni ombre floue animee (repeint couteux a chaque frame). Memes signaux, en aplats. */
-body[data-phase=playing] .btn,body[data-phase=playing] .btn img,body[data-phase=playing] .btn.cool,body[data-phase=playing] .btn:disabled{filter:none}
-body[data-phase=playing] .btn:disabled{opacity:.55}
-body[data-phase=playing] .btn.ready{animation:glowFlat .5s steps(2) infinite}
-body[data-phase=playing] .btn[data-k=super].ready{animation:superglowFlat .7s steps(2) infinite}
-body[data-phase=playing] .stick .joystick .back{box-shadow:0 0 0 3px #35527e,inset 0 0 0 4px #60a5fa33}
-body[data-phase=playing] .stick .joystick .front{box-shadow:0 4px 0 #5e6c82}
-@keyframes glowFlat{0%{box-shadow:inset 0 5px 0 #fff8,0 6px 0 var(--line),0 0 0 3px var(--goldL),0 0 0 7px #ffd96a99}100%{box-shadow:inset 0 5px 0 #fff8,0 6px 0 var(--line),0 0 0 3px #fff}}
-@keyframes superglowFlat{0%{box-shadow:inset 0 0 0 3px var(--goldL),0 4px 0 var(--line),0 0 0 3px var(--gold),0 0 0 7px #ffd96a99}100%{box-shadow:inset 0 0 0 3px #fff,0 4px 0 var(--line),0 0 0 4px var(--goldL),0 0 0 9px #c77dff88}}
-body[data-phase=playing] .hit{box-shadow:none;background:radial-gradient(ellipse at center,transparent 58%,#ff1a1acc 100%);will-change:opacity}
-body[data-phase=playing] .hit.dead{box-shadow:none;background:radial-gradient(ellipse at center,transparent 40%,#ff0000ee 100%)}
