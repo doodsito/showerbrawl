@@ -27,12 +27,14 @@ test('Trump has a melee punch; misses do not damage or create a projectile',t=>{
  const {game,p,q}=setup(t);assert.equal(cast(game,p,'attack'),true);assert.equal(q.hp,q.maxHp);assert.equal(game.projectiles.length,0);
  advance(game,.6);q.x=370;cast(game,p,'attack');assert.equal(q.hp,q.maxHp-CONFIG.BASE_ATTACK.damage);assert.ok(p.energy>0);advance(game,.2);assert.ok(q.x>=380);
 });
-test('summoned wall blocks both teams and absorbs three punches, then frees the passage',t=>{
- const {game,p,q}=setup(t);assert.ok(cast(game,p,'defense'));const wall=game.walls[0];
+test('summoned wall blocks both teams, absorbs three enemy punches (not its owner\'s), then frees the passage',t=>{
+ const {game,p,q}=setup(t,'trump','tester');assert.ok(cast(game,p,'defense'));const wall=game.walls[0];
  game.physics.moveWithWalls(p,200,0,p.r);game.physics.moveWithWalls(q,-200,0,q.r);
  assert.ok(p.x<wall.x&&q.x>wall.x);assert.equal(wallContact(p,wall,p.r),null);
- for(let i=0;i<3;i++){p.cd.attack=0;cast(game,p,'attack');}
- assert.equal(game.walls.length,0);assert.equal(q.hp,q.maxHp);assert.equal(p.energy,0);
+ p.cd.attack=0;cast(game,p,'attack');assert.equal(game.walls.length,1);
+ game.physics.moveWithWalls(q,wall.x+45-q.x,0,q.r);
+ for(let i=0;i<3;i++){q.cd.attack=0;cast(game,q,'attack');}
+ assert.equal(game.walls.length,0);assert.equal(p.hp,p.maxHp);
  game.physics.moveWithWalls(p,150,0,p.r);assert.ok(p.x>wall.x);
 });
 test('invalid wall placement has no cooldown; a placed wall expires and reset clears all effects',t=>{
