@@ -3,16 +3,19 @@
 // Aucune secousse d'ecran (regle d'equipe).
 // Assets pixel art (scripts/gen-victory-assets.js): sprites/trump_win_pose.png, trump_win_banner.png, rigged_stamp.png.
 import { SFX } from './sfx.js';
+import { assetUrl } from './version.js';
 
 export const GAG_DURATION = 5; // s ajoutees au retour lobby (serveur: END_SCREEN)
-const T_START = 2500, T_DIM = T_START + 300, T_POSE = T_START + 500, T_BANNER = T_START + 750, T_STAMP = T_START + 1450;
+let T_START = 2500, T_DIM, T_POSE, T_BANNER, T_STAMP;
+const timing = (start) => { T_START = start; T_DIM = start + 300; T_POSE = start + 500; T_BANNER = start + 750; T_STAMP = start + 1450; };
+timing(2500);
 const ASSETS = { pose: 'sprites/trump_win_pose.png', banner: 'sprites/trump_win_banner.png', stamp: 'sprites/rigged_stamp.png' };
 const GRID = { pose: 128, banner: 256, stamp: 256 }; // largeur de la grille pixel art de chaque PNG
 const imgs = {};
 export function preloadGag() {
   for (const [k, src] of Object.entries(ASSETS)) {
-    if (imgs[k]) continue;
-    const im = new Image(); im.onerror = () => { im.failed = true; }; im.src = '/' + src; imgs[k] = im;
+    if (imgs[k] && !imgs[k].failed) continue; // echec (reseau, deploiement en cours): on retente au lieu de garder un gag vide
+    const im = new Image(); im.onerror = () => { im.failed = true; }; im.src = assetUrl(src); imgs[k] = im;
   }
 }
 const ok = (im) => im && im.complete && !im.failed && im.naturalWidth > 0;
@@ -40,8 +43,8 @@ export function stopGag() {
   document.getElementById('end')?.classList.remove('trump-win', 'gag-glitch');
 }
 
-export function startGag() {
-  stopGag(); preloadGag();
+export function startGag(delay = 2500) { // delai avant le gag (0: debug, touche G)
+  stopGag(); preloadGag(); timing(Math.max(300, delay));
   if (!document.getElementById('gagCss')) { const s = document.createElement('style'); s.id = 'gagCss'; s.textContent = CSS; document.head.appendChild(s); }
   const end = document.getElementById('end');
   // Ecran de fin normal d'abord (vrai gagnant, score, MVP), puis glitch et le gag prend le relais.
