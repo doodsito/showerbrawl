@@ -329,7 +329,7 @@ socket.on(MSG.LOBBY, (d) => {
   } catch (e) {}
 });
 
-// Retour de coup: vibration Android, switch haptique iOS 18, vignette rouge + tremblement partout.
+// Retour de coup: vibration Android, switch haptique iOS 18, vignette rouge (pas de tremblement).
 let vibOn = true, lastBuzz = 0, hitTimer = null;
 try { vibOn = localStorage.getItem('sb_vib') !== '0'; } catch (e) {}
 const vibBtn = $('#vib');
@@ -356,10 +356,10 @@ function buzz(pattern) {
 function hitFeedback(dmg, dead) {
   const now = performance.now();
   if (dead || now - lastBuzz >= 120) { lastBuzz = now; buzz(dead ? [100, 60, 200] : dmg > 15 ? 90 : 40); }
-  const h = $('#hit'), pad = $('#pad');
-  h.classList.remove('on', 'dead'); pad.classList.remove('shake'); void h.offsetWidth;
-  h.classList.add(dead ? 'dead' : 'on'); pad.classList.add('shake');
-  clearTimeout(hitTimer); hitTimer = setTimeout(() => { h.classList.remove('on', 'dead'); pad.classList.remove('shake'); }, dead ? 450 : 150);
+  const h = $('#hit');
+  h.classList.remove('on', 'dead'); void h.offsetWidth;
+  h.classList.add(dead ? 'dead' : 'on');
+  clearTimeout(hitTimer); hitTimer = setTimeout(() => { h.classList.remove('on', 'dead'); }, dead ? 450 : 150);
 }
 
 // Etat perso leger envoye par le serveur a ce seul socket (le STATE complet ne va qu'a l'ecran hote).
