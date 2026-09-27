@@ -54,43 +54,22 @@ function pushUpdate(u) {
 }
 const lerp = (a, b, r) => a + (b - a) * r;
 const LERP_KEYS = ['age', 'ttl', 'pose', 'recoil'], LERP_SUB = ['launch', 'shove'];
-// Pools reutilises d'une frame a l'autre: un objet par id et par liste, un tableau par liste (aucune allocation par frame).
 const byId = new Map();
-function copyInto(dst, src) {
-  for (const k in dst) if (!(k in src)) delete dst[k];
-  for (const k in src) dst[k] = src[k];
-  return dst;
-}
-function makeList() { return { out: [], objs: new Map(), subs: { launch: new Map(), shove: new Map() } }; }
-const LISTS = { players: makeList(), projectiles: makeList(), zones: makeList(), walls: makeList(), effects: makeList(), extra: makeList() };
-function lerpList(pool, l1, l2, r) {
-  const out = pool.out;
-  out.length = 0;
-  if (!l1) return out;
+function lerpList(l1, l2, r) {
+  if (!l1) return [];
   byId.clear();
   if (l2) for (let i = 0; i < l2.length; i++) byId.set(l2[i].id, l2[i]);
+  const out = new Array(l1.length);
   for (let i = 0; i < l1.length; i++) {
     const o = l1[i], n = byId.get(o.id);
-    if (!n) { out.push(o); continue; }
-    let res = pool.objs.get(o.id);
-    if (!res) { res = {}; pool.objs.set(o.id, res); }
-    copyInto(res, o);
-    res.x = lerp(o.x, n.x, r); res.y = lerp(o.y, n.y, r);
-    for (let j = 0; j < LERP_KEYS.length; j++) { const key = LERP_KEYS[j]; if (Number.isFinite(o[key]) && Number.isFinite(n[key])) res[key] = lerp(o[key], n[key], r); }
-    for (let j = 0; j < LERP_SUB.length; j++) {
-      const key = LERP_SUB[j];
-      if (o[key] && n[key]) {
-        const subs = pool.subs[key]; let sub = subs.get(o.id);
-        if (!sub) { sub = {}; subs.set(o.id, sub); }
-        copyInto(sub, o[key]); sub.progress = lerp(o[key].progress, n[key].progress, r); res[key] = sub;
-      }
-    }
-    out.push(res);
+    if (!n) { out[i] = o; continue; }
+    const result = { ...o, x: lerp(o.x, n.x, r), y: lerp(o.y, n.y, r) };
+    for (const key of LERP_KEYS) if (Number.isFinite(o[key]) && Number.isFinite(n[key])) result[key] = lerp(o[key], n[key], r);
+    for (const key of LERP_SUB) if (o[key] && n[key]) result[key] = { ...o[key], progress: lerp(o[key].progress, n[key].progress, r) };
+    out[i] = result;
   }
-  if (pool.objs.size > 64) { byId.clear(); for (const o of l1) byId.set(o.id, o); for (const id of pool.objs.keys()) if (!byId.has(id)) pool.objs.delete(id); pool.subs.launch.clear(); pool.subs.shove.clear(); }
   return out;
 }
-const frameState = {};
 function currentState() {
   if (clockOffset === null || !updates.length) return null;
   const b = baseIndex();
@@ -100,19 +79,11 @@ function currentState() {
     const last = updates[b], prev = updates[b - 1];
     if (!prev || last.t <= prev.t) return last;
     const ahead = Math.min(MAX_EXTRAPOLATION, Math.max(0, serverTime() - last.t));
-    copyInto(frameState, last);
-    frameState.players = lerpList(LISTS.extra, prev.players, last.players, 1 + ahead / (last.t - prev.t));
-    return frameState;
+    return { ...last, players: lerpList(prev.players, last.players, 1 + ahead / (last.t - prev.t)) };
   }
   const a = updates[b], n = updates[b + 1];
   const r = Math.min(1, Math.max(0, (serverTime() - a.t) / ((n.t - a.t) || 1)));
-  copyInto(frameState, n);
-  frameState.players = lerpList(LISTS.players, a.players, n.players, r);
-  frameState.projectiles = lerpList(LISTS.projectiles, a.projectiles, n.projectiles, r);
-  frameState.zones = lerpList(LISTS.zones, a.zones, n.zones, r);
-  frameState.walls = lerpList(LISTS.walls, a.walls, n.walls, r);
-  frameState.effects = lerpList(LISTS.effects, a.effects, n.effects, r);
-  return frameState;
+  return { ...n, players: lerpList(a.players, n.players, r), projectiles: lerpList(a.projectiles, n.projectiles, r), zones: lerpList(a.zones, n.zones, r), walls: lerpList(a.walls, n.walls, r), effects: lerpList(a.effects, n.effects, r) };
 }
 
 // Sons déclenchés par diff des snapshots
