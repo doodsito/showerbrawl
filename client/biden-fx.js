@@ -6,18 +6,19 @@ export function sleepLayout(nap,quiet,height=76){
  return {blend,height:height+(35-height)*blend};
 }
 export function drawSleep(g,p,time,quiet,standing,height=76){
- const img=getImage('sprites/biden_nap_v2.png'),{blend}=sleepLayout(p.nap,quiet,height);
+ const img=getImage('sprites/biden_nap_v2.png'),layout=sleepLayout(p.nap,quiet,height),{blend}=layout;
  g.save();g.translate(p.x,p.y);g.scale(p.fx>=0?1:-1,1);
  // Fold around the body’s centre, then use the resting pose. Draw one body per frame.
  if(standing&&blend<.96){
-  g.save();g.translate(0,-height/2+blend*(height/2-15));g.rotate(blend*Math.PI/2);
-  const w=height*standing.naturalWidth/standing.naturalHeight;
+  const w=height*standing.naturalWidth/standing.naturalHeight,angle=blend*Math.PI/2;
+  const bounds=height*Math.cos(angle)+w*Math.sin(angle);
+  g.save();g.translate(0,-layout.height/2);g.scale(1,layout.height/bounds);g.rotate(angle);
   g.drawImage(standing,-w/2,-height/2,w,height);g.restore();
   g.restore();return true;
  }
  const breath=quiet?0:Math.sin(time*5)*.8;
  // Keep his contact with the floor fixed while the chest expands.
- if(img)g.drawImage(img,30,248,1480,540,-46,-32-breath,92,35+breath);
+ if(img)g.drawImage(img,30,248,1480,540,-46,-35-breath,92,35+breath);
  else if(standing){g.save();g.translate(0,-15);g.rotate(Math.PI/2);const w=height*standing.naturalWidth/standing.naturalHeight;g.drawImage(standing,-w/2,-height/2,w,height);g.restore();}
  else{g.fillStyle='#203453';g.fillRect(-36,-15,66,15);}
  g.strokeStyle='#bdefff';g.lineWidth=1.5;
