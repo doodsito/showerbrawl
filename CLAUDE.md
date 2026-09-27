@@ -18,3 +18,11 @@ Dev: `npm run build && npm start` puis http://localhost:3000 (hote) et /play/ (m
 - Commit apres chaque fichier fonctionnel, commits atomiques.
 - Push sur main des que ca compile, meme a moitie. Build casse => corriger et repush.
 - Ne jamais toucher `references/` ni `perso/`.
+
+## Vitesse (regle d'equipe, prioritaire)
+- Push DIRECT sur main apres CHAQUE commit. Jamais de branche de travail, jamais de PR, jamais d'attente de validation.
+- Ne pas attendre les tests, les captures Playwright ou la fin du deploiement GitHub Actions avant de pousser. Pousser d'abord, verifier ensuite.
+- Push refuse (main a bouge): `git pull --rebase origin main`, resoudre, repousser tout de suite. Ne jamais forcer le push sur main.
+- Aucun test ne bloque le deploiement: push sur main = deploiement direct. En cas de casse: corriger et repousser, ou workflow Rollback.
+- Ne pas s'arreter pour poser une question ou demander une validation: faire le choix le plus raisonnable, le noter dans le message de commit, continuer.
+- Plusieurs fenetres Claude Code travaillent en parallele sur ce repo: toujours partir de origin/main a jour, petits commits, push frequents pour limiter les conflits.
