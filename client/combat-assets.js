@@ -1,4 +1,4 @@
-import {getImage, loadImage, getSprite} from './sprites.js';
+import {getImage, loadImage, getSprite, bakeImage} from './sprites.js';
 
 // Public art is loaded during the lobby, before short first-cast animations begin.
 export const COMBAT_ART = [
@@ -33,13 +33,13 @@ export function warmCombatArt(characters = {}) {
   }
   const decode = (im) => !im ? null : im.decode ? im.decode().catch(() => settle(im)) : settle(im);
   const settle = (im) => (im.complete ? Promise.resolve() : new Promise((r) => { im.addEventListener('load', r, { once: true }); im.addEventListener('error', r, { once: true }); }));
-  const p = warmPromise = Promise.allSettled(imgs.map(decode)).then(() => {
+  const p = warmPromise = Promise.allSettled(imgs.map(decode)).then(() => Promise.allSettled(imgs.map(bakeImage))).then(() => {
     if (p !== warmPromise) return;
     try {
       const k = document.createElement('canvas'), g = k.getContext('2d');
       let w = 1, h = 1; for (const im of imgs) if (im?.naturalWidth) { w = Math.max(w, im.naturalWidth); h = Math.max(h, im.naturalHeight); }
       k.width = w; k.height = h;
-      for (const im of imgs) if (im?.naturalWidth && !im.failed) g.drawImage(im, 0, 0);
+      for (const im of imgs) if (im?.naturalWidth && !im.failed) g.drawImage(im.baked || im, 0, 0);
       k.width = k.height = 0;
     } catch (e) {}
     ready = true;
