@@ -4,7 +4,7 @@ import {getImage} from './sprites.js';
 export const COMBAT_ART = [
   'sprites/maduro_mustache_v1.png',
   'sprites/maduro_attack.png','sprites/xi_attack.png','sprites/maduro_plane_v1.png','sprites/xi_hammer_v2.png',
-  'sprites/biden_sleep.png','sprites/biden_bicycle.svg','sprites/biden_icecream.svg',
+  'sprites/biden_nap_v2.png','sprites/biden_bicycle.svg','sprites/biden_icecream.svg',
   'sprites/mic_object_v1.png', 'sprites/stamp_object_v1.png',
   'sprites/trump_defense.png', 'sprites/obama_attack.png',
   'sprites/musk_attack.png', 'sprites/musk_super.png',

@@ -2,7 +2,7 @@ import {drawMustache,drawMustacheWarning,mustacheLayout} from './maduro-super-fx
 import {drawKamalaPose,drawKamalaImpact} from './kamala-fx.js';
 import {newcomerFX} from './newcomer-fx.js';
 import {EXFIL} from '../shared/exfiltration.js';
-import {drawSleep,drawBicycle} from './biden-fx.js';
+import {drawSleep,drawBicycle,sleepLayout} from './biden-fx.js';
 import { muskFX } from './musk-fx.js';
 import { getSprite, getImage } from './sprites.js';
 import { combatFX } from './combat-fx.js';
@@ -368,7 +368,7 @@ function drawPlayer(ctx, p, characters, time, kamalaPose) {
   if(p.cycle&&!quiet){const age=1.15-p.cycle;if(age<.55){lift+=8+Math.sin(age*20)*2;}else{const fall=Math.sin(Math.min(1,(age-.55)/.6)*Math.PI);angle+=face*fall*1.45;lift-=fall*30;}}
   if(p.uppercut&&!quiet){lift+=Math.sin(Math.min(1,p.uppercut/.45)*Math.PI)*45;angle+=face*.35;}
   const superLayout=mustacheLayout(p.mustache,quiet);
-  const top=superLayout?p.y-superLayout.height-superLayout.lift:p.y-(p.nap?35:img?h:30)-lift;
+  const top=superLayout?p.y-superLayout.height-superLayout.lift:p.y-(p.nap?sleepLayout(p.nap,quiet,h).height:img?h:30)-lift;
   ctx.save();ctx.globalAlpha=p.alive===false?.3:1;
   ctx.fillStyle='#0006';ctx.beginPath();ctx.ellipse(p.x,p.y,18,5,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,20,6,0,0,Math.PI*2);ctx.stroke();
@@ -377,7 +377,7 @@ function drawPlayer(ctx, p, characters, time, kamalaPose) {
     ctx.save();ctx.fillStyle=p.shield?(cfg.shieldStyle==='sunglasses'?'#75cfff22':'#facc1548'):'#ffffff28';ctx.strokeStyle=p.shield?(cfg.shieldStyle==='sunglasses'?'#8edbff':'#facc15'):'#ffffff66';ctx.lineWidth=2;
     ctx.beginPath();ctx.ellipse(p.x,p.y-h/2,29*pulse,(h/2+7)*pulse,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
   }
-  const sleeping=p.nap>0&&drawSleep(ctx,p,time,quiet);
+  const sleeping=p.nap>0&&drawSleep(ctx,p,time,quiet,img,h);
   const stepping=!sleeping&&(drawMustache(ctx,p,quiet)||drawKamalaPose(ctx,p,kamalaPose,quiet));
   if(img&&!sleeping&&!stepping){
     const w=h*(img.naturalWidth/img.naturalHeight);

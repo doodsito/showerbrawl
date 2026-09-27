@@ -1,13 +1,28 @@
 import {getImage} from './sprites.js';
-export function drawSleep(g,p,time,quiet){
- const img=getImage('sprites/biden_sleep.png'),t=quiet?1:Math.min(1,(2.4-p.nap)/.22,p.nap/.28);
- if(t<.95)return false;
+// Both the pose and its nameplate follow the same settle / wake-up progress.
+export function sleepLayout(nap,quiet,height=76){
+ const t=quiet?1:Math.max(0,Math.min(1,(2.4-nap)/.22,nap/.28));
+ const blend=t*t*(3-2*t);
+ return {blend,height:height+(35-height)*blend};
+}
+export function drawSleep(g,p,time,quiet,standing,height=76){
+ const img=getImage('sprites/biden_nap_v2.png'),layout=sleepLayout(p.nap,quiet,height),{blend}=layout;
  g.save();g.translate(p.x,p.y);g.scale(p.fx>=0?1:-1,1);
- const breath=quiet?0:Math.sin(time*5)*1.2;
- if(img)g.drawImage(img,650,420,440,180,-42,-27-breath,84,35);
+ // Fold around the body’s centre, then use the resting pose. Draw one body per frame.
+ if(standing&&blend<.96){
+  const w=height*standing.naturalWidth/standing.naturalHeight,angle=blend*Math.PI/2;
+  const bounds=height*Math.cos(angle)+w*Math.sin(angle);
+  g.save();g.translate(0,-layout.height/2);g.scale(1,layout.height/bounds);g.rotate(angle);
+  g.drawImage(standing,-w/2,-height/2,w,height);g.restore();
+  g.restore();return true;
+ }
+ const breath=quiet?0:Math.sin(time*5)*.8;
+ // Keep his contact with the floor fixed while the chest expands.
+ if(img)g.drawImage(img,30,248,1480,540,-46,-35-breath,92,35+breath);
+ else if(standing){g.save();g.translate(0,-15);g.rotate(Math.PI/2);const w=height*standing.naturalWidth/standing.naturalHeight;g.drawImage(standing,-w/2,-height/2,w,height);g.restore();}
  else{g.fillStyle='#203453';g.fillRect(-36,-15,66,15);}
  g.strokeStyle='#bdefff';g.lineWidth=1.5;
- for(let i=0;i<3;i++){const t=quiet?i/3:(time*.5+i/3)%1;g.globalAlpha=1-t;g.strokeRect(-32-t*12,-27-t*25,3+t*4,3+t*4);}
+ for(let i=0;i<3;i++){const t=quiet?i/3:(time*.5+i/3)%1;g.globalAlpha=(1-t)*blend;g.strokeRect(32+t*12,-27-t*25,3+t*4,3+t*4);}
  g.restore();return true;
 }
 // Velo de Biden dessine en code (plus de SVG etire): roues a jantes et rayons qui tournent autour du vrai moyeu,
