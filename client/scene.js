@@ -1,3 +1,4 @@
+import {drawMustache,drawMustacheWarning,mustacheLayout} from './maduro-super-fx.js';
 import {drawKamalaPose,drawKamalaImpact} from './kamala-fx.js';
 import {newcomerFX} from './newcomer-fx.js';
 import {EXFIL} from '../shared/exfiltration.js';
@@ -161,6 +162,7 @@ export function render(ctx, W, H, arena, state, characters, camera) {
       ctx.beginPath(); ctx.ellipse(x, y, rx * (0.4 + 0.5 * ((now / 600) % 1)), ry * (0.4 + 0.5 * ((now / 600) % 1)), 0, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
+    for(const p of state.players||[])drawMustacheWarning(ctx,p,project,kx,ky);
     items.length = 0; nItems = 0;
     for(const w of state.walls||[]){const s=project(w.x,w.y+Math.abs(w.ux)*w.depth/2);addItem('wall',w,s[0],s[1]);}
     // Every authoritative projectile must reach a renderer, on host and phone.
@@ -184,7 +186,7 @@ export function render(ctx, W, H, arena, state, characters, camera) {
       } else {
         const hs=hitStops.get(it.o.id),nowMs=performance.now();
         if(hs&&nowMs>=hs.from&&nowMs<hs.until){if(hs.x==null){hs.x=x;hs.y=y;}drawPlayer(ctx,{...it.o,x:hs.x,y:hs.y,flash:true},characters,hs.from/1000,kamalaPose);}
-        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);if(camera&&camera.me===it.o.id)drawMeMarker(ctx,x,y,time);drawPlayer(ctx, { ...it.o, x, y }, characters, time,kamalaPose);}
+        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);if(camera&&camera.me===it.o.id)drawMeMarker(ctx,x,y,time,it.o.mustache);drawPlayer(ctx, { ...it.o, x, y }, characters, time,kamalaPose);}
       }
     }
   }
@@ -358,11 +360,12 @@ function drawLeaders(g, state, characters) {
 }
 
 // Mon perso (vue manette): anneau dore au sol + fleche au-dessus, pulsants.
-function drawMeMarker(g, x, y, time) {
+function drawMeMarker(g, x, y, time, mustache) {
   const pulse = 1 + Math.sin(time * 6) * 0.08;
   g.save();
   g.strokeStyle = '#f6c343'; g.lineWidth = 2; g.beginPath(); g.ellipse(x, y, 24 * pulse, 8 * pulse, 0, 0, Math.PI * 2); g.stroke();
-  const ay = y - 120 - Math.abs(Math.sin(time * 5)) * 4;
+  const m=mustacheLayout(mustache,reducedMotion.matches);
+  const ay = y - (m?m.height+m.lift+44:120) - Math.abs(Math.sin(time * 5)) * 4;
   g.fillStyle = '#030812'; g.beginPath(); g.moveTo(x - 8, ay - 2); g.lineTo(x + 8, ay - 2); g.lineTo(x, ay + 9); g.closePath(); g.fill();
   g.fillStyle = '#f6c343'; g.beginPath(); g.moveTo(x - 6, ay); g.lineTo(x + 6, ay); g.lineTo(x, ay + 7); g.closePath(); g.fill();
   g.restore();
@@ -388,7 +391,9 @@ function drawPlayer(ctx, p, characters, time, kamalaPose) {
   if(!quiet&&p.dash){lift+=Math.sin(Math.min(1,1-p.dash.remaining/(p.character==='musk'?.18:.28))*Math.PI)*14;angle=Math.sign(p.dash.x)*.22;}
   if(!quiet&&p.recoil>0){const t=1-p.recoil/.42,bounce=Math.sin(t*Math.PI);offset-=face*bounce*14;lift+=bounce*9;sx=1-Math.max(0,1-t/.22)*.3;sy=1+Math.max(0,1-t/.22)*.13;}
   if(p.cycle&&!quiet){const age=1.15-p.cycle;if(age<.55){lift+=8+Math.sin(age*20)*2;}else{const fall=Math.sin(Math.min(1,(age-.55)/.6)*Math.PI);angle+=face*fall*1.45;lift-=fall*30;}}
-  const top=p.y-(p.nap?35:img?h:30)-lift;
+  if(p.uppercut&&!quiet){lift+=Math.sin(Math.min(1,p.uppercut/.45)*Math.PI)*45;angle+=face*.35;}
+  const superLayout=mustacheLayout(p.mustache,quiet);
+  const top=superLayout?p.y-superLayout.height-superLayout.lift:p.y-(p.nap?35:img?h:30)-lift;
   ctx.save();ctx.globalAlpha=p.alive===false?.3:1;
   ctx.fillStyle='#0006';ctx.beginPath();ctx.ellipse(p.x,p.y,18,5,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y,20,6,0,0,Math.PI*2);ctx.stroke();
@@ -398,7 +403,7 @@ function drawPlayer(ctx, p, characters, time, kamalaPose) {
     ctx.beginPath();ctx.ellipse(p.x,p.y-h/2,29*pulse,(h/2+7)*pulse,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
   }
   const sleeping=p.nap>0&&drawSleep(ctx,p,time,quiet);
-  const stepping=!sleeping&&drawKamalaPose(ctx,p,kamalaPose,quiet);
+  const stepping=!sleeping&&(drawMustache(ctx,p,quiet)||drawKamalaPose(ctx,p,kamalaPose,quiet));
   if(img&&!sleeping&&!stepping){
     const w=h*(img.naturalWidth/img.naturalHeight);
     if(!quiet&&(p.dash||p.launch||p.shove)){

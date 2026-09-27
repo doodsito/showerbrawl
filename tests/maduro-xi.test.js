@@ -18,12 +18,12 @@ for(const id of ['maduro','xi']){
   step(g,.9);assert.equal(q.hp,105-p.char.attack.damage);assert(p.energy>=24.9);assert(!g.physics.isFalling(q));
  });
  test(`${id} projectile expires at its configured range`,t=>{const {g,q}=setup(t,id,'trump',510);input(g,'a','attack');step(g,1.3);assert.equal(q.hp,105);assert.equal(g.projectiles.length,0);});
- test(`${id} super targets the enemy once with a dodgeable warning and synchronized art`,t=>{
+ if(id==='xi')test(`${id} super targets the enemy once with a dodgeable warning and synchronized art`,t=>{
   const {g,p,q,packets}=setup(t,id);input(g,'a','super');assert.equal(p.energy,0);const z=g.zones[0];assert.equal(z.x,q.x);assert.equal(z.y,q.y);
   for(const state of packetsFor(g,packets))assert.equal(state.zones[0].visual,p.char.super.visual);
   step(g,.7);assert.equal(q.hp,105);step(g,.12);assert.equal(q.hp,77);step(g,.8);assert.equal(q.hp,77);step(g,.4);assert.equal(g.zones.length,0);
  });
- test(`${id} super can miss`,t=>{const {g,q}=setup(t,id);input(g,'a','super');q.x=650;step(g,.85);assert.equal(q.hp,105);});
+ if(id==='xi')test(`${id} super can miss`,t=>{const {g,q}=setup(t,id);input(g,'a','super');q.x=650;step(g,.85);assert.equal(q.hp,105);});
 }
 for(const id of ['trump','obama','macron','biden','musk','xi'])for(const slot of ['attack','super'])test(`Exfiltration avoids ${id} ${slot} without moving its return point`,t=>{
  const {g,p,q}=setup(t,'maduro',id,60);input(g,'a','defense');step(g,.4);assert(isExtracted(p));q.energy=100;input(g,'b',slot);g.input('a',{dx:1,dy:0,attack:true,super:true});step(g,1.2);
