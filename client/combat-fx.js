@@ -1,3 +1,4 @@
+import {drawMustacheImpact} from './maduro-super-fx.js';
 import {drawSonicWave,drawSpeaking} from './kamala-fx.js';
 import {getImage} from './sprites.js';
 import {wallCorners} from '../shared/wall-geometry.js';
@@ -340,6 +341,7 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       g.imageSmoothingEnabled=false;g.drawImage(img,i*cw,0,cw,chh,x-w/2,y+z.r*ky*.6-h,w,h);g.restore();
     },
     effect(e,front=false){const [x,y]=project(e.x,e.y);
+      if(e.kind==='mustacheHit'||e.kind==='mustacheMiss'){drawMustacheImpact(g,e,project,front,motionOptions.reducedMotion);return;}
       if(e.kind==='speaking'){drawSpeaking(g,e,project,kx,ky,front);return;}
       if(e.visual==='maduroOil'||e.visual==='xiStar'){
         if(front){g.save();g.globalAlpha=Math.max(0,1-e.age/e.duration);for(let i=0;i<12;i++){const a=i*2.399,r=6+e.age*55;rect(x+Math.cos(a)*r,y-25+Math.sin(a)*r*.5,3,3,e.visual==='xiStar'?(i%2?'#ed5148':'#eac56a'):'#645b44');}g.restore();}return;
