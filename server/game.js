@@ -22,6 +22,7 @@ function slim(o) {
   for (const k in o) { const v = o[k]; if (VIEW_DROP.has(k) || (!VIEW_KEEP.has(k) && (v === false || v == null))) continue; out[k] = v; }
   return out;
 }
+export const GHOST_MS = 5000; // perso reserve apres perte du socket, le temps d'une reprise
 const END_SCREEN = 6; // s d'ecran de victoire avant retour lobby
 const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
 
@@ -54,11 +55,11 @@ export class Game {
     ] : [];
   }
 
-  dispose() { for (const timer of this.timers) clearInterval(timer); clearTimeout(this.endTimer); }
+  dispose() { for (const timer of this.timers) clearInterval(timer); clearTimeout(this.endTimer); for (const p of this.players.values()) clearTimeout(p.ghostTimer); }
 
   lobbyPayload() {
     const teams = { A: [], B: [] };
-    for (const p of this.players.values()) teams[p.team]?.push({ id: p.id, name: p.name, character: p.character });
+    for (const p of this.players.values()) teams[p.team]?.push({ id: p.id, name: p.name, character: p.character, offline: !!p.offline });
     // Jouer sans ecran hote: si aucun hote n'est connecte, le premier joueur inscrit peut lancer la manche.
     const hasHost = (this.io.sockets?.adapter?.rooms?.get('hosts')?.size ?? 0) > 0;
     const firstPlayer = this.players.keys().next().value ?? null;
@@ -73,20 +74,67 @@ export class Game {
     const char = this.characters[data.character];
     if (data.character && !char) return { ok: false, error: 'character no longer available', repick: true };
     if (!char) return { ok: false, error: 'invalid character' };
-    const existing = this.players.get(socket.id);
+    const key = typeof data.playerKey === 'string' && data.playerKey ? data.playerKey.slice(0, 64) : null;
+    // Reprise: meme playerKey = meme joueur (rechargement, veille, perte reseau). La nouvelle connexion remplace l'ancienne.
+    let existing = this.players.get(socket.id);
+    if (!existing && key) {
+      const prev = [...this.players.values()].find((o) => o.key === key);
+      if (prev) { existing = prev; this.rekey(prev, socket.id); }
+    }
     if (!existing && this.players.size >= MAX_PLAYERS) return { ok: false, error: 'game is full' };
     // Un perso = un seul joueur, toutes equipes confondues, sans exception.
     const forced = this.fixedTeams && CONFIG.TEAMS.includes(data.team) ? data.team : null;
-    const holder = [...this.players.values()].find((o) => o.id !== socket.id && o.character === data.character);
-    if (holder) return { ok: false, error: 'character already taken', takenBy: holder.name };
+    const holder = [...this.players.values()].find((o) => o !== existing && o.character === data.character);
+    if (holder) return { ok: false, error: 'character already taken', takenBy: holder.name, takenOffline: !!holder.offline };
     const team = forced || existing?.team || this.smallestTeam();
     const name = String(data.name || char.name).slice(0, 16);
     const p = existing || { id: socket.id, kills: 0, deaths: 0, input: { dx: 0, dy: 0 } };
+    const sameChar = existing && existing.character === data.character;
+    if (key) p.key = key;
+    this.markOnline(p);
     Object.assign(p, { team, character: data.character, char, name, maxHp: char.hp, r: CONFIG.PLAYER_RADIUS });
     this.players.set(socket.id, p);
-    this.spawn(p); // en phase playing, le joueur apparait directement dans l'arene
+    if (!sameChar || p.hp == null) this.spawn(p); // en phase playing, le joueur apparait directement dans l'arene (reprise: stats gardees)
     this.sendLobby();
     return { ok: true, id: socket.id, phase: this.phase };
+  }
+
+  // Change l'id (socket) d'un joueur en gardant sa place dans l'ordre d'inscription.
+  rekey(p, id) {
+    const old = p.id;
+    if (old === id) return;
+    const oldSock = this.io.sockets?.sockets?.get?.(old);
+    const entries = [...this.players.entries()].map(([k, v]) => (k === old ? [id, v] : [k, v]));
+    this.players = new Map(entries);
+    p.id = id;
+    for (const o of [...this.projectiles, ...this.zones]) if (o.owner === old) o.owner = id;
+    if (oldSock) { oldSock.data.replaced = true; try { oldSock.disconnect(true); } catch {} }
+  }
+
+  markOnline(p) { clearTimeout(p.ghostTimer); p.ghostTimer = null; p.offline = false; }
+  // Socket perdu: le perso reste reserve GHOST_MS pour une reprise via playerKey, puis il est libere.
+  disconnect(id) {
+    const p = this.players.get(id);
+    if (!p) return;
+    if (!p.key || GHOST_MS <= 0) return this.leave(id);
+    p.offline = true; p.input = { dx: 0, dy: 0 };
+    clearTimeout(p.ghostTimer);
+    p.ghostTimer = setTimeout(() => { if (p.offline && this.players.get(p.id) === p) this.leave(p.id); }, GHOST_MS);
+    this.sendLobby();
+  }
+  kick(id) {
+    const p = this.players.get(id);
+    if (!p) return false;
+    clearTimeout(p.ghostTimer);
+    const sock = this.io.sockets?.sockets?.get?.(id);
+    this.leave(id);
+    if (sock) try { sock.emit('kicked'); } catch {}
+    return true;
+  }
+  purgeOffline() {
+    const gone = [...this.players.values()].filter((p) => p.offline);
+    for (const p of gone) { clearTimeout(p.ghostTimer); this.players.delete(p.id); }
+    return gone.length;
   }
 
   smallestTeam() {
@@ -103,7 +151,7 @@ export class Game {
     list.forEach((p, i) => { p.team = CONFIG.TEAMS[(i + first) % 2]; });
   }
 
-  leave(id) { if (this.players.delete(id)) this.sendLobby(); }
+  leave(id) { const p = this.players.get(id); if (p) clearTimeout(p.ghostTimer); if (this.players.delete(id)) this.sendLobby(); }
   // Perso retire de characters.json: ses joueurs quittent la partie et retournent au choix de perso.
   dropMissingCharacters() {
     const gone = [...this.players.values()].filter((p) => !this.characters[p.character]).map((p) => p.id);
@@ -160,6 +208,7 @@ export class Game {
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
     this.projectiles = []; this.zones = []; this.walls = []; this.effects = []; this.events = [];
+    this.purgeOffline(); // STOP MATCH: les deconnectes liberent leur perso
     for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
     this.sendLobby();
   }
