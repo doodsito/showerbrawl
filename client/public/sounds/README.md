@@ -12,6 +12,7 @@ Même convention que `client/public/sprites/` :
 | `<perso>_defense.mp3` | son de la défense |
 | `<perso>_super.mp3` | son de la super |
 | `fx_<nom>.mp3` | son commun (`fx_victory`, `fx_defeat`) |
+| `music_<nom>.mp3` | musique de fond (`music_circus` : 1 min 25, "Circus" de SlimeyFox, Pixabay) |
 
 `<perso>` = la clé du perso dans `shared/characters.json`, en minuscules.
 
@@ -37,4 +38,8 @@ Le bip de coup pendant le lance-flammes de Musk (jet et brûlure) est limité à
 
 Sons générés avec ElevenLabs (offre gratuite) : créditer `elevenlabs.io` dans le jeu.
 
-Pas de musique de fond : le jeu ne joue que des effets sonores.
+## Mixage
+
+- `MUSIC_VOLUME = 0.4` en tête de `client/music.js` : volume de la musique (boucle chiptune du lobby, `music_circus.mp3` en combat).
+- `SFX_MASTER = 0.2` en tête de `client/sfx.js` : gain maître de tous les effets. `VOICE_VOLUME` (fichiers MP3) et la table `VOLUME` (par fichier) s'appliquent par-dessus.
+- Le bouton 🔊 de l'écran hôte coupe musique et effets ensemble.
