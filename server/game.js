@@ -206,7 +206,7 @@ export class Game {
     }
     p.x = pt[0]; p.y = pt[1];
     Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, superKbVx: 0, superKbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
-      mustache:null, uppercutT:0, exfil:null, napT:0, cycleT:0, muskBurn:null, carriedBy:null, combatAt: this.clock || 0, energy: 0, recoveryT: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
+      mustache:null, uppercutT:0, exfil:null, napT:0, cycleT:0, muskBurn:null, carriedBy:null, combatAt: this.clock || 0, energy: 0, recoveryT: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, lunge: null, action: null,
       input: {dx: 0, dy: 0}, pending: {}, shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
       fx: p.team === 'A' ? 1 : -1, fy: 0, cd: { attack: 0, defense: 0, super: 0 } });
   }

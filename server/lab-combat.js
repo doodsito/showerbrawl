@@ -1,5 +1,6 @@
 import {isExtracted} from '../shared/exfiltration.js';
 // Authoritative versions of the lab abilities. Visuals consume these same world objects.
+import { meleeStrike } from './abilities.js';
 import { wallContact, wallSegmentEntry, wallsOverlap } from '../shared/wall-geometry.js';
 
 // Regles du kit labo activees par le champ "labKit": true du perso dans characters.json (plus d'ids en dur).
@@ -96,6 +97,29 @@ export function castLab(ctx, p, a) {
   }
   return true;
 }
+// Jab de Trump: ennemi a moins de lungeRange => petit bond vers lui (lungeDistance en lungeTime), puis coup standard.
+export function castJabLunge(ctx, p, a) {
+  const target = enemy(ctx, p, a.lungeRange);
+  if (!target) return meleeStrike(ctx, p, a);
+  const [ux, uy] = direction(p, target);
+  p.fx = ux; p.fy = uy;
+  p.lunge = { ux, uy, speed: a.lungeDistance / a.lungeTime, remaining: a.lungeTime, a };
+  return true;
+}
+// Bond du jab: bloque par les murs, les autres persos et le bord du toit; pas de ralentissement de recovery.
+function advanceLunge(ctx, p, dt) {
+  const l = p.lunge, step = Math.min(dt, l.remaining), n = Math.max(1, Math.ceil(l.speed * step / 4));
+  const dx = l.ux * l.speed * step / n, dy = l.uy * l.speed * step / n;
+  for (let i = 0; i < n; i++) {
+    if (ctx.physics.isFalling({ x: p.x + dx, y: p.y + dy })) { l.remaining = 0; break; }
+    const bx = p.x, by = p.y;
+    ctx.physics.moveWithWalls(p, dx, dy, p.r, (x, y) => [...ctx.players.values()].some(o => o !== p && o.alive && Math.hypot(o.x - x, o.y - y) < o.r + p.r)
+      || ctx.walls.some(w => wallContact({ x, y }, w, p.r)));
+    if (p.x === bx && p.y === by) { l.remaining = 0; break; }
+  }
+  l.remaining -= step;
+  if (l.remaining <= 1e-6) { p.lunge = null; meleeStrike(ctx, p, l.a); }
+}
 export function updateLab(ctx, dt) {
   ctx.effects = ctx.effects.filter(e => (e.age += dt) < e.duration);
   for (const wall of [...ctx.walls]) {
@@ -120,6 +144,9 @@ export function advanceForcedMovement(ctx, p, dt) {
       effect(ctx, 'impact', p.x, p.y, { ux: flight.ux, uy: flight.uy }, 1.15);
       p.launch = null; p.recoilT = .42;
     }
+  } else if (p.lunge) {
+    if (!p.alive || p.stunT > 0) { p.lunge = null; return false; }
+    advanceLunge(ctx, p, dt);
   } else if (p.shove) {
     const push = p.shove, step = Math.min(dt, push.remaining);
     ctx.physics.moveWithWalls(p, push.ux * push.distance * step / push.duration, push.uy * push.distance * step / push.duration, p.r);

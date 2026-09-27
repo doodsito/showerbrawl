@@ -5,7 +5,7 @@ import {castExfiltration} from './exfiltration.js';
 import {castBiden} from './biden-combat.js';
 import { CONFIG } from '../shared/config.js';
 import { castMusk, updateMuskZone } from './musk-combat.js';
-import { charge, hasLabKit, castLab, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
+import { charge, hasLabKit, castLab, castJabLunge, firstWall, hitWall, shove, updateMicDrop } from './lab-combat.js';
 // 5 briques generiques, parametrees par le JSON du pouvoir. Aucune classe en dur.
 // ctx = { players: Map, projectiles: [], zones: [], physics, damage(target, amount, src, fromX, fromY, kb), nextId() }
 
@@ -161,7 +161,11 @@ export function dashHits(ctx, p) {
 
 // Contact defaults only. Explicit projectile and behavior kits keep their simulation.
 // Les attaques au contact gardent leur label, icone et visuel. Un projectile travel ou un behavior explicite conserve son kit.
+// Coup au contact standard (brique projectile sans travel), reutilise par le jab de Trump apres son bond.
+export const meleeStrike = (ctx, p, a) => BRICKS.projectile(ctx, p, a);
+
 export function standardAttack(own = {}) {
+  if (own.behavior === 'jabLunge') return { ...own, ...CONFIG.BASE_ATTACK }; // jab de Trump: bond + coup standard, valeurs BASE_ATTACK
   if (own.behavior || (own.type === 'projectile' && own.travel === true)) return { ...CONFIG.BASE_ATTACK, ...own };
   return { type: 'projectile', ...CONFIG.BASE_ATTACK, label: own.label, icon: own.icon, visual: own.visual };
 }
@@ -170,7 +174,7 @@ export function cast(ctx, p, slot) {
   const a = slot === 'attack' ? standardAttack(p.char.attack) : p.char[slot];
   if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0 || p.napT > 0 || p.cycleT > 0 || p.exfil || p.mustache) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
-  const handler = a.behavior==='superMustache' ? castMustache : ['sonicLaugh','speaking'].includes(a.behavior) ? castKamala : a.behavior==='exfiltration' ? castExfiltration : a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
+  const handler = a.behavior==='superMustache' ? castMustache : a.behavior==='jabLunge' ? castJabLunge : ['sonicLaugh','speaking'].includes(a.behavior) ? castKamala : a.behavior==='exfiltration' ? castExfiltration : a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
   if (!handler || handler(ctx, p, {...a, canRingOut: slot === 'super'}) === false) return false;
   if (a.charge) p.energy = 0;
   p.cd[slot] = a.cooldown || 1;
