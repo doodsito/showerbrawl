@@ -43,12 +43,9 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 function show(id) { for (const s of ['select', 'pad', 'end']) $('#' + s).hidden = s !== id; }
 
-// Un perso = un joueur (toutes equipes), tant qu'il en reste un libre.
+// Un perso = un seul joueur, toutes equipes confondues, sans exception. Renvoie le joueur qui le tient.
 function taken(ch) {
-  const others = ['A', 'B'].flatMap((t) => st.teams?.[t] || []).filter((p) => p.id !== socket.id);
-  const used = new Set(others.map((p) => p.character));
-  if (Object.keys(st.characters || {}).every((c) => used.has(c))) return false; // tous pris: doublons autorises
-  return used.has(ch);
+  return ['A', 'B'].flatMap((t) => st.teams?.[t] || []).find((p) => p.id !== socket.id && p.character === ch) || null;
 }
 
 function renderSelect() {
@@ -58,10 +55,12 @@ function renderSelect() {
   for (const [id, c] of Object.entries(st.characters || {})) {
     const b = document.createElement('button');
     b.className = 'char' + (id === st.character ? ' on' : '');
-    b.disabled = taken(id);
+    const holder = taken(id);
+    b.disabled = !!holder;
+    if (holder) { b.classList.add('taken'); const tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = 'TAKEN'; b.appendChild(tg); }
     if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src=assetUrl(c.sprite);img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
-    const s = document.createElement('small'); s.textContent = `HP ${c.hp ?? '?'}`; b.appendChild(s);
+    const s = document.createElement('small'); s.textContent = holder ? `by ${holder.name}` : `HP ${c.hp ?? '?'}`; b.appendChild(s);
     b.onclick = () => { st.character = id; renderSelect(); };
     box.appendChild(b);
   }
