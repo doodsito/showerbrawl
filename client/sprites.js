@@ -24,12 +24,6 @@ export function spriteUrl(sprite, charId) {
 
 // Charge le PNG une fois (cache), log le resultat. Renvoie l'image prete ou null (crane en fallback).
 export function getImage(sprite, charId) {
-  const im = loadImage(sprite, charId);
-  return im && im.complete && im.naturalWidth && !im.failed ? im : null;
-}
-
-// Element Image du cache (cree et lance au besoin), meme s'il n'est pas encore charge: sert au decode() du lobby.
-export function loadImage(sprite, charId) {
   const url = spriteUrl(sprite, charId);
   if (!url) return null;
   let im = images[url];
@@ -41,7 +35,7 @@ export function loadImage(sprite, charId) {
     im.onerror = () => { im.failed = true; im.retryAt = Date.now() + 3000; if (isImage(sprite)) console.warn('[sprites] PNG introuvable', url, '-> crane genere'); };
     im.src = url;
   }
-  return im;
+  return im.complete && im.naturalWidth && !im.failed ? im : null;
 }
 
 function px(ctx, x, y, c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
