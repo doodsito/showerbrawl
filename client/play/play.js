@@ -12,12 +12,19 @@ const CAMERA_ZOOM = 1.4;
 
 const $ = (s) => document.querySelector(s);
 const socket = io();
+// Identifiant persistant du joueur: genere une seule fois, envoye a chaque JOIN (reprise du perso apres rechargement/veille).
+const playerKey = (() => {
+  const gen = () => (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36));
+  try { let k = localStorage.getItem('sb_key'); if (!k) { k = gen(); localStorage.setItem('sb_key', k); } return k; } catch (e) { return gen(); }
+})();
+const setJoined = (on) => { try { on ? localStorage.setItem('sb_joined', '1') : localStorage.removeItem('sb_joined'); } catch (e) {} };
 let stateLogged = false;
 socket.on('connect', () => {
   console.log('[play] socket connecte', socket.id);
   // Reconnexion (veille du tel, reseau): on rejoint automatiquement avec le meme choix.
   if (st.wantJoin && st.character) doJoin();
 });
+socket.on('kicked', () => { st.joined = false; st.wantJoin = false; setJoined(false); $('#err').textContent = 'Removed by the host'; renderSelect(); show('select'); });
 socket.on('connect_error', (e) => console.warn('[play] serveur injoignable', e.message));
 const st = { phase: 'lobby', teams: { A: [], B: [] }, characters: {}, team: null, character: null, joined: false, lastHp: null, energy: 0, alive: false };
 const input = { dx: 0, dy: 0, attack: false, defense: false, super: false };
@@ -28,6 +35,8 @@ try { st.character = localStorage.getItem('sb_char'); } catch (e) {}
 
 // A release refresh restores the same player choice on the new connection.
 try { st.wantJoin = sessionStorage.getItem('sb_release_rejoin') === '1'; sessionStorage.removeItem('sb_release_rejoin'); } catch {}
+// Rechargement de page en cours de partie: on reprend son perso (le serveur le garde 5 s via playerKey).
+try { if (localStorage.getItem('sb_joined') === '1' && st.character) st.wantJoin = true; } catch (e) {}
 const checkVersion = watchVersion({
   canReload: () => !!st.arena && st.phase === 'lobby',
   beforeReload: () => { try { if (st.wantJoin) sessionStorage.setItem('sb_release_rejoin', '1'); } catch {} },
@@ -51,16 +60,16 @@ function taken(ch) {
 function renderSelect() {
   const box = $('#chars'); box.innerHTML = '';
   if (st.character && Object.keys(st.characters).length && !st.characters[st.character]) st.character = null;
-  if (st.character && taken(st.character)) st.character = null;
+  if (st.character && taken(st.character) && !taken(st.character).offline) st.character = null;
   for (const [id, c] of Object.entries(st.characters || {})) {
     const b = document.createElement('button');
     b.className = 'char' + (id === st.character ? ' on' : '');
     const holder = taken(id);
-    b.disabled = !!holder;
+    b.disabled = !!holder && !holder.offline; // fantome: cliquable, le serveur tranche (reprise ou refus avec le pseudo)
     if (holder) b.classList.add('taken');
     if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src=assetUrl(c.sprite);img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
-    const s = document.createElement('small'); s.textContent = holder ? `by ${holder.name}` : `HP ${c.hp ?? '?'}`; b.appendChild(s);
+    const s = document.createElement('small'); s.textContent = holder ? `by ${holder.name}${holder.offline ? ' (offline)' : ''}` : `HP ${c.hp ?? '?'}`; b.appendChild(s);
     if (holder) { const tg = document.createElement('span'); tg.className = 'taken-tag'; tg.textContent = 'TAKEN'; b.appendChild(tg); }
     b.onclick = () => { st.character = id; renderSelect(); };
     box.appendChild(b);
@@ -70,10 +79,15 @@ function renderSelect() {
 
 function doJoin() {
   const name = ($('#name').value || '').trim().slice(0, 16);
-  socket.emit(MSG.JOIN, { character: st.character, name }, (res) => {
+  socket.emit(MSG.JOIN, { character: st.character, name, playerKey }, (res) => {
     console.log('[play] JOIN ack', res);
     if (res && res.repick) { st.character = null; try { localStorage.removeItem('sb_char'); } catch (e) {} }
-    if (res && res.ok === false) { st.joined = false; st.wantJoin = false; $('#err').textContent = res.error || 'Could not join'; renderSelect(); show('select'); return; }
+    if (res && res.ok === false) {
+      st.joined = false; st.wantJoin = false; setJoined(false);
+      $('#err').textContent = res.takenBy ? `Character already taken by ${res.takenBy}${res.takenOffline ? ' (disconnected, freed in 5 s)' : ''}` : (res.error || 'Could not join');
+      renderSelect(); show('select'); return;
+    }
+    setJoined(true);
     st.joined = true; st.wantJoin = true; st.lastHp = null;
     setupPad(); if (st.phase !== 'ended') show('pad');
   });
@@ -240,7 +254,7 @@ socket.on(MSG.LOBBY, (d) => {
     // Perso retire du jeu (deploiement): retour propre au choix de perso.
     if (!inTeam && st.character && Object.keys(st.characters).length && !st.characters[st.character]) {
       if (st.joined || st.wantJoin) $('#err').textContent = 'Your character left the game, pick another one';
-      st.joined = false; st.wantJoin = false; st.character = null;
+      st.joined = false; st.wantJoin = false; st.character = null; setJoined(false);
       try { localStorage.removeItem('sb_char'); } catch (e) {}
     }
     // Le serveur fait foi: si on est dans une equipe, on est en manette (y compris en cours de manche).
