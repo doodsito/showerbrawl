@@ -10,5 +10,5 @@ export const COMBAT_ART = [
 ];
 export function preloadCombatArt(characters = {}) {
   for (const path of COMBAT_ART) getImage(path);
-  for (const c of Object.values(characters)) if (/\.(png|webp|gif|jpe?g)$/i.test(c.sprite || '')) getImage(c.sprite);
+  for (const c of Object.values(characters)) { if (/\.(png|webp|gif|jpe?g)$/i.test(c.sprite || '')) getImage(c.sprite); if (c.super?.anim?.src) getImage(c.super.anim.src); }
 }

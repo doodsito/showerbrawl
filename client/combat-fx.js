@@ -325,6 +325,18 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       }
       g.restore();
     },
+    // Animation de super (spritesheet horizontale): frames d'elan pendant l'alerte, frame d'ecrasement a l'impact, puis la fin.
+    superAnim(z,anim){
+      const img=getImage(anim.src);if(!img||!img.width)return;
+      const n=anim.frames,hit=anim.impact??n-1,cw=img.width/n,chh=img.height,after=z.age-z.delay;
+      let i;
+      if(after<0)i=Math.min(hit-1,Math.floor(Math.max(0,z.age/z.delay)*hit));
+      else if(after<.14||motionOptions.reducedMotion)i=hit;
+      else i=Math.min(n-1,hit+1+Math.floor((after-.14)/.1));
+      const [x,y]=project(z.x,z.y),h=Math.max(70,z.r*kx*1.9),w=h*cw/chh;
+      g.save();if(after>.3)g.globalAlpha=Math.max(0,1-(after-.3)/.1);
+      g.imageSmoothingEnabled=false;g.drawImage(img,i*cw,0,cw,chh,x-w/2,y+z.r*ky*.6-h,w,h);g.restore();
+    },
     effect(e,front=false){const [x,y]=project(e.x,e.y);
       if(e.visual==='maduroOil'||e.visual==='xiStar'){
         if(front){g.save();g.globalAlpha=Math.max(0,1-e.age/e.duration);for(let i=0;i<12;i++){const a=i*2.399,r=6+e.age*55;rect(x+Math.cos(a)*r,y-25+Math.sin(a)*r*.5,3,3,e.visual==='xiStar'?(i%2?'#ed5148':'#eac56a'):'#645b44');}g.restore();}return;
