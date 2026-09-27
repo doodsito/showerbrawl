@@ -182,19 +182,17 @@ export class Game {
     p._wasMoving = moving;
   }
 
-  // Points de spawn distincts par equipe, sur sa moitie du toit, espaces d'au moins 1,5x la largeur d'un perso.
+  // Points de spawn par equipe sur sa moitie du toit (B en miroir de A). Quinconce a x distincts:
+  // la camera ecrase la profondeur, donc les 4 premiers points sont ecartes en x de 80px (> 1,5x la largeur d'un perso).
   spawnPoints(team) {
     this._spawnPts ||= {};
     if (this._spawnPts[team]) return this._spawnPts[team];
-    const W = this.physics.width, H = this.physics.height, step = 112, margin = CONFIG.PLAYER_RADIUS + 16;
-    const s = this.arena.spawns?.[team] || [W / 2, H / 2];
-    const pts = [];
-    for (let y = step / 2; y < H; y += step) for (let x = step / 2; x < W; x += step) {
-      if (x >= W / 2 || this.physics.collidesWithWall(x, y, margin, false) || this.physics.collidesWithWall(W - x, y, margin, false)) continue;
-      pts.push(team === 'A' ? [x, y] : [W - x, y]); // B = miroir de A: spawns symetriques
-    }
-    pts.sort((a, c) => Math.hypot(a[0] - s[0], a[1] - s[1]) - Math.hypot(c[0] - s[0], c[1] - s[1]));
-    return (this._spawnPts[team] = pts.length ? pts : [s]);
+    const W = this.physics.width, H = this.physics.height, margin = CONFIG.PLAYER_RADIUS + 16;
+    const cy = H / 2, xs = [112, 192, 272, 352], lo = cy - 80, hi = cy + 80;
+    const cand = [...xs.map((x, i) => [x, i % 2 ? lo : hi]), ...xs.map((x, i) => [x, i % 2 ? hi : lo]), [152, cy], [312, cy]];
+    const pts = cand.filter(([x, y]) => x < W / 2 && !this.physics.collidesWithWall(x, y, margin, false) && !this.physics.collidesWithWall(W - x, y, margin, false))
+      .map(([x, y]) => team === 'A' ? [x, y] : [W - x, y]);
+    return (this._spawnPts[team] = pts.length ? pts : [this.arena.spawns?.[team] || [W / 2, cy]]);
   }
 
   spawn(p, slot = null) {
@@ -202,10 +200,10 @@ export class Game {
     let pt;
     if (slot != null) pt = pts[slot % pts.length];
     else {
-      // Reapparition: point libre (aucun perso vivant a moins de 112px) le plus eloigne des ennemis vivants.
+      // Reapparition: point libre (aucun perso vivant a moins de 80px) le plus eloigne des ennemis vivants.
       const alive = [...this.players.values()].filter(o => o !== p && o.alive);
       const enemies = alive.filter(o => o.team !== p.team);
-      const free = pts.filter(q => !alive.some(o => Math.hypot(o.x - q[0], o.y - q[1]) < 112));
+      const free = pts.filter(q => !alive.some(o => Math.hypot(o.x - q[0], o.y - q[1]) < 80));
       const score = q => enemies.length ? Math.min(...enemies.map(o => Math.hypot(o.x - q[0], o.y - q[1]))) : -Math.hypot(q[0] - pts[0][0], q[1] - pts[0][1]);
       pt = (free.length ? free : pts).reduce((best, q) => score(q) > score(best) ? q : best);
     }
