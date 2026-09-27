@@ -91,6 +91,7 @@ export const SFX = {
     const name = `${String(character || '').toLowerCase()}_${slot}`;
     if (character && this.play(name, `${playerId}:${name}`)) return;
     console.log('[sfx] synth', name);
+    if(character==='harris'&&slot==='attack'){for(let i=0;i<3;i++)this._tone('sawtooth',310+i*25,175+i*15,.1,.11,i*.12);return;}
     this.shoot();
   },
   // Fin de manche: victoire si une equipe gagne, defaite sur egalite.

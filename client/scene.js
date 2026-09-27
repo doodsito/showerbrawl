@@ -1,3 +1,4 @@
+import {drawKamalaPose,drawKamalaImpact} from './kamala-fx.js';
 import {newcomerFX} from './newcomer-fx.js';
 import {EXFIL} from '../shared/exfiltration.js';
 import {drawSleep,drawBicycle} from './biden-fx.js';
@@ -144,7 +145,7 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     for (const id of poses.keys()) if(!seen.has(id))poses.delete(id);
     for(const e of state.effects||[])if(e.kind!=='truckWreck')fx.effect(e);
     for (const z of state.zones || []) {
-      if(z.kind==='flamethrower'||z.kind==='cybertruck'||z.kind==='bicycle')continue;
+      if(z.kind==='sonicLaugh'||z.kind==='flamethrower'||z.kind==='cybertruck'||z.kind==='bicycle')continue;
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
       if(z.kind==='strike'){if(z.visual==='xiHammer'||z.visual==='inflation')continue;if(z.visual==='decree')fx.decree(z);else fx.strikeZone(z);continue;}
       if(z.kind==='decree'){fx.decree(z);continue;}
@@ -170,6 +171,7 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     items.sort(byDepth);
     for (const it of items) {
       const x = it.x, y = it.y;
+      const kamalaPose=it.k==='j'?(state.zones||[]).find(z=>z.owner===it.o.id&&z.visual==='kamalaStep'&&z.age<z.delay):null;
       if(it.k==='muskProjectile'){musk.projectile(it.o);continue;}
       if(it.k==='bike'){drawBicycle(ctx,it.o,project,kx,ky,reducedMotion.matches);continue;}
       if(it.k==='truck'){musk.truck(it.o);continue;}
@@ -181,14 +183,14 @@ export function render(ctx, W, H, arena, state, characters, camera) {
         drawProjectile(ctx,it.o,x,y-18,kx,ky);
       } else {
         const hs=hitStops.get(it.o.id),nowMs=performance.now();
-        if(hs&&nowMs>=hs.from&&nowMs<hs.until){if(hs.x==null){hs.x=x;hs.y=y;}drawPlayer(ctx,{...it.o,x:hs.x,y:hs.y,flash:true},characters,hs.from/1000);}
-        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);if(camera&&camera.me===it.o.id)drawMeMarker(ctx,x,y,time);drawPlayer(ctx, { ...it.o, x, y }, characters, time);}
+        if(hs&&nowMs>=hs.from&&nowMs<hs.until){if(hs.x==null){hs.x=x;hs.y=y;}drawPlayer(ctx,{...it.o,x:hs.x,y:hs.y,flash:true},characters,hs.from/1000,kamalaPose);}
+        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);if(camera&&camera.me===it.o.id)drawMeMarker(ctx,x,y,time);drawPlayer(ctx, { ...it.o, x, y }, characters, time,kamalaPose);}
       }
     }
   }
   if(state)for(const z of state.zones||[])if(z.kind==='micDrop')fx.micDrop(z,true);
   if(state)for(const z of state.zones||[])if(z.kind==='decree'||(z.kind==='strike'&&z.visual==='decree'))fx.decree(z,true);
-  if(state)for(const z of state.zones||[])if(z.kind==='strike'){const anim=characters?.[z.c]?.super?.anim;if(anim)fx.superAnim(z,anim);}
+  if(state)for(const z of state.zones||[])if(z.kind==='strike'){const anim=characters?.[z.c]?.super?.anim;if(anim?.style==='kamalaStep')drawKamalaImpact(ctx,z,project,reducedMotion.matches);else if(anim)fx.superAnim(z,anim);}
   if(state)for(const z of state.zones||[])if(z.kind==='flamethrower')musk.flame(z);
   if(state)for(const z of state.zones||[])if(z.visual==='xiHammer'||z.visual==='inflation')newcomerFX(ctx,project,kx,ky,reducedMotion.matches).summon(z);
   if(state)drawFx(ctx,state,b);
@@ -366,7 +368,7 @@ function drawMeMarker(g, x, y, time) {
   g.restore();
 }
 
-function drawPlayer(ctx, p, characters, time) {
+function drawPlayer(ctx, p, characters, time, kamalaPose) {
   if(p.alive&&p.exfil&&p.exfil.age>=EXFIL.lift)return;
   const R=15, col=TEAM_COL[p.team]||'#fff', quiet=reducedMotion.matches;
   const img=getImage(characters?.[p.character]?.sprite||p.character,p.character);
@@ -396,7 +398,8 @@ function drawPlayer(ctx, p, characters, time) {
     ctx.beginPath();ctx.ellipse(p.x,p.y-h/2,29*pulse,(h/2+7)*pulse,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
   }
   const sleeping=p.nap>0&&drawSleep(ctx,p,time,quiet);
-  if(img&&!sleeping){
+  const stepping=!sleeping&&drawKamalaPose(ctx,p,kamalaPose,quiet);
+  if(img&&!sleeping&&!stepping){
     const w=h*(img.naturalWidth/img.naturalHeight);
     if(!quiet&&(p.dash||p.launch||p.shove)){
       const direction=p.dash?Math.sign(p.dash.x):(p.launch?.ux||p.shove?.ux||1);
@@ -410,7 +413,7 @@ function drawPlayer(ctx, p, characters, time) {
       ctx.fillStyle='#b4d9eb';ctx.fillRect(-8,-h+12,4,1);ctx.fillRect(4,-h+12,4,1);
     }
     ctx.restore();
-  }else if(!sleeping){const spr=getSprite(p.character);if(spr)ctx.drawImage(spr,p.x-R,p.y-R*2,R*2,R*2);}
+  }else if(!sleeping&&!stepping){const spr=getSprite(p.character);if(spr)ctx.drawImage(spr,p.x-R,p.y-R*2,R*2,R*2);}
   if(p.burning&&p.alive)for(let i=0;i<7;i++){
     const t=quiet?i/7:(time*2+i/7)%1;ctx.fillStyle=t>.5?'#ffdc65':'#f98429';ctx.fillRect(p.x-15+i*5,p.y-8-t*40,3,4);
   }
