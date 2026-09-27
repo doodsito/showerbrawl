@@ -143,14 +143,14 @@ $('#join').onclick = () => {
 
 // Le serveur confirme la liberation avant de permettre un nouveau choix.
 function backToSelect() {
-  if (st.returning || !socket.connected) return;
+  if (st.returning || !socket.connected || st.phase === 'playing') return;
   clearInput();
   st.returning = true; ++joinAttempt;
   socket.timeout(4000).emit('leave', (error, res) => {
     st.returning = false;
     if (error || !res?.ok) {
       // Ack perdu : reprendre la session avant une nouvelle tentative de retour.
-      if (socket.connected && st.wantJoin) doJoin();
+      if (error && socket.connected && st.wantJoin) doJoin();
       return;
     }
     st.joined = false; st.wantJoin = false; st.alive = false;
@@ -238,7 +238,10 @@ document.querySelectorAll('.btn').forEach((b) => {
 function cdLoop() {
   try {
     const now = performance.now();
-    document.querySelectorAll('.back-select').forEach(b => { b.disabled = !!st.returning || !socket.connected; });
+    document.querySelectorAll('.back-select').forEach(b => {
+      b.hidden = st.phase === 'playing';
+      b.disabled = !!st.returning || !socket.connected || st.phase === 'playing';
+    });
     document.querySelectorAll('.btn').forEach((b) => {
       const k = b.dataset.k;
       const cdRaw = Number(st.characters[st.character]?.[k]?.cooldown) || 0;

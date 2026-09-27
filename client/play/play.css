@@ -308,3 +308,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 #pad>.back-select{position:absolute;z-index:7;top:calc(4px + var(--st));left:calc(6px + var(--sl));width:76px}
 #pad .band{left:calc(88px + var(--sl));max-width:calc(48% - 88px)}
 @media(max-width:480px){#pad .band .chip{display:none}#pad .band{max-width:calc(100% - 250px);padding-right:3px}}
+
+body[data-phase=playing] .back-select{display:none}
+body[data-phase=playing] #pad .band{left:calc(6px + var(--sl));max-width:44%}
