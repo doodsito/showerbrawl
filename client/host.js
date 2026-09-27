@@ -18,7 +18,6 @@ function emitCombatEvents(events) {
 }
 window.showerBrawl = Object.assign(window.showerBrawl || {}, { onCombatEvent });
 import { SFX } from './sfx.js';
-import { Music } from './music.js';
 import { createDecor, DECOR_W, DECOR_H } from './decor.js';
 import { getSprite, getImage, spriteUrl } from './sprites.js';
 
@@ -89,9 +88,9 @@ function currentState() {
 // Pouvoirs: sounds/<perso>_<slot>.mp3 sur l'event cast, synthetise si le fichier manque.
 let lastHp = new Map();
 const charById = new Map();
-// Lance-flammes: un seul bip par cible toutes les 0,3 s, a 50 % du volume.
-const FLAME_HIT_GAP = 300, FLAME_HIT_VOL = 0.5;
-const lastFlameHit = new Map();
+// Lance-flammes: un seul bip de brulure toutes les 0,3 s TOUTES cibles confondues (plus d'empilement a plusieurs cibles), a 30 %.
+const FLAME_HIT_GAP = 300, FLAME_HIT_VOL = 0.3;
+let lastFlameHit = 0;
 onCombatEvent((e) => { if (e.k === 'cast') SFX.cast(e.id, charById.get(e.id), e.slot); });
 function sounds(s) {
   try {
@@ -106,12 +105,13 @@ function sounds(s) {
         else if (p.hp < prev.hp) {
           const byFlame = p.burning || [...flamed].some((t) => t !== p.team);
           if (!byFlame) hit = true;
-          else if (now - (lastFlameHit.get(p.id) || 0) >= FLAME_HIT_GAP) { lastFlameHit.set(p.id, now); flameHit = true; }
+          else flameHit = true;
         }
       }
       lastHp.set(p.id, { hp: p.hp, alive: p.alive });
     }
-    if (death) SFX.death(); else if (hit) SFX.hit(); else if (flameHit) SFX.hit(FLAME_HIT_VOL);
+    if (death) SFX.death(); else if (hit) SFX.hit();
+    else if (flameHit && now - lastFlameHit >= FLAME_HIT_GAP) { lastFlameHit = now; SFX.hit(FLAME_HIT_VOL); }
   } catch (e) {}
 }
 
@@ -123,7 +123,6 @@ function showLobby(d) {
     lobby = d; phase = d.phase || 'lobby';
     checkVersion();
     preloadCombatArt(d.characters);
-    Music.setPhase(phase);
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
     $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
@@ -277,7 +276,7 @@ socket.on(MSG.LOBBY, (d) => { try { SFX.setCharacters(Object.keys(d.characters |
 socket.on(MSG.STATE, (s) => {
   if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
-    if (phase !== 'playing') { phase = 'playing'; Music.setPhase(phase); $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
+    if (phase !== 'playing') { phase = 'playing'; $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
     pushUpdate(s); sounds(s); pushEvents(s.events); emitCombatEvents(s.events);
   } catch (e) {}
 });
@@ -304,12 +303,15 @@ window.__sbResetHandler = (e) => {
 document.addEventListener('click', window.__sbResetHandler);
 addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
 
-// Musique: demarre au premier geste (autoplay policy, Safari compris), bouton mute retenu.
-for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => { Music.unlock(); try { SFX.init(); } catch (e) {} }, { capture: true });
-function paintMute() { try { const b = $('mute'); const m = Music.isMuted(); b.textContent = m ? '🔇' : '🔊'; b.title = m ? 'Unmute music' : 'Mute music'; b.setAttribute('aria-pressed', String(m)); } catch (e) {} }
-try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); Music.unlock(); Music.toggleMute(); SFX.setMuted(Music.isMuted()); paintMute(); }); } catch (e) {}
+// Aucune musique: seuls les effets sonores (SFX) jouent, debloques au premier geste. Le bouton coupe/retablit les SFX.
+const MUTE_KEY = 'sb_sfx_muted';
+let sfxMuted = false;
+try { sfxMuted = localStorage.getItem(MUTE_KEY) === '1'; } catch (e) {}
+for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => { try { SFX.init(); } catch (e) {} }, { capture: true });
+function paintMute() { try { const b = $('mute'); b.textContent = sfxMuted ? '🔇' : '🔊'; b.title = sfxMuted ? 'Unmute sound' : 'Mute sound'; b.setAttribute('aria-pressed', String(sfxMuted)); } catch (e) {} }
+try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); sfxMuted = !sfxMuted; try { localStorage.setItem(MUTE_KEY, sfxMuted ? '1' : '0'); } catch (err) {} SFX.init(); SFX.setMuted(sfxMuted); paintMute(); console.log('[sfx] muted', sfxMuted); }); } catch (e) {}
 paintMute();
-SFX.setMuted(Music.isMuted());
+SFX.setMuted(sfxMuted);
 
 // Compte a rebours au START: 3, 2, 1 pilotes par state.countdown (serveur), puis FIGHT! 1 s.
 let cdShown = '', fightUntil = 0, lastCd = 0;
