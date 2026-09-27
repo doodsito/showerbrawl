@@ -60,6 +60,10 @@ io.on('connection', (socket) => {
   });
   // Retour volontaire au roster : liberation immediate, sans delai de reconnexion.
   socket.on('leave', (ack) => {
+    if (game.phase === 'playing') {
+      if (typeof ack === 'function') ack({ ok: false, error: 'match in progress' });
+      return;
+    }
     game.leave(socket.id);
     if (typeof ack === 'function') ack({ ok: true });
   });
