@@ -39,13 +39,21 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     if (b > 1) updates.splice(0, b - 1); // garde le precedent pour extrapoler
   }
   const lerp = (a, b, r) => a + (b - a) * r;
+  // Objets et tableaux reutilises d'une frame a l'autre (aucune allocation par frame).
+  const outPlayers = [], pooled = new Map(), frameState = {};
+  const copyInto = (dst, src) => { for (const k in dst) if (!(k in src)) delete dst[k]; for (const k in src) dst[k] = src[k]; return dst; };
   function lerpPlayers(l1, l2, r) {
-    const out = [];
-    for (const o of l2) {
-      let prev = null; for (const q of l1) if (q.id === o.id) { prev = q; break; }
-      out.push(prev ? { ...o, x: lerp(prev.x, o.x, r), y: lerp(prev.y, o.y, r) } : o);
+    outPlayers.length = 0;
+    for (let i = 0; i < l2.length; i++) {
+      const o = l2[i];
+      let prev = null; for (let j = 0; j < l1.length; j++) if (l1[j].id === o.id) { prev = l1[j]; break; }
+      if (!prev) { outPlayers.push(o); continue; }
+      let res = pooled.get(o.id); if (!res) { res = {}; pooled.set(o.id, res); }
+      copyInto(res, o); res.x = lerp(prev.x, o.x, r); res.y = lerp(prev.y, o.y, r);
+      outPlayers.push(res);
     }
-    return out;
+    if (pooled.size > 32) pooled.clear();
+    return outPlayers;
   }
   function current() {
     if (!updates.length) return null;
@@ -57,9 +65,11 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
       const prev = updates[b - 1];
       if (!prev || a.t <= prev.t) return a;
       const ahead = Math.min(MAX_EXTRAPOLATION, Math.max(0, t - a.t));
-      return { ...a, players: lerpPlayers(prev.players, a.players, 1 + ahead / (a.t - prev.t)) };
+      copyInto(frameState, a); frameState.players = lerpPlayers(prev.players, a.players, 1 + ahead / (a.t - prev.t));
+      return frameState;
     }
-    return { ...n, players: lerpPlayers(a.players, n.players, (t - a.t) / ((n.t - a.t) || 1)) };
+    copyInto(frameState, n); frameState.players = lerpPlayers(a.players, n.players, (t - a.t) / ((n.t - a.t) || 1));
+    return frameState;
   }
 
   // --- canvas a la resolution de l'appareil (dpr plafonne) ---
@@ -68,14 +78,18 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   }
-  window.addEventListener('resize', resize);
+  // Taille relue seulement quand elle change (pas de lecture de layout forcee a chaque frame).
+  let sizeDirty = true;
+  const markDirty = () => { sizeDirty = true; };
+  window.addEventListener('resize', markDirty);
+  try { new ResizeObserver(markDirty).observe(canvas); } catch (e) {}
 
   function frame(now) {
     raf = active ? requestAnimationFrame(frame) : 0;
     const dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0; lastFrame = now;
     const st = current(), arena = getArena();
     if (!arena) return;
-    resize();
+    if (sizeDirty) { sizeDirty = false; resize(); }
     cam.me = myId();
     const portrait = portraitMq.matches;
     if (!cam.fit || cam.fit.W !== canvas.width || cam.fit.H !== canvas.height || cam.fit.portrait !== portrait) cam.fit = { ...fitCamera(canvas.width, canvas.height, portrait), W: canvas.width, H: canvas.height, portrait };
