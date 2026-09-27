@@ -106,6 +106,26 @@ export function worldToScreen(x, y, b) {
   return [OCT.cx + nx * OCT.hw, OCT.cy + ny * OCT.hh];
 }
 
+// Meme projection, ecrite dans SX/SY (boucles de rendu: pas de tableau par appel).
+let SX = 0, SY = 0;
+function toScreen(x, y, b) {
+  SX = OCT.cx + (((x - b.x0) / (b.x1 - b.x0)) * 2 - 1) * OCT.hw;
+  SY = OCT.cy + (((y - b.y0) / (b.y1 - b.y0)) * 2 - 1) * OCT.hh;
+}
+const EMPTY = [], DASH = [10, 6];
+// Joueur dessine: objet reutilise (plus de {...p, x, y} par joueur et par frame).
+const drawn = {};
+function drawnAt(p, x, y, flash) {
+  for (const k in drawn) if (!(k in p)) delete drawn[k];
+  for (const k in p) drawn[k] = p[k];
+  drawn.x = x; drawn.y = y; if (flash) drawn.flash = true;
+  return drawn;
+}
+function kamalaPoseOf(zones, id) {
+  for (let i = 0; i < zones.length; i++) { const z = zones[i]; if (z.owner === id && z.visual === 'kamalaStep' && z.age < z.delay) return z; }
+  return null;
+}
+
 // Point du decor 960x540 correspondant a une position monde (pour la camera de la manette).
 export { OCT };
 export function decorPoint(arena, x, y) { return worldToScreen(x, y, worldBounds(arena)); }
@@ -147,36 +167,36 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     const now=performance.now();
     seen.clear(); for (const p of state.players) seen.add(p.id);
     for (const id of poses.keys()) if(!seen.has(id))poses.delete(id);
-    for(const e of state.effects||[])if(e.kind!=='truckWreck')fx.effect(e);
+    for(const e of state.effects||EMPTY)if(e.kind!=='truckWreck')fx.effect(e);
     for (const z of state.zones || []) {
       if(z.kind==='sonicLaugh'||z.kind==='flamethrower'||z.kind==='cybertruck'||z.kind==='bicycle')continue;
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
       if(z.kind==='strike'){if(z.visual==='xiHammer'||z.visual==='inflation')continue;if(z.visual==='decree')fx.decree(z);else fx.strikeZone(z);continue;}
       if(z.kind==='decree'){fx.decree(z);continue;}
-      const [x, y] = worldToScreen(z.x, z.y, b);
+      toScreen(z.x, z.y, b); const x = SX, y = SY;
       const rx = z.r * kx, ry = z.r * ky, pulse = 0.5 + 0.5 * Math.sin(now / 90);
       const col = TEAM_COL[z.team] || '#fff';
       ctx.save();
       ctx.globalAlpha = 0.18 + 0.14 * pulse; ctx.fillStyle = col;
       ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 0.9; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.setLineDash([10, 6]); ctx.lineDashOffset = -now / 25;
+      ctx.globalAlpha = 0.9; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.setLineDash(DASH); ctx.lineDashOffset = -now / 25;
       ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
-      ctx.setLineDash([]); ctx.globalAlpha = 0.6 * pulse; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+      ctx.setLineDash(EMPTY); ctx.globalAlpha = 0.6 * pulse; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.ellipse(x, y, rx * (0.4 + 0.5 * ((now / 600) % 1)), ry * (0.4 + 0.5 * ((now / 600) % 1)), 0, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
-    for(const p of state.players||[])drawMustacheWarning(ctx,p,project,kx,ky);
+    for(const p of state.players||EMPTY)drawMustacheWarning(ctx,p,project,kx,ky);
     items.length = 0; nItems = 0;
-    for(const w of state.walls||[]){const s=project(w.x,w.y+Math.abs(w.ux)*w.depth/2);addItem('wall',w,s[0],s[1]);}
+    for(const w of state.walls||EMPTY){toScreen(w.x,w.y+Math.abs(w.ux)*w.depth/2,b);addItem('wall',w,SX,SY);}
     // Every authoritative projectile must reach a renderer, on host and phone.
-    for(const p of state.projectiles||[]){const s=project(p.x,p.y);addItem(p.visual==='muskSteel'||p.visual==='muskDoge'?'muskProjectile':'p',p,s[0],s[1]);}
-    for(const z of state.zones||[])if(z.kind==='cybertruck'){const s=project(z.x,z.y);addItem('truck',z,s[0],s[1]+1);}
-    for(const z of state.zones||[])if(z.kind==='bicycle'){const s=project(z.x,z.y);addItem('bike',z,s[0],s[1]+1);}
-    for (const p of state.players || []) { const s = worldToScreen(p.x, p.y, b); addItem('j', p, s[0], s[1]); }
+    for(const p of state.projectiles||EMPTY){toScreen(p.x,p.y,b);addItem(p.visual==='muskSteel'||p.visual==='muskDoge'?'muskProjectile':'p',p,SX,SY);}
+    for(const z of state.zones||EMPTY)if(z.kind==='cybertruck'){toScreen(z.x,z.y,b);addItem('truck',z,SX,SY+1);}
+    for(const z of state.zones||EMPTY)if(z.kind==='bicycle'){toScreen(z.x,z.y,b);addItem('bike',z,SX,SY+1);}
+    for (const p of state.players || EMPTY) { toScreen(p.x, p.y, b); addItem('j', p, SX, SY); }
     items.sort(byDepth);
     for (const it of items) {
       const x = it.x, y = it.y;
-      const kamalaPose=it.k==='j'?(state.zones||[]).find(z=>z.owner===it.o.id&&z.visual==='kamalaStep'&&z.age<z.delay):null;
+      const kamalaPose=it.k==='j'?kamalaPoseOf(state.zones||EMPTY,it.o.id):null;
       if(it.k==='muskProjectile'){musk.projectile(it.o);continue;}
       if(it.k==='bike'){drawBicycle(ctx,it.o,project,kx,ky,reducedMotion.matches);continue;}
       if(it.k==='truck'){musk.truck(it.o);continue;}
@@ -188,21 +208,21 @@ export function render(ctx, W, H, arena, state, characters, camera) {
         drawProjectile(ctx,it.o,x,y-18,kx,ky);
       } else {
         const hs=hitStops.get(it.o.id),nowMs=performance.now();
-        if(hs&&nowMs>=hs.from&&nowMs<hs.until){if(hs.x==null){hs.x=x;hs.y=y;}drawPlayer(ctx,{...it.o,x:hs.x,y:hs.y,flash:true},characters,hs.from/1000,kamalaPose);}
-        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);if(camera&&camera.me===it.o.id)drawMeMarker(ctx,x,y,time,it.o.mustache);drawPlayer(ctx, { ...it.o, x, y }, characters, time,kamalaPose);}
+        if(hs&&nowMs>=hs.from&&nowMs<hs.until){if(hs.x==null){hs.x=x;hs.y=y;}drawPlayer(ctx,drawnAt(it.o,hs.x,hs.y,true),characters,hs.from/1000,kamalaPose);}
+        else{if(hs&&nowMs>=hs.until)hitStops.delete(it.o.id);if(camera&&camera.me===it.o.id)drawMeMarker(ctx,x,y,time,it.o.mustache);drawPlayer(ctx, drawnAt(it.o, x, y, false), characters, time,kamalaPose);}
       }
     }
   }
-  if(state)for(const z of state.zones||[])if(z.kind==='micDrop')fx.micDrop(z,true);
-  if(state)for(const z of state.zones||[])if(z.kind==='decree'||(z.kind==='strike'&&z.visual==='decree'))fx.decree(z,true);
-  if(state)for(const z of state.zones||[])if(z.kind==='strike'){const anim=characters?.[z.c]?.super?.anim;if(anim?.style==='kamalaStep')drawKamalaImpact(ctx,z,project,reducedMotion.matches);else if(anim)fx.superAnim(z,anim);}
-  if(state)for(const z of state.zones||[])if(z.kind==='flamethrower')musk.flame(z);
-  if(state)for(const z of state.zones||[])if(z.visual==='xiHammer'||z.visual==='inflation')lab.summon(z);
+  if(state)for(const z of state.zones||EMPTY)if(z.kind==='micDrop')fx.micDrop(z,true);
+  if(state)for(const z of state.zones||EMPTY)if(z.kind==='decree'||(z.kind==='strike'&&z.visual==='decree'))fx.decree(z,true);
+  if(state)for(const z of state.zones||EMPTY)if(z.kind==='strike'){const anim=characters?.[z.c]?.super?.anim;if(anim?.style==='kamalaStep')drawKamalaImpact(ctx,z,project,reducedMotion.matches);else if(anim)fx.superAnim(z,anim);}
+  if(state)for(const z of state.zones||EMPTY)if(z.kind==='flamethrower')musk.flame(z);
+  if(state)for(const z of state.zones||EMPTY)if(z.visual==='xiHammer'||z.visual==='inflation')lab.summon(z);
   if(state)drawFx(ctx,state,b);
   if(state)drawKOs(ctx,b);
   decor.foreground(ctx);
-  if(state)for(const e of state.effects||[])if(e.kind==='truckWreck')musk.wreck(e);else fx.effect(e,true);
-  if(state)for(const p of state.players||[])if(p.alive&&p.exfil)lab.extraction(p);
+  if(state)for(const e of state.effects||EMPTY)if(e.kind==='truckWreck')musk.wreck(e);else fx.effect(e,true);
+  if(state)for(const p of state.players||EMPTY)if(p.alive&&p.exfil)lab.extraction(p);
   ctx.restore();
   // HUD superieur (design/hud-top-approved.json), dessine dans le repere 960x540 du decor. Pas sur la manette (camera).
   if (state && !camera) {
@@ -240,7 +260,7 @@ function drawFx(ctx, state, b) {
   for (const e of fx) {
     const age = now - e.t0; if (age < 0) continue;
     const pl = pos.get(e.id);
-    const [x, y] = worldToScreen(pl ? pl.x : e.x, pl ? pl.y : e.y, b);
+    toScreen(pl ? pl.x : e.x, pl ? pl.y : e.y, b); const x = SX, y = SY;
     const k = age / 900;
     ctx.save();
     if (e.k === 'hit') {
@@ -282,52 +302,61 @@ function pixelFrame(g, x, y, w, h, o) {
 }
 // Etoile blanche pixel 7x7 (echelle s).
 const STAR = ['...#...', '...#...', '#######', '.#####.', '..###..', '.##.##.', '##...##'];
-function pixelStar(g, x, y, s, col) { g.fillStyle = col; STAR.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') g.fillRect(x + i * s, y + j * s, s, s); })); }
+function pixelStar(g, x, y, s, col) { g.fillStyle = col; for (let j = 0; j < STAR.length; j++) { const row = STAR[j]; for (let i = 0; i < row.length; i++) if (row.charCodeAt(i) === 35) g.fillRect(x + i * s, y + j * s, s, s); } }
+// HUD: styles, chaines et fonctions crees une fois (pas de closure, d'objet ni de chaine par frame).
+const HUD_FRAME = { background: '#08111f', outline: '#030812', outlineWidth: 4, inner: '#34445d', innerWidth: 2, cut: 4 };
+const HUD_TIMER = { background: '#111a2b', outline: '#030812', outlineWidth: 2, inner: '#65758a', innerWidth: 2, cut: 2 };
+const STRIPES_A = ['#e0413a', '#f4f1e8'], STRIPES_B = ['#e0413a', '#8f2420'];
+const F11 = `900 11px ${HUD_FONT}`, F24 = `900 24px ${HUD_FONT}`, F34 = `900 34px ${HUD_FONT}`;
+const NO_SCORE = { A: 0, B: 0 };
+let hudTl = -1, hudTime = '';
+function hudSide(g, secY, secH, x0, x1, accent, accent33, light, stripes, flip) {
+  g.fillStyle = accent33; g.fillRect(x0, secY, x1 - x0, secH);
+  g.fillStyle = accent; g.fillRect(flip ? x1 - 6 : x0, secY, 6, secH);
+  g.fillStyle = light; g.fillRect(flip ? x1 - 6 : x0, secY, 6, 2);
+  const sx = flip ? x1 - 46 : x0 + 10;
+  for (let i = 0; i < 5; i++) { g.fillStyle = stripes[i % 2]; g.fillRect(sx, secY + 6 + i * 7, 36, 4); }
+  pixelStar(g, flip ? x1 - 36 : x0 + 20, secY + 14, 2, '#ffffff');
+}
+function hudLabel(g, txt, x, y, align, fill) { g.textAlign = align; g.fillStyle = '#030812'; g.fillText(txt, x, y + 2); g.fillStyle = fill; g.fillText(txt, x, y); }
 function drawHud(g, state) {
-  const sc = state.score || { A: 0, B: 0 };
+  const sc = state.score || NO_SCORE;
   const tl = Math.max(0, Math.ceil(state.timeLeft || 0));
-  const time = `${String(Math.floor(tl / 60)).padStart(2, '0')}:${String(tl % 60).padStart(2, '0')}`;
+  if (tl !== hudTl) { hudTl = tl; hudTime = `${String(Math.floor(tl / 60)).padStart(2, '0')}:${String(tl % 60).padStart(2, '0')}`; }
+  const time = hudTime;
   const X = 220, Y = 8, Wd = 520, Hd = 58, cx = 480;
   g.imageSmoothingEnabled = false;
-  pixelFrame(g, X, Y, Wd, Hd, { background: '#08111f', outline: '#030812', outlineWidth: 4, inner: '#34445d', innerWidth: 2, cut: 4 });
+  pixelFrame(g, X, Y, Wd, Hd, HUD_FRAME);
   // Sections equipes (gauche bleue, droite rouge): barre d'accent, rayures, etoile.
   const secY = Y + 6, secH = Hd - 12, tW = 132, tX = cx - tW / 2;
-  const side = (x0, x1, accent, light, stripes, flip) => {
-    g.fillStyle = accent + '33'; g.fillRect(x0, secY, x1 - x0, secH);
-    g.fillStyle = accent; g.fillRect(flip ? x1 - 6 : x0, secY, 6, secH);
-    g.fillStyle = light; g.fillRect(flip ? x1 - 6 : x0, secY, 6, 2);
-    const sx = flip ? x1 - 46 : x0 + 10;
-    for (let i = 0; i < 5; i++) { g.fillStyle = stripes[i % 2]; g.fillRect(sx, secY + 6 + i * 7, 36, 4); }
-    pixelStar(g, flip ? x1 - 36 : x0 + 20, secY + 14, 2, '#ffffff');
-  };
-  side(X + 4, tX - 6, '#2f7de1', '#60a5fa', ['#e0413a', '#f4f1e8'], false);
-  side(tX + tW + 6, X + Wd - 4, '#e0413a', '#f87171', ['#e0413a', '#8f2420'], true);
+  hudSide(g, secY, secH, X + 4, tX - 6, '#2f7de1', '#2f7de133', '#60a5fa', STRIPES_A, false);
+  hudSide(g, secY, secH, tX + tW + 6, X + Wd - 4, '#e0413a', '#e0413a33', '#f87171', STRIPES_B, true);
   // Nom d'equipe (petit) au-dessus du score (gros), colles au timer: blocs symetriques par rapport a cx.
-  const label = (txt, x, y, align, fill) => { g.textAlign = align; g.fillStyle = '#030812'; g.fillText(txt, x, y + 2); g.fillStyle = fill; g.fillText(txt, x, y); };
   g.textBaseline = 'middle';
   const lx = tX - 14, rx = tX + tW + 14;
-  g.font = `900 11px ${HUD_FONT}`;
-  label('CONSPIRACY CREW', lx, secY + 12, 'right', '#9cc7ff'); label('CANCEL CLUB', rx, secY + 12, 'left', '#ffb4ad');
-  g.font = `900 24px ${HUD_FONT}`;
-  label(String(sc.A), lx, secY + 32, 'right', '#ddebff'); label(String(sc.B), rx, secY + 32, 'left', '#ffe2df');
+  g.font = F11;
+  hudLabel(g, 'CONSPIRACY CREW', lx, secY + 12, 'right', '#9cc7ff'); hudLabel(g, 'CANCEL CLUB', rx, secY + 12, 'left', '#ffb4ad');
+  g.font = F24;
+  hudLabel(g, String(sc.A), lx, secY + 32, 'right', '#ddebff'); hudLabel(g, String(sc.B), rx, secY + 32, 'left', '#ffe2df');
   // Timer: panneau sombre isole au centre.
-  pixelFrame(g, tX, Y + 5, tW, 48, { background: '#111a2b', outline: '#030812', outlineWidth: 2, inner: '#65758a', innerWidth: 2, cut: 2 });
-  g.font = `900 34px ${HUD_FONT}`; g.textAlign = 'center';
+  pixelFrame(g, tX, Y + 5, tW, 48, HUD_TIMER);
+  g.font = F34; g.textAlign = 'center';
   g.fillStyle = '#030812'; g.fillText(time, cx, Y + 5 + 26); g.fillStyle = '#f4f1e8'; g.fillText(time, cx, Y + 5 + 24);
 }
 
+const KO_OUT = [-4, 0, 4, 0, 0, -4, 0, 4, 4, 5];
 // KO! enorme 1 s au point de chute (ramene dans l'ecran si la chute est hors toit) + nom du tueur.
 function drawKOs(g, b) {
   const now = performance.now();
-  kos = kos.filter((k) => now - k.t0 < KO_MS);
+  let n = 0; for (let i = 0; i < kos.length; i++) if (now - kos[i].t0 < KO_MS) kos[n++] = kos[i]; kos.length = n;
   for (const k of kos) {
     const age = now - k.t0; if (age < 0) continue;
-    let [x, y] = worldToScreen(k.x, k.y, b);
+    toScreen(k.x, k.y, b); let x = SX, y = SY;
     x = Math.max(110, Math.min(850, x)); y = Math.max(170, Math.min(470, y - 40));
     const pop = age < 140 ? 1.8 - (age / 140) * 0.8 : 1, fade = age > KO_MS - 250 ? (KO_MS - age) / 250 : 1;
     g.save(); g.globalAlpha = fade; g.translate(Math.round(x), Math.round(y)); g.scale(pop, pop);
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `900 64px ${HUD_FONT}`;
-    g.fillStyle = '#030812'; for (const [dx, dy] of [[-4,0],[4,0],[0,-4],[0,4],[4,5]]) g.fillText('KO!', dx, dy);
+    g.fillStyle = '#030812'; for (let i = 0; i < KO_OUT.length; i += 2) g.fillText('KO!', KO_OUT[i], KO_OUT[i + 1]);
     g.fillStyle = '#e0413a'; g.fillText('KO!', 3, 0); g.fillStyle = '#2f7de1'; g.fillText('KO!', -3, 0); g.fillStyle = '#f6c343'; g.fillText('KO!', 0, 0);
     const who = k.killerName ? `BY ${String(k.killerName).toUpperCase()}` : k.fell ? 'FELL OFF THE ROOF' : '';
     if (who) {
@@ -353,18 +382,25 @@ function drawMeMarker(g, x, y, time, mustache) {
   g.restore();
 }
 
+const NO_CFG = {}, F9 = `900 9px ${HUD_FONT}`;
+const layouts = new Map(), names = new Map();
+function layoutOf(cfg, hasImg) {
+  let m = layouts.get(cfg); if (!m) { m = [spriteLayout(cfg, false), spriteLayout(cfg, true)]; layouts.set(cfg, m); }
+  return m[hasImg ? 1 : 0];
+}
+function upperName(n) { let u = names.get(n); if (u === undefined) { u = String(n).toUpperCase(); if (names.size > 256) names.clear(); names.set(n, u); } return u; }
 function drawPlayer(ctx, p, characters, time, kamalaPose) {
   if(p.alive&&p.exfil&&p.exfil.age>=EXFIL.lift)return;
   const R=15, col=TEAM_COL[p.team]||'#fff', quiet=reducedMotion.matches;
   const img=getImage(characters?.[p.character]?.sprite||p.character,p.character);
-  const cfg=characters?.[p.character]||{}, {full,h}=spriteLayout(cfg,!!img); // rendu en pied: champ fullBody du perso
+  const cfg=characters?.[p.character]||NO_CFG, {h}=layoutOf(cfg,!!img); // rendu en pied: champ fullBody du perso
   let pose=poses.get(p.id);
   if(!pose){pose={x:p.x,y:p.y,t:time,phase:0,walk:0};poses.set(p.id,pose);}
   const dt=Math.min(.1,Math.max(0,time-pose.t)),distance=Math.hypot(p.x-pose.x,(p.y-pose.y)*3);
   const walking=p.moving&&!p.launch&&!p.shove&&!p.dash&&p.alive;
   pose.walk+=(Number(!!(walking&&distance>.01))-pose.walk)*(1-Math.exp(-22*dt));
   if(walking)pose.phase+=Math.min(20,distance)/64*Math.PI*2;
-  Object.assign(pose,{x:p.x,y:p.y,t:time});
+  pose.x=p.x;pose.y=p.y;pose.t=time;
   const face=p.fx>=0?1:-1, attack=(p.pose||0)/(p.action==='super'?.4:.2);
   let lift=quiet?0:Math.abs(Math.sin(pose.phase))*pose.walk*2.4,angle=quiet?0:Math.sin(pose.phase)*pose.walk*.035+face*attack*.11;
   let sx=1, sy=quiet?1:1+Math.sin(time*3)*.007*(1-pose.walk),offset=quiet?0:face*attack*8;
@@ -414,7 +450,7 @@ function drawPlayer(ctx, p, characters, time, kamalaPose) {
   // Nom une seule fois, au-dessus de la barre de vie (plus sous les pieds, ou il semblait detache du perso).
   // Nameplate pixel compacte (design HUD): fond sombre, contour, lisere couleur d'equipe, meme position.
   if(p.name){
-    ctx.font=`900 9px ${HUD_FONT}`;const name=String(p.name).toUpperCase(),tw=Math.ceil(ctx.measureText(name).width),bx=Math.round(p.x-tw/2-4),by=Math.round(top-23),bw=tw+8;
+    ctx.font=F9;const name=upperName(p.name),tw=Math.ceil(ctx.measureText(name).width),bx=Math.round(p.x-tw/2-4),by=Math.round(top-23),bw=tw+8;
     ctx.fillStyle='#050a12';ctx.fillRect(bx-1,by-1,bw+2,14);
     ctx.fillStyle='#10182a';ctx.fillRect(bx,by,bw,12);
     ctx.fillStyle=p.team==='B'?'#e0413a':'#2f7de1';ctx.fillRect(bx,by+10,bw,2);
