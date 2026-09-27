@@ -318,7 +318,7 @@ export class Game {
         cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
       })),
       projectiles: this.projectiles.map((p) => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, team: p.team, visual:p.visual, vx:p.vx, vy:p.vy, height:p.height })),
-      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, visual:z.visual, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit, ux:z.ux, uy:z.uy, reach:z.reach, halfAngle:z.halfAngle, owner:z.owner })),
+      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, visual:z.visual, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit, ux:z.ux, uy:z.uy, reach:z.reach, halfAngle:z.halfAngle, owner:z.owner, c:this.players.get(z.owner)?.character })),
       events: this.events.splice(0),
       walls: this.walls.map(w => ({...w})), effects: this.effects.map(e => ({...e})),
       score: this.score,
