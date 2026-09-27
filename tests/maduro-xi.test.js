@@ -25,7 +25,7 @@ for(const id of ['maduro','xi']){
  });
  test(`${id} super can miss`,t=>{const {g,q}=setup(t,id);input(g,'a','super');q.x=650;step(g,.85);assert.equal(q.hp,105);});
 }
-for(const id of ['trump','obama','macron','biden','musk','maduro','xi'])for(const slot of ['attack','super'])test(`Exfiltration avoids ${id} ${slot} without moving its return point`,t=>{
+for(const id of ['trump','obama','macron','biden','musk','xi'])for(const slot of ['attack','super'])test(`Exfiltration avoids ${id} ${slot} without moving its return point`,t=>{
  const {g,p,q}=setup(t,'maduro',id,60);input(g,'a','defense');step(g,.4);assert(isExtracted(p));q.energy=100;input(g,'b',slot);g.input('a',{dx:1,dy:0,attack:true,super:true});step(g,1.2);
  assert.equal(p.hp,105);assert.equal(p.x,150);assert.equal(p.y,320);assert.equal(p.energy,100);assert(!p.carriedBy);assert(!p.shove);assert(!p.launch);
 });

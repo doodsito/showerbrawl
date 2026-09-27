@@ -57,7 +57,7 @@ test('dash cannot tunnel through a wall or another player even on a slow frame',
 });
 test('Mic Drop targets the nearest living enemy across the arena, warns and hits once',t=>{
  const {game,p,q}=setup(t,'obama','trump');q.x=680;q.y=340;p.energy=100;
- game.join({id:'ally'},{team:'A',character:'trump'});const ally=game.players.get('ally');Object.assign(ally,{x:320,y:320,protectT:0});
+ game.join({id:'ally'},{team:'A',character:'biden'});const ally=game.players.get('ally');Object.assign(ally,{x:320,y:320,protectT:0});
  game.join({id:'far'},{team:'B',character:'macron'});const far=game.players.get('far');Object.assign(far,{x:760,y:450,protectT:0});
  assert.equal(cast(game,p,'super'),true);assert.equal(p.energy,0);
  const drop=game.zones[0];assert.equal(drop.x,q.x);assert.equal(drop.y,q.y);

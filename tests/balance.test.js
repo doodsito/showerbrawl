@@ -58,7 +58,7 @@ test('delayed super damage grants comeback energy only to the victim',t=>{
 });
 
 test('Trump cannot recharge by punching own or allied walls; enemy walls grant charge',t=>{
- const {game,p,q}=duel(t,'trump','trump');
+ const {game,p,q}=duel(t,'trump','obama');
  const wall={id:99,x:350,y:320,hp:100,team:p.team};
  hitWall(game,wall,12,p.id);assert.equal(p.energy,0);
  wall.owner='ally';hitWall(game,wall,12,p.id);assert.equal(p.energy,0);
