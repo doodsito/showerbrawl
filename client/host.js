@@ -1,8 +1,8 @@
 import {CLIENT_VERSION, watchVersion} from './version.js';
 import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
-import { render, pushEvents, prepareScene, warmRender } from './scene.js';
-import { warmCombatArt, isCombatArtReady } from './combat-assets.js';
+import { render, pushEvents } from './scene.js';
+import { preloadCombatArt } from './combat-assets.js';
 import { startGag, stopGag, preloadGag, GAG_DURATION } from './trump-gag.js';
 
 // Hook d'evenements de combat pour les sons d'action (ou tout autre effet), independant des projectiles.
@@ -124,31 +124,17 @@ function showLobby(d) {
   try {
     lobby = d; phase = d.phase || 'lobby';
     checkVersion();
-    preloadGag(); prepareAll(d);
+    preloadCombatArt(d.characters); preloadGag();
     Music.setPhase(phase);
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
     $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
     if (phase === 'lobby') { $('end').style.display = 'none'; stopGag(); clearInterval(endTimer); resetState(); }
     if (d.qr) $('qr').src = d.qr;
-    // Lobby masque en match: pas de reconstruction DOM (ni recadrage de sprites) au START.
-    if (phase !== 'lobby') return;
     renderSlots(d);
     { const w = $('waiting'), n = d.waiting || 0; w.hidden = !n; w.textContent = `${n} waiting`; }
     renderRoster(d.characters || {});
   } catch (e) {}
-}
-
-// Tout se prepare au lobby: images decodees, decor, halos, frame de chauffe, musique et sons decodes.
-let warmedFor = null;
-function prepareAll(d) {
-  try { SFX.prepare(); SFX.setCharacters(Object.keys(d.characters || {})); Music.preload(); } catch (e) {}
-  const chars = d.characters || {};
-  warmCombatArt(chars).then(() => {
-    if (warmedFor === chars) return;
-    warmedFor = chars;
-    try { prepareScene(); warmRender(canvas.width, canvas.height, d.arena, chars); } catch (e) {}
-  });
 }
 
 // Sprite deja configure pour le perso: PNG si sprite est un chemin (ou sprites/<id>.png), sinon crane runtime.
@@ -163,29 +149,18 @@ function spriteEl(ch, id) {
 }
 
 // Sprites a padding interne variable: recadre sur les pixels opaques (bbox alpha) pour une baseline et une taille reelles communes.
-// La bbox est calculee une seule fois par image (getImageData), puis reprise du cache.
-const trimBoxes = new Map();
-function trimBox(src, w, h) {
-  const key = src.src || null; // canvas genere (crane): petit, pas de cache
-  if (key && trimBoxes.has(key)) return trimBoxes.get(key);
-  const k = document.createElement('canvas'); k.width = w; k.height = h;
-  const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0);
-  const d = g.getImageData(0, 0, w, h).data;
-  let x0 = w, y0 = h, x1 = -1, y1 = -1;
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
-  const box = x1 < 0 ? null : { x0, y0, x1, y1 };
-  if (key) trimBoxes.set(key, box);
-  return box;
-}
 function trimTo(src) {
   try {
     const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
     if (!w || !h) return null;
-    const box = trimBox(src, w, h);
-    if (!box) return null;
-    const { x0, y0, x1, y1 } = box;
+    const k = document.createElement('canvas'); k.width = w; k.height = h;
+    const g = k.getContext('2d'); g.drawImage(src, 0, 0);
+    const d = g.getImageData(0, 0, w, h).data;
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
     const out = document.createElement('canvas'); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
-    const og = out.getContext('2d'); og.imageSmoothingEnabled = false; og.drawImage(src, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    const og = out.getContext('2d'); og.imageSmoothingEnabled = false; og.drawImage(k, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
     out.className = 'trim';
     return out;
   } catch (e) { return null; }
@@ -364,7 +339,7 @@ const fpsEl = SHOW_FPS ? $('fps') : null;
 if (fpsEl) fpsEl.style.display = 'block';
 let fpsFrames = 0, fpsAcc = 0, fpsWorst = 0, lastFrame = performance.now();
 const resetBtn = $('reset');
-let resetShown = null, showSince = 0;
+let resetShown = null;
 
 function loop(now) {
   const dt = now - lastFrame; lastFrame = now;
@@ -377,10 +352,7 @@ function loop(now) {
   if (show !== resetShown) { resetShown = show; try { resetBtn.style.display = show ? 'block' : 'none'; } catch (e) {} }
   try {
     const st = show ? currentState() : null;
-    if (show && !showSince) showSince = now;
-    if (!show) showSince = 0;
-    // Premiere frame de match seulement quand les images sont decodees (filet: 3 s max).
-    if (show && (isCombatArtReady() || now - showSince > 3000)) render(ctx, canvas.width, canvas.height, lobby && lobby.arena, st, lobby && lobby.characters);
+    if (show) render(ctx, canvas.width, canvas.height, lobby && lobby.arena, st, lobby && lobby.characters);
     updateCountdown(st);
   } catch (e) {}
   requestAnimationFrame(loop);
