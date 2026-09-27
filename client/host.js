@@ -145,6 +145,31 @@ function spriteEl(ch, id) {
   return im;
 }
 
+// Sprites a padding interne variable: recadre sur les pixels opaques (bbox alpha) pour une baseline et une taille reelles communes.
+function trimTo(src) {
+  try {
+    const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+    if (!w || !h) return null;
+    const k = document.createElement('canvas'); k.width = w; k.height = h;
+    const g = k.getContext('2d'); g.drawImage(src, 0, 0);
+    const d = g.getImageData(0, 0, w, h).data;
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 24) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    const out = document.createElement('canvas'); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    const og = out.getContext('2d'); og.imageSmoothingEnabled = false; og.drawImage(k, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    out.className = 'trim';
+    return out;
+  } catch (e) { return null; }
+}
+function trimmedSprite(ch, id) {
+  const el = spriteEl(ch, id);
+  const swap = (n) => { const t = trimTo(n); if (t && n.parentNode) n.replaceWith(t); };
+  if (el.tagName === 'CANVAS') { const t = trimTo(el); return t || el; }
+  el.addEventListener('load', () => swap(el), { once: true });
+  return el;
+}
+
 const SLOTS_PER_TEAM = 4;
 function renderSlots(d) {
   for (const t of ['A', 'B']) {
@@ -163,7 +188,7 @@ function renderSlots(d) {
       } else {
         const ch = d.characters && d.characters[p.character];
         li.className = 'slot on';
-        const spr = document.createElement('span'); spr.className = 'spr'; spr.appendChild(spriteEl(ch, p.character));
+        const spr = document.createElement('span'); spr.className = 'spr'; spr.appendChild(trimmedSprite(ch, p.character));
         const txt = document.createElement('span'); txt.className = 'txt';
         const pn = document.createElement('span'); pn.className = 'pn'; pn.textContent = p.name || '?';
         const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = ch ? ch.name : p.character;
@@ -190,7 +215,7 @@ function renderRoster(chars) {
   const box = $('roster'); box.innerHTML = '';
   for (const id of ids) {
     const r = document.createElement('div'); r.className = 'r';
-    const s = document.createElement('div'); s.className = 'spr'; s.appendChild(spriteEl(chars[id], id));
+    const s = document.createElement('div'); s.className = 'spr'; s.appendChild(trimmedSprite(chars[id], id));
     const n = document.createElement('span'); n.textContent = chars[id].name || id;
     r.append(s, n); box.appendChild(r);
   }
