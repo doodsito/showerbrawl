@@ -9,6 +9,10 @@ import { MSG } from '../shared/protocol.js';
 import { characters, arena, watchCharacters } from './loader.js';
 import { Game } from './game.js';
 
+// Filet de securite: une erreur non rattrapee est loggee avec sa pile, le serveur continue.
+process.on('uncaughtException', (e) => console.error('[uncaughtException]', e?.stack || e));
+process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', e?.stack || e));
+
 const PORT = process.env.PORT || 3000;
 const DEV_PORT = process.env.DEV_PORT || 5173;
 
