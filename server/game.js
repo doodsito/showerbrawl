@@ -344,7 +344,7 @@ export class Game {
       players: list.map((p) => ({ name: p.name, team: p.team, character: p.character, kills: p.kills, deaths: p.deaths })),
     });
     this.sendLobby();
-    this.endTimer = setTimeout(() => { if (this.phase === 'ended') { this.phase = 'lobby'; this.sendLobby(); } }, END_SCREEN * 1000);
+    this.endTimer = setTimeout(() => { if (this.phase === 'ended') { this.phase = 'lobby'; this.purgeOffline(); this.sendLobby(); } }, END_SCREEN * 1000);
   }
 
   broadcast() {
