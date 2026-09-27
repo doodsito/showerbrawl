@@ -19,6 +19,7 @@ function emitCombatEvents(events) {
 }
 window.showerBrawl = Object.assign(window.showerBrawl || {}, { onCombatEvent });
 import { SFX } from './sfx.js';
+import { Music } from './music.js';
 import { createDecor, DECOR_W, DECOR_H } from './decor.js';
 import { getSprite, getImage, spriteUrl } from './sprites.js';
 
@@ -124,6 +125,7 @@ function showLobby(d) {
     lobby = d; phase = d.phase || 'lobby';
     checkVersion();
     preloadCombatArt(d.characters); preloadGag();
+    Music.setPhase(phase);
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
     $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
@@ -279,7 +281,7 @@ socket.on(MSG.LOBBY, (d) => { try { SFX.setCharacters(Object.keys(d.characters |
 socket.on(MSG.STATE, (s) => {
   if (!stateLogged) { stateLogged = true; console.log('[host] premier STATE', s.players.length, 'joueurs'); }
   try {
-    if (phase !== 'playing') { phase = 'playing'; $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
+    if (phase !== 'playing') { phase = 'playing'; Music.setPhase(phase); $('lobby').style.display = 'none'; canvas.style.display = 'block'; }
     pushUpdate(s); sounds(s); pushEvents(s.events); emitCombatEvents(s.events);
   } catch (e) {}
 });
@@ -306,15 +308,13 @@ window.__sbResetHandler = (e) => {
 document.addEventListener('click', window.__sbResetHandler);
 addEventListener('pointerdown', () => { try { SFX.init(); } catch (e) {} });
 
-// Aucune musique: seuls les effets sonores (SFX) jouent, debloques au premier geste. Le bouton coupe/retablit les SFX.
-const MUTE_KEY = 'sb_sfx_muted';
-let sfxMuted = false;
-try { sfxMuted = localStorage.getItem(MUTE_KEY) === '1'; } catch (e) {}
-for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => { try { SFX.init(); } catch (e) {} }, { capture: true });
-function paintMute() { try { const b = $('mute'); b.textContent = sfxMuted ? '🔇' : '🔊'; b.title = sfxMuted ? 'Unmute sound' : 'Mute sound'; b.setAttribute('aria-pressed', String(sfxMuted)); } catch (e) {} }
-try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); sfxMuted = !sfxMuted; try { localStorage.setItem(MUTE_KEY, sfxMuted ? '1' : '0'); } catch (err) {} SFX.init(); SFX.setMuted(sfxMuted); paintMute(); console.log('[sfx] muted', sfxMuted); }); } catch (e) {}
+// Musique: demarre au premier geste (autoplay policy, Safari compris). Le bouton coupe musique ET effets, etat retenu.
+for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => { Music.unlock(); try { SFX.init(); } catch (e) {} }, { capture: true });
+function paintMute() { try { const b = $('mute'); const m = Music.isMuted(); b.textContent = m ? '🔇' : '🔊'; b.title = m ? 'Unmute sound' : 'Mute sound'; b.setAttribute('aria-pressed', String(m)); } catch (e) {} }
+try { $('mute').addEventListener('click', (e) => { e.stopPropagation(); Music.unlock(); SFX.init(); Music.toggleMute(); SFX.setMuted(Music.isMuted()); paintMute(); }); } catch (e) {}
 paintMute();
-SFX.setMuted(sfxMuted);
+SFX.setMuted(Music.isMuted());
+window.showerBrawl.audio = { Music, SFX }; // debug / tests
 
 // Compte a rebours au START: 3, 2, 1 pilotes par state.countdown (serveur), puis FIGHT! 1 s.
 let cdShown = '', fightUntil = 0, lastCd = 0;
