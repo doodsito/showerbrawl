@@ -136,7 +136,7 @@ function logStick() {
 function applyTeam() {
   document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : st.team === 'B' ? 'var(--b)' : 'var(--gold)');
   document.body.dataset.team = st.team || '';
-  $('#meTeam').textContent = st.team === 'A' ? 'BLUE TEAM' : st.team === 'B' ? 'RED TEAM' : 'TEAM';
+  $('#meTeam').textContent = st.team === 'A' ? 'CONSPIRACY CREW' : st.team === 'B' ? 'CANCEL CLUB' : 'TEAM';
 }
 function setupPad() {
   const ch = st.characters[st.character] || {};
