@@ -8,6 +8,10 @@ import { makePhysics } from './physics.js';
 import { cast, updateProjectiles, updateZones, dashHits } from './abilities.js';
 import { hasLabKit, charge, updateLab, advanceForcedMovement } from './lab-combat.js';
 
+// Delai de respawn (s) selon le nombre de morts dans la manche: 1re, 2e, 3e, 4e et suivantes.
+export const RESPAWN_STEPS = [3, 5, 10, 15];
+export const respawnDelay = (deaths) => RESPAWN_STEPS[Math.min(Math.max(deaths, 1), RESPAWN_STEPS.length) - 1];
+
 const SLOTS = ['attack', 'defense', 'super'];
 const RECOVERY_MOVE_SCALE = 0.65; // ralentissement post-attaque, identique pour tous
 // Vue manette (CAMERA_ZOOM=1.4 aujourd hui, dimensionne pour 1.4 min, client/play/play.js): a 1.4 l ecran montre 960/1.4 = 686 px decor = ~665 unites
@@ -243,7 +247,7 @@ export class Game {
   kill(t, srcId) {
     const fell = t.hp > 0; // tue par la chute hors du toit (et non par les degats)
     t.exfil=null; t.alive = false; t.hp = 0; t.deaths++;
-    t.respawnT = CONFIG.RESPAWN_TIME;
+    t.respawnT = respawnDelay(t.deaths); // compteur deaths remis a 0 a START/REMATCH, conserve a la reprise playerKey
     const k = srcId && this.players.get(srcId);
     const credited = k && k !== t && k.team !== t.team;
     if (credited) {
