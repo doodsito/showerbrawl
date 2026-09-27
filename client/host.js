@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
 import { render, pushEvents } from './scene.js';
 import { preloadCombatArt } from './combat-assets.js';
+import { startGag, stopGag, preloadGag, GAG_DURATION } from './trump-gag.js';
 
 // Hook d'evenements de combat pour les sons d'action (ou tout autre effet), independant des projectiles.
 // Usage: import { onCombatEvent } from './host.js'; onCombatEvent((e) => { if (e.k === 'hit') ... });
@@ -122,11 +123,11 @@ function showLobby(d) {
   try {
     lobby = d; phase = d.phase || 'lobby';
     checkVersion();
-    preloadCombatArt(d.characters);
+    preloadCombatArt(d.characters); preloadGag();
     $('lobby').style.display = phase === 'lobby' ? 'grid' : 'none';
     $('lobbyBg').style.display = phase === 'lobby' ? 'block' : 'none';
     canvas.style.display = phase === 'lobby' ? 'none' : 'block';
-    if (phase === 'lobby') { $('end').style.display = 'none'; clearInterval(endTimer); resetState(); }
+    if (phase === 'lobby') { $('end').style.display = 'none'; stopGag(); clearInterval(endTimer); resetState(); }
     if (d.qr) $('qr').src = d.qr;
     renderSlots(d);
     renderRoster(d.characters || {});
@@ -257,10 +258,11 @@ function showEnd(d) {
       box.querySelector('.mvp').append(spr, t);
     }
     $('replay').onclick = (e) => { e.stopPropagation(); socket.emit(MSG.RESET, (r) => console.log('[host] REJOUER -> RESET', r)); };
-    let n = 6; const tickEnd = () => { const c = $('endCount'); if (c) c.textContent = n > 0 ? `BACK TO LOBBY IN ${n}S` : ''; n--; };
+    let n = 6 + GAG_DURATION; const tickEnd = () => { const c = $('endCount'); if (c) c.textContent = n > 0 ? `BACK TO LOBBY IN ${n}S` : ''; n--; };
     clearInterval(endTimer); tickEnd(); endTimer = setInterval(tickEnd, 1000);
     $('end').style.display = 'flex';
     SFX.end(win[0] === 'draw');
+    startGag(); // gag "Trump gagne comme toujours" (visuel seulement, resultat reel inchange)
   } catch (e) { console.warn('[host] ecran de fin', e); }
 }
 
