@@ -5,11 +5,6 @@ import { MSG } from '../../shared/protocol.js';
 import { createView } from './view.js';
 import { preloadCombatArt } from '../combat-assets.js';
 
-// Zoom camera de la vue de jeu (1 = decor entier en hauteur). Plus petite valeur (pas de 0.05 depuis 1.4) ou le perso colle
-// a chaque mur reste hors du joystick et des boutons sur iPhone 15 et Pixel 7 paysage (tests/play-camera.e2e.js).
-// Si tu changes cette valeur, ajuste VIEW_HALF_WIDTH dans server/game.js (meme proportion inverse).
-const CAMERA_ZOOM = 1.4;
-
 const $ = (s) => document.querySelector(s);
 // Reconnexion sans recharger: websocket d'abord, tentatives illimitees, 500 ms a 3 s.
 const socket = io({ transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 500, reconnectionDelayMax: 3000 });
@@ -279,13 +274,12 @@ window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();});
 setInterval(sendInput,100); // filet de securite, l'envoi principal est immediat
 
-// Vue de jeu sur le telephone (camera sur mon perso) ou manette seule, choix memorise.
+// Vue de jeu sur le telephone (camera fixe sur l'octogone) ou manette seule, choix memorise.
 let viewEnabled = true;
 // Bascule Game view / Controller only masquee dans cette version: vue toujours active.
 const SHOW_FPS = new URLSearchParams(location.search).get('fps') === '1';
 if (SHOW_FPS) $('#fps').hidden = false;
 const view = createView($('#view'), { getArena: () => st.arena, getCharacters: () => st.characters, myId: () => socket.id, fpsEl: SHOW_FPS ? $('#fps') : null });
-view.setZoom(CAMERA_ZOOM);
 function syncView() {
   const on = viewEnabled && st.joined && st.phase === 'playing' && !$('#pad').hidden;
   view.setActive(on);

@@ -90,10 +90,11 @@ export function worldToScreen(x, y, b) {
 }
 
 // Point du decor 960x540 correspondant a une position monde (pour la camera de la manette).
+export { OCT };
 export function decorPoint(arena, x, y) { return worldToScreen(x, y, worldBounds(arena)); }
 export { DECOR_W, DECOR_H };
 
-// camera optionnelle {x, y, zoom, me}: centre la vue sur (x,y) du decor 960x540, bornee au decor (jamais hors image),
+// camera optionnelle {fit:{scale,tx,ty}, me}: cadrage fixe de l'octogone (client/play/view.js),
 // met en evidence le joueur `me` et n'affiche pas le HUD hote. Sans camera: rendu hote inchange.
 export function render(ctx, W, H, arena, state, characters, camera) {
   ctx.fillStyle = '#0a0f24'; ctx.fillRect(0, 0, W, H);
@@ -109,10 +110,10 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     // remain visible above the arena, then return smoothly to the normal view.
     const extraction=Math.max(0,...(state?.players||[]).filter(p=>p.alive&&p.exfil).map(p=>
       reducedMotion.matches?1:Math.max(0,Math.min(1,p.exfil.age/.2,(EXFIL.end-p.exfil.age)/.35))));
-    const zoom=1+((camera.zoom||2)-1)*(1-extraction);
-    const scale = Math.max(W / DECOR_W, H / DECOR_H) * zoom;
-    const tx = Math.min(0, Math.max(W - DECOR_W * scale, W / 2 - camera.x * scale));
-    const ty = Math.min(0, Math.max(H - DECOR_H * scale, H / 2 - camera.y * scale));
+    // Cadrage fixe (camera.fit: scale/tx/ty calcules par la manette), ouvert vers le decor entier pendant l'extraction.
+    const full = Math.min(W / DECOR_W, H / DECOR_H), f = camera.fit || { scale: full, tx: (W - DECOR_W * full) / 2, ty: (H - DECOR_H * full) / 2 };
+    const mix = (a, b) => a + (b - a) * extraction;
+    const scale = mix(f.scale, full), tx = mix(f.tx, (W - DECOR_W * full) / 2), ty = mix(f.ty, (H - DECOR_H * full) / 2);
     ctx.translate(Math.round(tx), Math.round(ty));
     ctx.scale(scale, scale);
   } else {

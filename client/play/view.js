@@ -1,15 +1,27 @@
-// Vue de jeu sur la manette: le combat rendu sur le telephone, camera qui suit mon perso.
-// Reutilise le rendu de l'ecran hote (client/scene.js) avec le parametre camera. Donnees: MSG.VIEW (filtre autour de moi).
-import { render, pushEvents, decorPoint } from '../scene.js';
+// Vue de jeu sur la manette: camera fixe qui cadre l'octogone entier, mon perso reste mis en evidence (fleche + anneau).
+// Reutilise le rendu de l'ecran hote (client/scene.js) avec le parametre camera. Donnees: MSG.VIEW (toute l'arene).
+import { render, pushEvents, OCT } from '../scene.js';
 
 const RENDER_DELAY = 70, MAX_EXTRAPOLATION = 50; // identiques a l'ecran hote
-const ZOOM = 1.75, FOLLOW = 8; // zoom 1.75x sur le decor 960x540, suivi lisse (lerp exponentiel)
+// Boite a cadrer dans le decor 960x540: le sol de l'octogone + la hauteur des sprites et des noms au bord du toit.
+const BOX = { x0: OCT.cx - OCT.hw - 40, x1: OCT.cx + OCT.hw + 40, y0: OCT.cy - OCT.hh - 140, y1: OCT.cy + OCT.hh + 14 };
+const MARGIN = 0.03; // petite marge laterale (fraction de la largeur)
+const LIFT = 0.3; // part de l'espace vertical libre laissee au-dessus: cadrage decale vers le haut, loin du joystick et des boutons
+
+// Cadrage fixe (px canvas): octogone entier, centre en x, remonte en y. Recalcule a chaque changement de taille.
+export function fitCamera(W, H) {
+  const bw = BOX.x1 - BOX.x0, bh = BOX.y1 - BOX.y0;
+  const scale = Math.min((W * (1 - 2 * MARGIN)) / bw, (H * (1 - MARGIN)) / bh);
+  const tx = W / 2 - ((BOX.x0 + BOX.x1) / 2) * scale;
+  const ty = (H - bh * scale) * LIFT - BOX.y0 * scale;
+  return { scale, tx, ty };
+}
 const MAX_DPR = 2;
 
 export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   let updates = [], clockOffset = null, active = false, raf = 0;
-  const cam = { x: 480, y: 422, zoom: ZOOM, baseZoom: ZOOM, me: null, ready: false };
+  const cam = { fit: null, me: null, ready: false };
   let lastFrame = 0, fpsFrames = 0, fpsAcc = 0;
 
   // --- interpolation (meme principe que client/host.js) ---
@@ -61,17 +73,9 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     const st = current(), arena = getArena();
     if (!arena) return;
     resize();
-    const me = st && st.players.find((p) => p.id === myId());
     cam.me = myId();
-    // Mort ou chute: la camera reste sur le dernier point connu, puis glisse vers le point de reapparition.
-    if (me && me.alive !== false) {
-      const [tx, ty] = decorPoint(arena, me.x, me.y);
-      if (!cam.ready) { cam.x = tx + 55; cam.y = ty + 10; cam.ready = true; }
-      const k = 1 - Math.exp(-FOLLOW * dt);
-      // perso un peu a gauche du centre (zone libre entre joystick et boutons), un peu au-dessus des pieds
-      cam.x += (tx + 55 - cam.x) * k; cam.y += (ty + 10 - cam.y) * k;
-    }
-    if (cam.zoom !== cam.baseZoom) cam.zoom = cam.baseZoom; // zoom fixe, jamais modifie en jeu
+    if (!cam.fit || cam.fit.W !== canvas.width || cam.fit.H !== canvas.height) cam.fit = { ...fitCamera(canvas.width, canvas.height), W: canvas.width, H: canvas.height };
+    cam.ready = true;
     ctx.imageSmoothingEnabled = false;
     render(ctx, canvas.width, canvas.height, arena, st, getCharacters(), cam);
     if (fpsEl) { fpsFrames++; fpsAcc += dt; if (fpsAcc >= 0.5) { fpsEl.textContent = `${Math.round(fpsFrames / fpsAcc)} fps`; fpsFrames = 0; fpsAcc = 0; } }
@@ -82,11 +86,9 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     setActive(on) {
       if (on === active) return;
       active = on; canvas.hidden = !on;
-      // cam.ready conserve: pas de recentrage brutal a la reconnexion ou au retour en jeu
       if (on) { lastFrame = 0; resize(); raf = requestAnimationFrame(frame); }
       else { cancelAnimationFrame(raf); raf = 0; updates = []; }
     },
     camera: cam,
-    setZoom(z) { cam.zoom = cam.baseZoom = z; },
   };
 }
