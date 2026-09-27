@@ -84,7 +84,7 @@ document.addEventListener('touchend', (e) => {
 $('#name').addEventListener('blur', () => { window.scrollTo(0, 0); });
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-function show(id) { for (const s of ['select', 'pad', 'end']) $('#' + s).hidden = s !== id; }
+function show(id) { for (const s of ['select', 'pad', 'end', 'queue']) $('#' + s).hidden = s !== id; }
 
 // Un perso = un seul joueur, toutes equipes confondues, sans exception. Renvoie le joueur qui le tient.
 function taken(ch) {
@@ -125,6 +125,9 @@ function doJoin() {
       renderSelect(); show('select'); return;
     }
     setJoined(true); setBanner(false);
+    if (res && res.queued) { st.queued = true; st.joined = false; st.wantJoin = true; showQueue(res.position); return; }
+    st.queued = false; st.repick = false;
+    if (res?.character && res.character !== st.character) { st.character = res.character; try { localStorage.setItem('sb_char', st.character); } catch (e) {} }
     st.joined = true; st.wantJoin = true; st.lastHp = null;
     setupPad(); if (st.phase !== 'ended') show('pad');
   });
@@ -140,6 +143,22 @@ $('#join').onclick = () => {
     doJoin();
   } catch (e) {}
 };
+
+// File d'attente (plus de 8 joueurs): ecran dedie, position mise a jour par le serveur.
+function showQueue(pos) { stick?.destroy(); stick = null; $('#qPos').textContent = `#${pos || 1}`; show('queue'); syncView(); }
+socket.on('queue', (d) => { if (!st.queued) return; $('#qPos').textContent = `#${d?.position || 1}`; });
+// Entree automatique depuis la file: perso libre attribue par le serveur, manette sans action du joueur.
+socket.on('admitted', (d) => {
+  const wanted = st.character;
+  st.queued = false; st.joined = true; st.wantJoin = true; st.lastHp = null; setJoined(true);
+  st.character = d?.character || st.character;
+  try { localStorage.setItem('sb_char', st.character); } catch (e) {}
+  // Perso choisi deja pris: il peut encore en choisir un autre libre avant le match.
+  st.repick = !!wanted && wanted !== st.character && st.phase === 'lobby';
+  if (st.repick) { $('#err').textContent = 'Your pick was taken: you got ' + (st.characters[st.character]?.name || st.character) + '. Pick another free one or join.'; renderSelect(); show('select'); }
+  else { setupPad(); show('pad'); }
+  syncView();
+});
 
 // Le serveur confirme la liberation avant de permettre un nouveau choix.
 function backToSelect() {
@@ -340,6 +359,9 @@ socket.on(MSG.LOBBY, (d) => {
       try { localStorage.removeItem('sb_char'); } catch (e) {}
     }
     // Le serveur fait foi: si on est dans une equipe, on est en manette (y compris en cours de manche).
+    if (inTeam && st.repick && st.phase === 'lobby') { renderSelect(); return; }
+    if (inTeam) st.repick = false;
+    if (st.queued && !inTeam) { renderSelect(); syncView(); return; }
     if (inTeam && !st.returning && st.phase !== 'ended') { st.joined = true; st.wantJoin = true; setupPad(); show('pad'); }
     // Reprise en cours (wantJoin): on reste sur la manette, pas de retour a la selection.
     if (!st.joined && !st.wantJoin) { renderSelect(); show('select'); } else renderSelect();
