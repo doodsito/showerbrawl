@@ -115,7 +115,7 @@
     "speed": 195,
     "sprite": "sprites/maduro.png",
     "fullBody": true,
-    "hint": "Oil Barrel: projectile, range 400 · Exfiltration: escape by plane, vulnerable parachute landing · Hyperinflation: targeted money tornado",
+    "hint": "Oil Barrel: ranged projectile · Exfiltration: escape by plane · Super Mustache: flying uppercut, dodge the charge to punish his crash",
     "attack": {
       "type": "projectile",
       "travel": true,
@@ -137,19 +137,17 @@
       "icon": "sprites/maduro_plane_v1.png"
     },
     "super": {
-      "type": "zone",
-      "target": "enemy",
-      "range": 520,
-      "radius": 70,
-      "delay": 0.8,
-      "aftermath": 1.1,
-      "damage": 28,
-      "knockback": 300,
+      "type": "dash",
+      "behavior": "superMustache",
+      "range": 380,
+      "speed": 700,
+      "delay": 0.55,
+      "damage": 34,
+      "knockback": 560,
       "cooldown": 6,
       "charge": 100,
-      "label": "Hyperinflation",
-      "icon": "sprites/maduro_super.png",
-      "visual": "inflation"
+      "label": "Super Mustache",
+      "icon": "sprites/maduro_mustache.svg"
     },
     "labKit": true,
     "chargeDealt": 2.08

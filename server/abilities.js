@@ -1,3 +1,4 @@
+import {castMustache} from './maduro-super.js';
 import {castKamala, updateLaugh} from './kamala-combat.js';
 import {isExtracted} from '../shared/exfiltration.js';
 import {castExfiltration} from './exfiltration.js';
@@ -167,9 +168,9 @@ export function standardAttack(own = {}) {
 
 export function cast(ctx, p, slot) {
   const a = slot === 'attack' ? standardAttack(p.char.attack) : p.char[slot];
-  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0 || p.napT > 0 || p.cycleT > 0 || p.exfil) return false;
+  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0 || p.napT > 0 || p.cycleT > 0 || p.exfil || p.mustache) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
-  const handler = ['sonicLaugh','speaking'].includes(a.behavior) ? castKamala : a.behavior==='exfiltration' ? castExfiltration : a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
+  const handler = a.behavior==='superMustache' ? castMustache : ['sonicLaugh','speaking'].includes(a.behavior) ? castKamala : a.behavior==='exfiltration' ? castExfiltration : a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
   if (!handler || handler(ctx, p, {...a, canRingOut: slot === 'super'}) === false) return false;
   if (a.charge) p.energy = 0;
   p.cd[slot] = a.cooldown || 1;
