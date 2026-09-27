@@ -103,7 +103,7 @@ function renderSelect() {
     if (holder) b.classList.add('taken');
     if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src=assetUrl(c.sprite);img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
-    const s = document.createElement('small'); s.textContent = holder ? `by ${holder.name}${holder.offline ? ' (offline)' : ''}` : `HP ${c.hp ?? '?'}`; b.appendChild(s);
+    const s = document.createElement('small'); s.textContent = holder ? `by ${holder.name}${holder.offline ? ' (offline)' : ''}` : ''; if (holder) b.appendChild(s);
     if (holder) { const tg = document.createElement('span'); tg.className = 'taken-tag'; tg.textContent = 'TAKEN'; b.appendChild(tg); }
     b.onclick = () => { st.character = id; renderSelect(); };
     box.appendChild(b);
@@ -373,7 +373,6 @@ socket.on(MSG.ME, (me) => {
     $('#timer').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
     st.alive=me.alive;st.energy=me.energy||0;
     for(const k of Object.keys(cds))cds[k]=performance.now()+Math.max(0,me.cd?.[k]||0)*1000;
-    $('#hp').textContent = `HP ${Math.max(0, Math.round(me.hp))}/${me.maxHp ?? '?'}`;
     if (st.lastHp != null && me.hp < st.lastHp && me.alive !== false) hitFeedback(st.lastHp - me.hp, false);
     if (st.wasAlive === true && me.alive === false) hitFeedback(0, true);
     st.wasAlive = me.alive; st.lastHp = me.hp;
