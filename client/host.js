@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { MSG } from '../shared/protocol.js';
 import { render, pushEvents } from './scene.js';
 import { preloadCombatArt } from './combat-assets.js';
-import { startGag, stopGag, preloadGag, GAG_DURATION } from './trump-gag.js';
+import { startGag, stopGag, preloadGag, trumpWon, GAG_DURATION } from './trump-gag.js';
 
 // Hook d'evenements de combat pour les sons d'action (ou tout autre effet), independant des projectiles.
 // Usage: import { onCombatEvent } from './host.js'; onCombatEvent((e) => { if (e.k === 'hit') ... });
@@ -262,7 +262,7 @@ function showEnd(d) {
     clearInterval(endTimer); tickEnd(); endTimer = setInterval(tickEnd, 1000);
     $('end').style.display = 'flex';
     SFX.end(win[0] === 'draw');
-    startGag(); // gag "Trump gagne comme toujours" (visuel seulement, resultat reel inchange)
+    if (trumpWon(d)) startGag(); else stopGag(); // sequence speciale si l'equipe de Trump gagne, sinon ecran generique
   } catch (e) { console.warn('[host] ecran de fin', e); }
 }
 
