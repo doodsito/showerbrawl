@@ -89,20 +89,29 @@ function currentState() {
 // Pouvoirs: sounds/<perso>_<slot>.mp3 sur l'event cast, synthetise si le fichier manque.
 let lastHp = new Map();
 const charById = new Map();
+// Lance-flammes: un seul bip par cible toutes les 0,3 s, a 50 % du volume.
+const FLAME_HIT_GAP = 300, FLAME_HIT_VOL = 0.5;
+const lastFlameHit = new Map();
 onCombatEvent((e) => { if (e.k === 'cast') SFX.cast(e.id, charById.get(e.id), e.slot); });
 function sounds(s) {
   try {
-    let hit = false, death = false;
+    let hit = false, flameHit = false, death = false;
+    const now = performance.now();
+    const flamed = new Set((s.zones || []).filter((z) => z.kind === 'flamethrower').map((z) => z.team));
     for (const p of s.players || []) {
       if (p.character) charById.set(p.id, p.character);
       const prev = lastHp.get(p.id);
       if (prev) {
         if (prev.alive && p.alive === false) death = true;
-        else if (p.hp < prev.hp) hit = true;
+        else if (p.hp < prev.hp) {
+          const byFlame = p.burning || [...flamed].some((t) => t !== p.team);
+          if (!byFlame) hit = true;
+          else if (now - (lastFlameHit.get(p.id) || 0) >= FLAME_HIT_GAP) { lastFlameHit.set(p.id, now); flameHit = true; }
+        }
       }
       lastHp.set(p.id, { hp: p.hp, alive: p.alive });
     }
-    if (death) SFX.death(); else if (hit) SFX.hit();
+    if (death) SFX.death(); else if (hit) SFX.hit(); else if (flameHit) SFX.hit(FLAME_HIT_VOL);
   } catch (e) {}
 }
 
