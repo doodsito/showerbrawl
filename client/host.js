@@ -130,6 +130,7 @@ function showLobby(d) {
     if (phase === 'lobby') { $('end').style.display = 'none'; stopGag(); clearInterval(endTimer); resetState(); }
     if (d.qr) $('qr').src = d.qr;
     renderSlots(d);
+    { const w = $('waiting'), n = d.waiting || 0; w.hidden = !n; w.textContent = `${n} waiting`; }
     renderRoster(d.characters || {});
   } catch (e) {}
 }
