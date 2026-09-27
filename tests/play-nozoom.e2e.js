@@ -53,7 +53,7 @@ test('manette iPhone 15: aucun zoom page ni camera', { timeout: 120000 }, async 
   await page.addInitScript((ch) => { localStorage.setItem('sb_char', ch); }, ch);
   await page.goto(url);
   const scale = () => page.evaluate(() => window.visualViewport?.scale ?? 1);
-  const zoom = () => page.evaluate(() => window.showerBrawlView?.camera.zoom);
+  const zoom = () => page.evaluate(() => JSON.stringify(window.showerBrawlView?.camera.fit));
   // focus du champ pseudo
   await page.waitForSelector('#name');
   const fs = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#name')).fontSize));
@@ -68,7 +68,7 @@ test('manette iPhone 15: aucun zoom page ni camera', { timeout: 120000 }, async 
   game.start(); game.countdown = 0;
   await page.waitForFunction(() => window.showerBrawlView?.camera.ready, null, { timeout: 15000 });
   const z0 = await zoom();
-  assert.ok(Math.abs(z0 - 1.4) < 1e-9, 'CAMERA_ZOOM');
+  assert.ok(z0 && JSON.parse(z0).scale > 0, 'cadrage fixe calcule');
   // double-tap rapide sur ATTACK
   const cdp = await ctx.newCDPSession(page);
   const center = (sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
@@ -83,22 +83,14 @@ test('manette iPhone 15: aucun zoom page ni camera', { timeout: 120000 }, async 
   await touch('touchEnd', []);
   assert.equal(await scale(), 1, 'echelle 1 apres joystick + bouton');
   assert.equal(await zoom(), z0, 'zoom camera inchange');
-  // mort puis reapparition: camera reste, zoom fixe
+  // mort puis reapparition: cadrage fixe, jamais modifie
   const me = [...game.players.values()][0];
-  const before = await page.evaluate(() => ({ ...window.showerBrawlView.camera }));
   game.kill(me, null);
   await wait(300);
-  const dead = await page.evaluate(() => ({ ...window.showerBrawlView.camera }));
-  assert.ok(Math.hypot(dead.x - before.x, dead.y - before.y) < 40, 'camera reste pres du dernier point pendant la mort');
-  assert.equal(dead.zoom, z0);
-  const samples = [];
+  assert.equal(await zoom(), z0, 'cadrage fixe pendant la mort');
   for (let i = 0; i < 80 && !me.alive; i++) await wait(100);
   assert.ok(me.alive, 'reapparition');
-  for (let i = 0; i < 20; i++) { samples.push(await page.evaluate(() => ({ ...window.showerBrawlView.camera }))); await wait(30); }
-  for (let i = 1; i < samples.length; i++) {
-    assert.equal(samples[i].zoom, z0, 'zoom fixe apres reapparition');
-    assert.ok(Math.hypot(samples[i].x - samples[i - 1].x, samples[i].y - samples[i - 1].y) < 120, 'pas de saut brutal');
-  }
+  for (let i = 0; i < 10; i++) { assert.equal(await zoom(), z0, 'cadrage fixe apres reapparition'); await wait(30); }
   assert.equal(await scale(), 1, 'echelle 1 en fin de test');
   assert.deepEqual(errors, []);
 });
