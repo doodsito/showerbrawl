@@ -181,6 +181,7 @@ export function render(ctx, W, H, arena, state, characters, camera) {
   }
   if(state)for(const z of state.zones||[])if(z.kind==='micDrop')fx.micDrop(z,true);
   if(state)for(const z of state.zones||[])if(z.kind==='decree'||(z.kind==='strike'&&z.visual==='decree'))fx.decree(z,true);
+  if(state)for(const z of state.zones||[])if(z.kind==='strike'){const o=state.players.find(p=>p.id===z.owner),anim=characters?.[o?.character]?.super?.anim;if(anim)fx.superAnim(z,anim);}
   if(state)for(const z of state.zones||[])if(z.kind==='flamethrower')musk.flame(z);
   if(state)drawFx(ctx,state,b);
   if(state)drawKOs(ctx,b);
