@@ -10,9 +10,11 @@ export function effect(ctx, kind, x, y, extra = {}, duration = .6) {
 export function charge(p, amount) {
   if (p?.char.super?.charge) p.energy = Math.min(100, (p.energy || 0) + amount);
 }
-export function firstWall(ctx, origin, dx, dy) {
+// Un mur invoque n'arrete que les coups de l'equipe adverse: team = equipe de l'attaquant (optionnel).
+export function firstWall(ctx, origin, dx, dy, team) {
   let hit = null, nearest = Infinity;
   for (const wall of ctx.walls) {
+    if (team != null && wall.team === team) continue;
     const t = wallSegmentEntry(wall, origin, dx, dy);
     if (t !== null && t < nearest) { nearest = t; hit = wall; }
   }
