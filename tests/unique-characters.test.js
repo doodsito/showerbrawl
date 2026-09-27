@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Game } from '../server/game.js';
+import { characters, arena } from '../server/loader.js';
+
+const ids = Object.keys(characters);
+function setup(t) {
+  const game = new Game({ emit() {} }, { characters, arena, autoTick: false });
+  t.after(() => game.dispose());
+  return game;
+}
+
+test('a character is held by one player only, whatever the random teams', (t) => {
+  const game = setup(t);
+  assert.equal(game.join({ id: 'a' }, { character: ids[0], name: 'Ann' }).ok, true);
+  const res = game.join({ id: 'b' }, { character: ids[0], name: 'Bob' });
+  assert.equal(res.ok, false); assert.equal(res.error, 'character already taken'); assert.equal(res.takenBy, 'Ann');
+  assert.equal(game.join({ id: 'a' }, { character: ids[0], name: 'Ann' }).ok, true); // re-join sur son propre perso
+});
+
+test('no duplicate even once every character is taken', (t) => {
+  const game = setup(t);
+  const n = Math.min(ids.length, 8);
+  for (let i = 0; i < n; i++) assert.equal(game.join({ id: 'p' + i }, { character: ids[i] }).ok, true);
+  for (const c of ids.slice(0, n)) assert.equal(game.join({ id: 'x' }, { character: c }).ok, false);
+});
+
+test('9th player is refused with "game is full"', (t) => {
+  const game = setup(t);
+  for (let i = 0; i < 8; i++) assert.equal(game.join({ id: 'p' + i }, { character: ids[i] }).ok, true);
+  const res = game.join({ id: 'p8' }, { character: ids[8] });
+  assert.equal(res.ok, false); assert.equal(res.error, 'game is full');
+  assert.equal(game.players.size, 8);
+});
