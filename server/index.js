@@ -26,7 +26,8 @@ const clientDist = fileURLToPath(new URL('../client/dist', import.meta.url));
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer);
+// Detection rapide des connexions mortes (telephone en veille, perte reseau).
+const io = new Server(httpServer, { pingInterval: 5000, pingTimeout: 5000 });
 
 // SHA du commit qui tourne: injecte au build Docker (GIT_SHA), sinon lu dans git en local.
 let SHA = process.env.GIT_SHA && process.env.GIT_SHA !== 'dev' ? process.env.GIT_SHA : null;
@@ -54,7 +55,7 @@ io.on('connection', (socket) => {
   socket.on(MSG.JOIN, (data, ack) => {
     let res;
     try { res = game.join(socket, data); } catch { res = { ok: false, error: 'error' }; }
-    console.log(`[join] ${socket.id} team=${data?.team} char=${data?.character} ->`, res.ok ? 'ok' : res.error);
+    console.log(`[join] ${socket.id} key=${String(data?.playerKey || '').slice(0, 8)} char=${data?.character} ->`, res.ok ? 'ok' : `${res.error} (${res.takenBy || ''})`);
     if (typeof ack === 'function') ack(res);
   });
   socket.on(MSG.INPUT, (d) => { try { game.input(socket.id, d); } catch {} });
@@ -64,6 +65,13 @@ io.on('connection', (socket) => {
     if (typeof ack === 'function') ack({ ok: game.phase === 'playing', phase: game.phase, players: game.players.size });
   });
 
+  // Hote: libere a la main le perso d'un joueur (fantome bloque).
+  socket.on('kick', (id, ack) => {
+    const ok = !!socket.data.host && game.kick(id);
+    console.log(`[kick] ${id} par ${socket.id} ->`, ok);
+    if (typeof ack === 'function') ack({ ok });
+  });
+
   socket.on(MSG.RESET, (ack) => {
     try { game.reset(); } catch (e) { console.warn('[reset] erreur', e.message); }
     console.log(`[reset] recu de ${socket.id}, phase=${game.phase}, joueurs=${game.players.size}`);
@@ -71,7 +79,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    game.leave(socket.id);
+    if (!socket.data.replaced) game.disconnect(socket.id); // remplace par une reprise: rien a liberer
     if (socket.data.host) game.sendLobby(); // plus d'ecran hote: le premier joueur recupere le bouton START
     io.emit(MSG.COUNT, io.engine.clientsCount);
   });
