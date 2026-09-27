@@ -13,7 +13,7 @@ section[hidden],[hidden]{display:none!important}
 button{font-family:var(--font);text-transform:uppercase;cursor:pointer}
 
 /* cadre pixel: bord sombre epais + liseré interieur, coins coupes */
-.frame,.band,.hud,.char,.team,.join,input,.wait,.endcard,.respawn{border:4px solid var(--line);box-shadow:inset 0 0 0 2px var(--inner),0 4px 0 var(--line)}
+.frame,.band,.hud,.char,.join,input,.wait,.endcard,.respawn{border:4px solid var(--line);box-shadow:inset 0 0 0 2px var(--inner),0 4px 0 var(--line)}
 
 /* ---------- SELECTION ---------- */
 .logo{margin:4px 0 0;text-align:center;font-size:30px;line-height:.95;letter-spacing:.08em;color:var(--fg);text-shadow:3px 3px 0 var(--line),-1px -1px 0 var(--line)}
@@ -22,10 +22,6 @@ button{font-family:var(--font);text-transform:uppercase;cursor:pointer}
 input{padding:14px;background:var(--panel);color:var(--fg);font:800 16px var(--font);text-transform:uppercase;border-radius:4px;user-select:text;-webkit-user-select:text;outline:none}
 input::placeholder{color:#5e6c82}
 input:focus{box-shadow:inset 0 0 0 2px var(--gold),0 4px 0 var(--line)}
-.teams{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.team{padding:16px 8px;border-radius:4px;color:#fff;font-size:15px;font-weight:900;opacity:.5;text-shadow:2px 2px 0 var(--line);transition:transform .08s}
-.team.A{background:linear-gradient(var(--aL),var(--a) 45%,#1d5bb0)}.team.B{background:linear-gradient(var(--bL),var(--b) 45%,#a62a24)}
-.team.on{opacity:1;box-shadow:inset 0 0 0 2px #fff,0 0 0 3px var(--gold),0 4px 0 var(--line)}
 .chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .char{position:relative;min-height:84px;padding:10px;border-radius:4px;background:var(--panel2);color:var(--fg);text-align:left;font-size:11px}
 .char::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--team)}
@@ -278,7 +274,7 @@ body[data-phase=playing] .hero{display:none!important}
 #select .logo b{display:inline;font-size:26px;text-shadow:2px 2px 0 var(--b),4px 4px 0 var(--line)}
 #select .sub{font-size:10px;letter-spacing:.25em}
 #select #name{padding:8px 10px;font-size:14px}
-#select .team{padding:9px 6px;font-size:13px}
+
 #select .err{order:1;min-height:0}
 #select .err:empty{display:none}
 #select .chars{order:2;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:4px}
