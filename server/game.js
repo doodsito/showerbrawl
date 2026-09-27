@@ -23,6 +23,11 @@ function slim(o) {
   for (const k in o) { const v = o[k]; if (VIEW_DROP.has(k) || (!VIEW_KEEP.has(k) && (v === false || v == null))) continue; out[k] = v; }
   return out;
 }
+// VIEW (manette): champs que la manette ne lit pas, omis. action ne sert qu'avec pose; owner/maxHp des murs et owner
+// des effets ne sont pas lus; les events lab sont ignores par pushEvents cote client.
+function viewPlayer(p) { const o = slim(p); if (!o.pose) delete o.action; return o; }
+function viewWall(w) { const o = slim(w); delete o.owner; delete o.maxHp; return o; }
+function viewEffect(e) { const o = slim(e); delete o.owner; return o; }
 // Reseau: timers a 2 decimales, coordonnees/vitesses/angles/reste a 1 decimale; entiers intacts.
 const TIMERS = new Set(['age', 'ttl', 'duration', 'delay', 'remaining', 'progress', 'pose', 'recoil', 'uppercut', 'nap', 'cycle', 'countdown', 'respawnIn', 'attack', 'defense', 'super']);
 // A zero, le client les traite deja comme absents (p.pose||0, p.recoil>0, p.respawnIn>0, p.energy||0).
@@ -510,11 +515,12 @@ export class Game {
     // VIEW: la camera manette cadre toute l'arene, chaque joueur recoit tout le combat (meme format, sans filtre de distance).
     if (rooms) {
       const vs = this._viewStats || (this._viewStats = { bytes: 0, n: 0 });
-      const players = state.players.map(slim), zones = state.zones.map(slim), effects = state.effects.map(slim);
+      const players = state.players.map(viewPlayer), zones = state.zones.map(slim), effects = state.effects.map(viewEffect);
+      const walls = state.walls.map(viewWall), events = state.events.filter((e) => !e.lab);
       for (const me of state.players) {
         const view = {
           t: state.t, countdown: state.countdown, score: state.score, timeLeft: state.timeLeft, me: me.id,
-          players, projectiles: state.projectiles, zones, walls: state.walls, effects, events: state.events,
+          players, projectiles: state.projectiles, zones, walls, effects, events,
         };
         this.io.to(me.id).emit(MSG.VIEW, view);
         vs.bytes += JSON.stringify(view).length; vs.n++;
