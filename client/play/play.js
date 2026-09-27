@@ -393,7 +393,9 @@ socket.on(MSG.END, (d) => {
     $('#endScore').textContent = `Blue ${d?.score?.A ?? 0} - ${d?.score?.B ?? 0} Red`;
     const m = d?.mvp;
     $('#endMvp').textContent = m ? `MVP: ${m.name || m.id || m}` : '';
-    const gg = $('#endGag'); gg.hidden = true; clearTimeout(st.gagT); st.gagT = setTimeout(() => { gg.hidden = false; }, 3200); // gag hote
+    const gg = $('#endGag'); gg.hidden = true; clearTimeout(st.gagT);
+    const trumpWon = (w === 'A' || w === 'B') && (d.players || []).some((p) => p.team === w && p.character === 'trump');
+    if (trumpWon) st.gagT = setTimeout(() => { gg.hidden = false; }, 1500); // synchro avec le tampon RIGGED! de l'hote
     show('end');
   } catch (e) {}
 });
