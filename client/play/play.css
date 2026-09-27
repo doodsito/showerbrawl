@@ -273,7 +273,7 @@ body[data-phase=playing] .hero{display:none!important}
 #select .logo br{display:none}
 #select .logo b{display:inline;font-size:26px;text-shadow:2px 2px 0 var(--b),4px 4px 0 var(--line)}
 #select .sub{font-size:10px;letter-spacing:.25em}
-#select #name{padding:8px 10px;font-size:14px}
+#select #name{padding:8px 10px;font-size:16px}
 
 #select .err{order:1;min-height:0}
 #select .err:empty{display:none}
@@ -292,3 +292,10 @@ body[data-phase=playing] .hero{display:none!important}
 .char.taken>.portrait{filter:grayscale(1) brightness(1.5) drop-shadow(2px 2px 0 var(--line))}
 .char.taken>small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;font-size:11px;font-weight:800;text-shadow:1px 1px 0 #000}
 .char .taken-tag{position:absolute;z-index:2;top:-9px;right:4px;padding:1px 6px;background:#ff1f1f;color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px #000,0 2px 0 #000;font-size:11px;line-height:1.2;font-weight:900;letter-spacing:.1em;border-radius:3px;text-shadow:1px 1px 0 #000;transform:rotate(-4deg);pointer-events:none}
+
+/* Anti-zoom iOS: pas de selection ni callout (sauf champ pseudo), taille de texte figee */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#name{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;font-size:max(16px,1em)}
+#select,#end{touch-action:manipulation}
+#pad,#stick,#stick *,.btns,.btn,#view{touch-action:none}

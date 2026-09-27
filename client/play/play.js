@@ -73,7 +73,20 @@ document.addEventListener('pointerdown', () => {
   if (fsDone) return; fsDone = true;
   try { const p = document.documentElement.requestFullscreen?.(); p?.catch?.(() => {}); } catch (e) {}
 }, { capture: true });
-document.addEventListener('gesturestart', (e) => e.preventDefault());
+// Anti-zoom iOS (Safari ignore user-scalable=no): pincement, double-tap, dblclick.
+const noZoom = (e) => e.preventDefault();
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend', 'dblclick']) document.addEventListener(ev, noZoom, { passive: false });
+const isCtl = (t) => !!(t && t.closest && t.closest('#stick, .btns, .btn, #view, #pad'));
+document.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 1 && !isCtl(e.target)) e.preventDefault();
+}, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouchEnd < 300 && !isCtl(e.target) && e.target.id !== 'name') e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+$('#name').addEventListener('blur', () => { window.scrollTo(0, 0); });
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 function show(id) { for (const s of ['select', 'pad', 'end']) $('#' + s).hidden = s !== id; }
@@ -244,7 +257,7 @@ let viewEnabled = true;
 const SHOW_FPS = new URLSearchParams(location.search).get('fps') === '1';
 if (SHOW_FPS) $('#fps').hidden = false;
 const view = createView($('#view'), { getArena: () => st.arena, getCharacters: () => st.characters, myId: () => socket.id, fpsEl: SHOW_FPS ? $('#fps') : null });
-view.camera.zoom = CAMERA_ZOOM;
+view.setZoom(CAMERA_ZOOM);
 function syncView() {
   const on = viewEnabled && st.joined && st.phase === 'playing' && !$('#pad').hidden;
   view.setActive(on);

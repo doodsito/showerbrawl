@@ -207,7 +207,6 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     ctx.save();
     ctx.setTransform(k, 0, 0, k, (W - DECOR_W * k) / 2, (H - DECOR_H * k) / 2); // meme echelle que l'arene, sans tremblement
     drawHud(ctx, state);
-    drawLeaders(ctx, state, characters);
     ctx.restore();
   }
 }
@@ -337,26 +336,6 @@ function drawKOs(g, b) {
     }
     g.restore();
   }
-}
-
-// Classement en direct: top 3 par kills, compact, coin haut gauche (sous le bouton son).
-function drawLeaders(g, state, characters) {
-  const top = [...(state.players || [])].sort((a, c) => (c.kills || 0) - (a.kills || 0) || (a.deaths || 0) - (c.deaths || 0)).slice(0, 3);
-  if (!top.length) return;
-  const X = 8, Y = 38, W = 150, row = 20, H = 16 + top.length * row;
-  pixelFrame(g, X, Y, W, H, { background: '#08111fe6', outline: '#030812', outlineWidth: 2, inner: '#34445d', innerWidth: 1, cut: 2 });
-  g.font = `900 8px ${HUD_FONT}`; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = '#f6c343'; g.fillText('TOP KILLS', X + 6, Y + 8);
-  top.forEach((p, i) => {
-    const y = Y + 16 + i * row, cfg = characters?.[p.character] || {};
-    g.fillStyle = p.team === 'B' ? '#e0413a' : '#2f7de1'; g.fillRect(X + 3, y + 2, 3, row - 4);
-    g.fillStyle = '#9aa7b8'; g.font = `900 9px ${HUD_FONT}`; g.fillText(String(i + 1), X + 10, y + row / 2);
-    const img = getImage(cfg.sprite || p.character, p.character);
-    if (img) { const h = 16, w = Math.min(18, h * img.naturalWidth / img.naturalHeight); g.drawImage(img, X + 20, y + 2, w, h); }
-    else { const spr = getSprite(p.character); if (spr) g.drawImage(spr, X + 20, y + 2, 16, 16); }
-    g.fillStyle = '#ffffff'; g.font = `900 9px ${HUD_FONT}`;
-    const name = String(p.name || '?').toUpperCase(); g.fillText(name.length > 12 ? name.slice(0, 11) + '.' : name, X + 42, y + row / 2);
-    g.textAlign = 'right'; g.fillStyle = '#f6c343'; g.fillText(String(p.kills || 0), X + W - 6, y + row / 2); g.textAlign = 'left';
-  });
 }
 
 // Mon perso (vue manette): anneau dore au sol + fleche au-dessus, pulsants.

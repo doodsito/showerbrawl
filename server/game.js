@@ -183,13 +183,32 @@ export class Game {
     p._wasMoving = moving;
   }
 
-  spawn(p) {
-    const s = this.arena.spawns?.[p.team] || [this.physics.width / 2, this.physics.height / 2];
-    for (let i = 0; i < 20; i++) {
-      p.x = s[0] + (Math.random() - 0.5) * 80; p.y = s[1] + (Math.random() - 0.5) * 80;
-      if (!this.physics.collidesWithWall(p.x, p.y, p.r)) break;
-      p.x = s[0]; p.y = s[1];
+  // Points de spawn par equipe sur sa moitie du toit (B en miroir de A). Quinconce a x distincts:
+  // la camera ecrase la profondeur, donc les 4 premiers points sont ecartes en x de 80px (> 1,5x la largeur d'un perso).
+  spawnPoints(team) {
+    this._spawnPts ||= {};
+    if (this._spawnPts[team]) return this._spawnPts[team];
+    const W = this.physics.width, H = this.physics.height, margin = CONFIG.PLAYER_RADIUS + 16;
+    const cy = H / 2, xs = [112, 192, 272, 352], lo = cy - 80, hi = cy + 80;
+    const cand = [...xs.map((x, i) => [x, i % 2 ? lo : hi]), ...xs.map((x, i) => [x, i % 2 ? hi : lo]), [152, cy], [312, cy]];
+    const pts = cand.filter(([x, y]) => x < W / 2 && !this.physics.collidesWithWall(x, y, margin, false) && !this.physics.collidesWithWall(W - x, y, margin, false))
+      .map(([x, y]) => team === 'A' ? [x, y] : [W - x, y]);
+    return (this._spawnPts[team] = pts.length ? pts : [this.arena.spawns?.[team] || [W / 2, cy]]);
+  }
+
+  spawn(p, slot = null) {
+    const pts = this.spawnPoints(p.team);
+    let pt;
+    if (slot != null) pt = pts[slot % pts.length];
+    else {
+      // Reapparition: point libre (aucun perso vivant a moins de 80px) le plus eloigne des ennemis vivants.
+      const alive = [...this.players.values()].filter(o => o !== p && o.alive);
+      const enemies = alive.filter(o => o.team !== p.team);
+      const free = pts.filter(q => !alive.some(o => Math.hypot(o.x - q[0], o.y - q[1]) < 80));
+      const score = q => enemies.length ? Math.min(...enemies.map(o => Math.hypot(o.x - q[0], o.y - q[1]))) : -Math.hypot(q[0] - pts[0][0], q[1] - pts[0][1]);
+      pt = (free.length ? free : pts).reduce((best, q) => score(q) > score(best) ? q : best);
     }
+    p.x = pt[0]; p.y = pt[1];
     Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, superKbVx: 0, superKbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
       mustache:null, uppercutT:0, exfil:null, napT:0, cycleT:0, muskBurn:null, carriedBy:null, combatAt: this.clock || 0, energy: 0, recoveryT: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
       input: {dx: 0, dy: 0}, pending: {}, shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
@@ -205,7 +224,7 @@ export class Game {
     this.score = { A: 0, B: 0 };
     this.projectiles = []; this.zones = []; this.walls = []; this.effects = []; this.events = [];
     this.shuffleTeams(); // avant spawns et compte a rebours: chacun apparait du bon cote
-    for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
+    { const slots = { A: 0, B: 0 }; for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p, slots[p.team]++); } }
     this.sendLobby();
   }
 
@@ -218,7 +237,7 @@ export class Game {
     this.score = { A: 0, B: 0 };
     this.projectiles = []; this.zones = []; this.walls = []; this.effects = []; this.events = [];
     this.purgeOffline(); // STOP MATCH: les deconnectes liberent leur perso
-    for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
+    { const slots = { A: 0, B: 0 }; for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p, slots[p.team]++); } }
     this.sendLobby();
   }
 
