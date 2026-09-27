@@ -173,7 +173,7 @@ function trimmedSprite(ch, id) {
   return el;
 }
 
-const SLOTS_PER_TEAM = 4;
+const SLOTS_PER_TEAM = 2;
 function renderSlots(d) {
   for (const t of ['A', 'B']) {
     const ul = document.querySelector(`#team${t} ul`);
