@@ -22,18 +22,18 @@ Même convention que `client/public/sprites/` :
 - Silences de début et de fin coupés, fondu de 30 ms en fin pour éviter les clics.
 - Volume harmonisé autour de -16 dB moyen, pic sous -1 dB (sons d'action). La musique garde son volume d'origine, le mixage se règle dans le code.
 
-## Volume par fichier
+## Régler le volume d'un son sans le réencoder
 
-Un son trop fort se règle en une ligne dans la table `VOLUME` de `client/sfx.js`, sans réencoder le MP3 :
+La table `VOLUME` en tête de `client/sfx.js` applique un gain de lecture par fichier (clé = nom sans `.mp3`, valeur 0..1, absent = 1) :
 
 ```js
 export const VOLUME = {
-  musk_attack: 0.4,   // 40 % du volume d'origine
+  musk_attack: 0.4, // lance-flammes: joué à 40 %
 };
 ```
 
-Clé = nom du fichier sans `.mp3`, valeur = multiplicateur du gain (1 = inchangé). Absent de la table = 1.
+Un son trop fort : ajouter une ligne `nom_du_fichier: 0.5,` et c'est tout. Le MP3 n'est pas touché.
 
-Le bip de coup pendant le lance-flammes de Musk est limité à un par cible toutes les 0,3 s, à 50 % du volume (`FLAME_HIT_GAP` / `FLAME_HIT_VOL` dans `client/host.js`).
+Les coups répétés d'une zone continue (lance-flammes, brûlure) passent par `SFX.burnHit(cible)` : un seul son par cible toutes les 0,3 s, à 50 % (`BURN_HIT_INTERVAL`, `BURN_HIT_VOLUME` dans `sfx.js`).
 
 Sons générés avec ElevenLabs (offre gratuite) : créditer `elevenlabs.io` dans le jeu.
