@@ -9,7 +9,7 @@ const MAX_DPR = 2;
 export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   let updates = [], clockOffset = null, active = false, raf = 0;
-  const cam = { x: 480, y: 422, zoom: ZOOM, me: null, ready: false };
+  const cam = { x: 480, y: 422, zoom: ZOOM, baseZoom: ZOOM, me: null, ready: false };
   let lastFrame = 0, fpsFrames = 0, fpsAcc = 0;
 
   // --- interpolation (meme principe que client/host.js) ---
@@ -63,13 +63,15 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     resize();
     const me = st && st.players.find((p) => p.id === myId());
     cam.me = myId();
-    if (me) {
+    // Mort ou chute: la camera reste sur le dernier point connu, puis glisse vers le point de reapparition.
+    if (me && me.alive !== false) {
       const [tx, ty] = decorPoint(arena, me.x, me.y);
       if (!cam.ready) { cam.x = tx + 55; cam.y = ty + 10; cam.ready = true; }
       const k = 1 - Math.exp(-FOLLOW * dt);
       // perso un peu a gauche du centre (zone libre entre joystick et boutons), un peu au-dessus des pieds
       cam.x += (tx + 55 - cam.x) * k; cam.y += (ty + 10 - cam.y) * k;
     }
+    if (cam.zoom !== cam.baseZoom) cam.zoom = cam.baseZoom; // zoom fixe, jamais modifie en jeu
     ctx.imageSmoothingEnabled = false;
     render(ctx, canvas.width, canvas.height, arena, st, getCharacters(), cam);
     if (fpsEl) { fpsFrames++; fpsAcc += dt; if (fpsAcc >= 0.5) { fpsEl.textContent = `${Math.round(fpsFrames / fpsAcc)} fps`; fpsFrames = 0; fpsAcc = 0; } }
@@ -80,9 +82,11 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     setActive(on) {
       if (on === active) return;
       active = on; canvas.hidden = !on;
-      if (on) { lastFrame = 0; cam.ready = false; resize(); raf = requestAnimationFrame(frame); }
+      // cam.ready conserve: pas de recentrage brutal a la reconnexion ou au retour en jeu
+      if (on) { lastFrame = 0; resize(); raf = requestAnimationFrame(frame); }
       else { cancelAnimationFrame(raf); raf = 0; updates = []; }
     },
     camera: cam,
+    setZoom(z) { cam.zoom = cam.baseZoom = z; },
   };
 }
