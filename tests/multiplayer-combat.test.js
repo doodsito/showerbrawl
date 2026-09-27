@@ -212,25 +212,25 @@ test('chaque super cible laisse le temps d\'esquiver au perso le plus lent (rayo
   }
 });
 
-test('VIEW: chaque joueur recoit le combat filtre autour de lui, compact (< 1 Ko), ME inchange', () => {
+test('VIEW: chaque joueur recoit toute l\'arene (8 joueurs, sans filtre), taille raisonnable, ME inchange', () => {
   const sent=[];const to=(room)=>({emit:(name,data)=>sent.push({room,name,data})});
   const game=new Game({emit:()=>{},to},{characters,arena,autoTick:false, fixedTeams: true});
   try{
-    const ids=['a','b','c','d','e','f'];
-    ids.forEach((id,i)=>game.join({id},{team:i%2?'B':'A',character:Object.keys(characters)[i],name:'P'+id}));
+    const ids=['a','b','c','d','e','f','g','h'],names=Object.keys(characters);
+    ids.forEach((id,i)=>game.join({id},{team:i%2?'B':'A',character:names[i%names.length],name:'P'+id}));
     game.start();game.countdown=0;
     const P=id=>game.players.get(id);
-    Object.assign(P('a'),{x:150,y:320});Object.assign(P('b'),{x:250,y:300});Object.assign(P('c'),{x:700,y:320});
-    Object.assign(P('d'),{x:180,y:400});Object.assign(P('e'),{x:650,y:250});Object.assign(P('f'),{x:600,y:380});
+    const pos=[[90,200],[680,200],[90,440],[680,440],[384,130],[384,500],[250,320],[520,320]];
+    ids.forEach((id,i)=>{if(P(id))Object.assign(P(id),{x:pos[i][0],y:pos[i][1]});});
     P('d').alive=false;P('d').hp=0;
     game.broadcast();
     const view=sent.find(m=>m.room==='a'&&m.name==='view').data;
     assert.equal(view.me,'a');
-    assert.deepEqual(view.players.map(p=>p.id).sort(),['a','b','d','e','f'],'seulement les joueurs a +-540 (c a 550 exclu)');
+    assert.deepEqual(view.players.map(p=>p.id).sort(),[...game.players.keys()].sort(),'tous les joueurs, meme a l\'autre bout du toit');
     const dead=view.players.find(p=>p.id==='d');assert.equal(dead.alive,false);assert.equal(dead.hp,0);
-    for(const k of ['score','timeLeft','countdown'])assert.ok(k in view);
-    assert.ok(JSON.stringify(view).length<1100,// pire cas 5 joueurs visibles a +-540: ~1.06 Ko accepte
-     `VIEW ${JSON.stringify(view).length} octets`);
+    for(const k of ['score','timeLeft','countdown','players','projectiles','zones','walls','effects','events'])assert.ok(k in view);
+    const size=JSON.stringify(view).length;console.log(`[test] VIEW 8 joueurs: ${size} octets`);
+    assert.ok(size<2500,`VIEW ${size} octets`);
     assert.ok(sent.some(m=>m.room==='a'&&m.name==='me'),'ME toujours envoye');
     assert.ok(sent.some(m=>m.room==='hosts'&&m.name==='state'),'STATE toujours aux hotes');
   }finally{game.dispose();}

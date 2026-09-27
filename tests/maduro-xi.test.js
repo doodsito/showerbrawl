@@ -43,9 +43,9 @@ test('Projectiles and bodies cross under Maduro in flight; landing keeps his ori
 });
 test('Xi shield blocks hits, expires, and does not replace the generated super',t=>{const {g,p,q}=setup(t,'xi','trump',60);input(g,'a','defense');assert(p.shieldT>0);assert(!g.damage(p,12,'b',q.x,q.y));step(g,1.7);assert(g.damage(p,12,'b',q.x,q.y));input(g,'a','super');assert.equal(g.zones[0].visual,'xiHammer');});
 
-test('Wide phone framing keeps distant players visible during extraction only',t=>{
+test('Phone VIEW keeps distant players visible before, during and after extraction',t=>{
  const {g,p,q,packets}=setup(t,'maduro','trump',550);p.x=90;q.x=680;
- assert(!packetsFor(g,packets)[1].players.some(p=>p.id==='b'));
+ assert(packetsFor(g,packets)[1].players.some(p=>p.id==='b'));
  input(g,'a','defense');assert(packetsFor(g,packets)[1].players.some(p=>p.id==='b'));
- step(g,3.6);assert(!packetsFor(g,packets)[1].players.some(p=>p.id==='b'));
+ step(g,3.6);assert(packetsFor(g,packets)[1].players.some(p=>p.id==='b'));
 });

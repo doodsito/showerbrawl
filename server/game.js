@@ -15,10 +15,6 @@ export const respawnDelay = (deaths) => RESPAWN_STEPS[Math.min(Math.max(deaths, 
 
 const SLOTS = ['attack', 'defense', 'super'];
 const RECOVERY_MOVE_SCALE = 0.65; // ralentissement post-attaque, identique pour tous
-// Vue manette (CAMERA_ZOOM=1.4 aujourd hui, dimensionne pour 1.4 min, client/play/play.js): a 1.4 l ecran montre 960/1.4 = 686 px decor = ~665 unites
-// monde (640 unites <-> 660 px). Pire cas: camera bloquee au bord du decor, perso colle au mur (x~90), bord oppose
-// de l'ecran a x~584 + ~30 de sprite => ~525. Arrondi a +-540.
-const VIEW_HALF_WIDTH = 540;
 const VIEW_DROP = new Set(['cd', 'kills', 'deaths']);
 const VIEW_KEEP = new Set(['x', 'y', 'hp', 'alive', 'maxHp']); // jamais omis, meme a 0/false
 // Objet allege pour le VIEW: sans champs vides (false/null/undefined) ni champs deja envoyes par ME.
@@ -415,21 +411,14 @@ export class Game {
         score: this.score, timeLeft: state.timeLeft, countdown: state.countdown,
       });
     }
-    // VIEW: chaque joueur recoit le combat filtre autour de son perso (jouer sur son telephone sans ecran hote).
+    // VIEW: la camera manette cadre toute l'arene, chaque joueur recoit tout le combat (meme format, sans filtre de distance).
     if (rooms) {
-      // Extraction opens the phone camera: include the whole arena until it closes again.
-      const wideView=state.players.some(p=>p.alive&&p.exfil);
-      const near = (me, o) => o && (wideView||Math.abs((o.x ?? me.x) - me.x) <= VIEW_HALF_WIDTH);
       const vs = this._viewStats || (this._viewStats = { bytes: 0, n: 0 });
+      const players = state.players.map(slim), zones = state.zones.map(slim), effects = state.effects.map(slim);
       for (const me of state.players) {
         const view = {
           t: state.t, countdown: state.countdown, score: state.score, timeLeft: state.timeLeft, me: me.id,
-          players: state.players.filter((o) => o.id === me.id || near(me, o)).map(slim),
-          projectiles: state.projectiles.filter((o) => near(me, o)),
-          zones: state.zones.filter((o) => near(me, o)).map(slim),
-          walls: state.walls.filter((o) => near(me, o)),
-          effects: state.effects.filter((o) => near(me, o)).map(slim),
-          events: state.events.filter((e) => e.k === 'kill' || e.id === me.id || near(me, e)),
+          players, projectiles: state.projectiles, zones, walls: state.walls, effects, events: state.events,
         };
         this.io.to(me.id).emit(MSG.VIEW, view);
         vs.bytes += JSON.stringify(view).length; vs.n++;
@@ -442,7 +431,7 @@ export class Game {
       const hosts = this.io.sockets?.adapter?.rooms?.get('hosts')?.size ?? 0;
       console.log(`[net] STATE moyen ${Math.round(m.bytes / m.n)} octets (${m.n} envois), ecrans hotes: ${hosts}`);
       const vs = this._viewStats;
-      if (vs?.n) console.log(`[net] VIEW moyen ${Math.round(vs.bytes / vs.n)} octets (${vs.n} envois, objectif < 1024)`);
+      if (vs?.n) console.log(`[net] VIEW moyen ${Math.round(vs.bytes / vs.n)} octets (${vs.n} envois, toute l arene)`);
       this._stateStats = { bytes: 0, n: 0, since: Date.now() }; this._viewStats = { bytes: 0, n: 0 };
     }
   }
