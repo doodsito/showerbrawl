@@ -1,7 +1,8 @@
+import {isExtracted} from '../shared/exfiltration.js';
 // Musk's lab kit, simulated on the server. Zones carry the same geometry to every host.
 import { charge, effect, firstWall, hitWall } from './lab-combat.js';
 
-const foes = (ctx, p) => [...ctx.players.values()].filter(o => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch && !o.carriedBy);
+const foes = (ctx, p) => [...ctx.players.values()].filter(o => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch && !o.carriedBy && !isExtracted(o));
 function aim(ctx, p) {
   const target = foes(ctx, p).sort((a,b) => Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];
   const dx=target ? target.x-p.x : p.fx, dy=target ? target.y-p.y : p.fy, len=Math.hypot(dx,dy)||1;

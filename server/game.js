@@ -1,3 +1,5 @@
+import {isExtracted} from '../shared/exfiltration.js';
+import {advanceExfiltration} from './exfiltration.js';
 import { updateMuskBurns } from './musk-combat.js';
 // Boucle autoritaire: une salle publique, 2 equipes, manche au timer.
 import { CONFIG } from '../shared/config.js';
@@ -113,7 +115,7 @@ export class Game {
       p.x = s[0]; p.y = s[1];
     }
     Object.assign(p, { hp: p.maxHp, alive: true, respawnT: 0, kbVx: 0, kbVy: 0, superKbVx: 0, superKbVy: 0, dashT: 0, dashVx: 0, dashVy: 0,
-      napT:0, cycleT:0, muskBurn:null, carriedBy:null, combatAt: this.clock || 0, energy: 0, recoveryT: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
+      exfil:null, napT:0, cycleT:0, muskBurn:null, carriedBy:null, combatAt: this.clock || 0, energy: 0, recoveryT: 0, stunT: 0, poseT: 0, recoilT: 0, flashT: 0, launch: null, shove: null, action: null,
       input: {dx: 0, dy: 0}, pending: {}, shieldT: 0, invulnT: 0, protectT: CONFIG.SPAWN_PROTECTION, dx: 0, dy: 0, lastHit: null,
       fx: p.team === 'A' ? 1 : -1, fy: 0, cd: { attack: 0, defense: 0, super: 0 } });
   }
@@ -144,12 +146,13 @@ export class Game {
 
   damage(t, amount, srcId, fromX, fromY, kb = 0, deferKO = false, chargeSource = true, canRingOut = false) {
     if (!t.alive || t.hp <= 0 || t.launch || this.phase !== 'playing' || this.countdown > 0) return false;
-    if (t.protectT > 0 || t.invulnT > 0) return false;
+    if (t.protectT > 0 || t.invulnT > 0 || isExtracted(t)) return false;
     if (t.shieldT > 0) {
       this.physics.push(t, fromX, fromY, kb * .3);
       if(!t._blkT || Date.now()-t._blkT>250){t._blkT=Date.now();this.events.push({k:'block',id:t.id,x:Math.round(t.x),y:Math.round(t.y),lab:hasLabKit(t)});}
       return false;
     }
+    t.exfil=null; // A grounded hit can interrupt approach or landing recovery.
     t.hp = Math.max(0, t.hp - amount); t.flashT = .18;
     // Horloge de combat: coup recu ou donne => pas de regeneration pendant REGEN_DELAY.
     t.combatAt = this.clock || 0; const src = this.players.get(srcId); if (src) src.combatAt = this.clock || 0;
@@ -166,7 +169,7 @@ export class Game {
 
   kill(t, srcId) {
     const fell = t.hp > 0; // tue par la chute hors du toit (et non par les degats)
-    t.alive = false; t.hp = 0; t.deaths++;
+    t.exfil=null; t.alive = false; t.hp = 0; t.deaths++;
     t.respawnT = CONFIG.RESPAWN_TIME;
     const k = srcId && this.players.get(srcId);
     const credited = k && k !== t && k.team !== t.team;
@@ -205,6 +208,7 @@ export class Game {
         if (p.respawnT <= 0) this.spawn(p);
         continue;
       }
+      advanceExfiltration(p,dt);
       for (const k of ['napT', 'cycleT', 'protectT', 'shieldT', 'invulnT', 'lastHitT', 'stunT', 'recoveryT', 'poseT', 'recoilT', 'flashT']) if (p[k] > 0) p[k] -= dt;
       // Regeneration passive lente hors combat.
       if (p.hp > 0 && p.hp < p.maxHp && !p.launch && this.clock - (p.combatAt ?? 0) >= (CONFIG.REGEN_DELAY ?? 3))
@@ -218,12 +222,12 @@ export class Game {
       if (m > 0.15) { p.fx = dx / m; p.fy = dy / m; }
 
       const forced = advanceForcedMovement(this, p, dt);
-      if (!forced && p.alive && !(p.napT>0)) {
+      if (!forced && p.alive && !(p.napT>0) && !p.exfil) {
         if (p.dashT > 0) {
           const step = Math.min(dt, p.dashT);
           dashHits(this, p); // la charge frappe et pousse ceux qu'elle touche
           this.physics.moveWithWalls(p, p.dashVx * step, p.dashVy * step, p.r, (x, y) =>
-            [...this.players.values()].some(o => o !== p && o.alive && !o.launch && Math.hypot(o.x - x, o.y - y) < o.r + p.r));
+            [...this.players.values()].some(o => o !== p && o.alive && !o.launch && !isExtracted(o) && Math.hypot(o.x - x, o.y - y) < o.r + p.r));
           dashHits(this, p);
           p.dashT = Math.max(0, p.dashT - step);
         } else if (p.stunT <= 0 && !(p.cycleT>0)) {
@@ -242,12 +246,12 @@ export class Game {
       p.pending = {};
     }
 
-    const alive = [...this.players.values()].filter((p) => p.alive);
+    const alive = [...this.players.values()].filter((p) => p.alive&&!isExtracted(p));
     for (let i = 0; i < alive.length; i++)
       for (let j = i + 1; j < alive.length; j++) if (!alive[i].launch && !alive[j].launch && !alive[i].carriedBy && !alive[j].carriedBy) {
-        const a=alive[i],b=alive[j],sleep=a.napT>0?a:b.napT>0?b:null;
+        const a=alive[i],b=alive[j],sleep=a.napT>0||a.exfil?a:b.napT>0||b.exfil?b:null;
         if(sleep){const other=sleep===a?b:a,dx=other.x-sleep.x,dy=other.y-sleep.y,d=Math.hypot(dx,dy),overlap=a.r+b.r-d;
-          if(overlap>0&&!(other.napT>0))this.physics.moveWithWalls(other,(d?dx/d:1)*overlap,(d?dy/d:0)*overlap,other.r);
+          if(overlap>0&&!(other.napT>0)&&!other.exfil)this.physics.moveWithWalls(other,(d?dx/d:1)*overlap,(d?dy/d:0)*overlap,other.r);
         }else this.physics.separate(a,b,CONFIG.PLAYER_RADIUS);
       }
 
@@ -287,11 +291,11 @@ export class Game {
         fx: r(p.fx), fy: r(p.fy), respawnIn: p.alive ? 0 : Math.max(0, Math.ceil(p.respawnT)),
         kills: p.kills, deaths: p.deaths,
         energy: r(p.energy), pose: r(p.poseT), action: p.action, flash: p.flashT > 0,
-        moving: Math.hypot(p.dx,p.dy) > .1 && p.stunT <= 0 && !p.dashT && !(p.napT>0) && !(p.cycleT>0),
+        moving: Math.hypot(p.dx,p.dy) > .1 && p.stunT <= 0 && !p.dashT && !(p.napT>0) && !(p.cycleT>0) && !p.exfil,
         dash: p.dashT > 0 ? {x:p.dashVx,y:p.dashVy,remaining:p.dashT} : null,
         shove: p.shove ? {ux:p.shove.ux,uy:p.shove.uy,progress:1-p.shove.remaining/p.shove.duration} : null,
         launch: p.launch ? {ux:p.launch.ux,uy:p.launch.uy,progress:p.launch.age/p.launch.duration} : null,
-        nap:p.napT>0?p.napT:undefined, cycle:p.cycleT>0?p.cycleT:undefined, recoil: p.recoilT, burning:!!p.muskBurn, carried:!!p.carriedBy,
+        exfil:p.exfil?{...p.exfil}:undefined, nap:p.napT>0?p.napT:undefined, cycle:p.cycleT>0?p.cycleT:undefined, recoil: p.recoilT, burning:!!p.muskBurn, carried:!!p.carriedBy,
 
         cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
       })),
@@ -314,7 +318,9 @@ export class Game {
     }
     // VIEW: chaque joueur recoit le combat filtre autour de son perso (jouer sur son telephone sans ecran hote).
     if (rooms) {
-      const near = (me, o) => o && Math.abs((o.x ?? me.x) - me.x) <= VIEW_HALF_WIDTH;
+      // Extraction opens the phone camera: include the whole arena until it closes again.
+      const wideView=state.players.some(p=>p.alive&&p.exfil);
+      const near = (me, o) => o && (wideView||Math.abs((o.x ?? me.x) - me.x) <= VIEW_HALF_WIDTH);
       const vs = this._viewStats || (this._viewStats = { bytes: 0, n: 0 });
       for (const me of state.players) {
         const view = {

@@ -1,3 +1,5 @@
+import {newcomerFX} from './newcomer-fx.js';
+import {EXFIL} from '../shared/exfiltration.js';
 import {drawSleep,drawBicycle} from './biden-fx.js';
 import { muskFX } from './musk-fx.js';
 import { getSprite, getImage } from './sprites.js';
@@ -101,7 +103,12 @@ export function render(ctx, W, H, arena, state, characters, camera) {
 
   ctx.save();
   if (camera) {
-    const scale = Math.max(W / DECOR_W, H / DECOR_H) * (camera.zoom || 2);
+    // Open the phone framing during extraction so the aircraft and parachute
+    // remain visible above the arena, then return smoothly to the normal view.
+    const extraction=Math.max(0,...(state?.players||[]).filter(p=>p.alive&&p.exfil).map(p=>
+      reducedMotion.matches?1:Math.max(0,Math.min(1,p.exfil.age/.2,(EXFIL.end-p.exfil.age)/.35))));
+    const zoom=1+((camera.zoom||2)-1)*(1-extraction);
+    const scale = Math.max(W / DECOR_W, H / DECOR_H) * zoom;
     const tx = Math.min(0, Math.max(W - DECOR_W * scale, W / 2 - camera.x * scale));
     const ty = Math.min(0, Math.max(H - DECOR_H * scale, H / 2 - camera.y * scale));
     ctx.translate(Math.round(tx), Math.round(ty));
@@ -139,7 +146,7 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     for (const z of state.zones || []) {
       if(z.kind==='flamethrower'||z.kind==='cybertruck'||z.kind==='bicycle')continue;
       if(z.kind==='micDrop'){fx.micDrop(z);continue;}
-      if(z.kind==='strike'){if(z.visual==='decree')fx.decree(z);else fx.strikeZone(z);continue;}
+      if(z.kind==='strike'){if(z.visual==='xiHammer'||z.visual==='inflation')continue;if(z.visual==='decree')fx.decree(z);else fx.strikeZone(z);continue;}
       if(z.kind==='decree'){fx.decree(z);continue;}
       const [x, y] = worldToScreen(z.x, z.y, b);
       const rx = z.r * kx, ry = z.r * ky, pulse = 0.5 + 0.5 * Math.sin(now / 90);
@@ -183,10 +190,12 @@ export function render(ctx, W, H, arena, state, characters, camera) {
   if(state)for(const z of state.zones||[])if(z.kind==='decree'||(z.kind==='strike'&&z.visual==='decree'))fx.decree(z,true);
   if(state)for(const z of state.zones||[])if(z.kind==='strike'){const o=state.players.find(p=>p.id===z.owner),anim=characters?.[o?.character]?.super?.anim;if(anim)fx.superAnim(z,anim);}
   if(state)for(const z of state.zones||[])if(z.kind==='flamethrower')musk.flame(z);
+  if(state)for(const z of state.zones||[])if(z.visual==='xiHammer'||z.visual==='inflation')newcomerFX(ctx,project,kx,ky,reducedMotion.matches).summon(z);
   if(state)drawFx(ctx,state,b);
   if(state)drawKOs(ctx,b);
   decor.foreground(ctx);
   if(state)for(const e of state.effects||[])if(e.kind==='truckWreck')musk.wreck(e);else fx.effect(e,true);
+  if(state)for(const p of state.players||[])if(p.alive&&p.exfil)newcomerFX(ctx,project,kx,ky,reducedMotion.matches).extraction(p);
   ctx.restore();
   // HUD superieur (design/hud-top-approved.json), dessine dans le repere 960x540 du decor. Pas sur la manette (camera).
   if (state && !camera) {
@@ -353,6 +362,7 @@ function drawMeMarker(g, x, y, time) {
 }
 
 function drawPlayer(ctx, p, characters, time) {
+  if(p.alive&&p.exfil&&p.exfil.age>=EXFIL.lift)return;
   const R=15, col=TEAM_COL[p.team]||'#fff', quiet=reducedMotion.matches;
   const img=getImage(characters?.[p.character]?.sprite||p.character,p.character);
   const cfg=characters?.[p.character]||{}, {full,h}=spriteLayout(cfg,!!img); // rendu en pied: champ fullBody du perso

@@ -67,10 +67,94 @@
     "super":  {"type": "zone", "target": "enemy", "range": 480, "radius": 75, "delay": 0.65, "damage": 24, "knockback": 280, "cooldown": 6, "charge": 100, "label": "Venn Diagram", "icon": "sprites/harris_super.png", "anim": {"src": "sprites/harris_super_anim.png", "frames": 11, "impact": 9}}
   },
   "maduro": {
-    "name": "Maduro", "hp": 105, "speed": 195, "sprite": "sprites/maduro.png", "fullBody": true, "hint": "Crude Oil: standard hit up close · Rigged Election: long shield · Hyperinflation: wide, slow targeted strike, charges in combat",
-    "attack": {"type": "projectile", "label": "Crude Oil", "icon": "sprites/maduro_attack.png"},
-    "defense": {"type": "shield", "duration": 1.8, "cooldown": 8.5, "label": "Rigged Election"},
-    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 115, "delay": 0.9, "damage": 30, "knockback": 300, "cooldown": 6, "charge": 100, "label": "Hyperinflation", "icon": "sprites/maduro_super.png"}
+    "name": "Maduro",
+    "hp": 105,
+    "speed": 195,
+    "sprite": "sprites/maduro.png",
+    "fullBody": true,
+    "hint": "Baril de pétrole : projectile, portée 400 · Exfiltration : avion puis parachute, retour vulnérable · Hyperinflation : tornade ciblée",
+    "attack": {
+      "type": "projectile",
+      "travel": true,
+      "range": 400,
+      "speed": 370,
+      "damage": 12,
+      "knockback": 180,
+      "cooldown": 0.8,
+      "recovery": 0.19,
+      "label": "Baril de pétrole",
+      "icon": "sprites/maduro_attack.png",
+      "visual": "maduroOil"
+    },
+    "defense": {
+      "type": "shield",
+      "behavior": "exfiltration",
+      "cooldown": 8,
+      "label": "Exfiltration",
+      "icon": "sprites/maduro_plane_v1.png"
+    },
+    "super": {
+      "type": "zone",
+      "target": "enemy",
+      "range": 520,
+      "radius": 70,
+      "delay": 0.8,
+      "aftermath": 1.1,
+      "damage": 28,
+      "knockback": 300,
+      "cooldown": 6,
+      "charge": 100,
+      "label": "Hyperinflation",
+      "icon": "sprites/maduro_super.png",
+      "visual": "inflation"
+    },
+    "labKit": true,
+    "chargeDealt": 2.08
+  },
+  "xi": {
+    "name": "Xi Jinping",
+    "hp": 105,
+    "speed": 195,
+    "sprite": "sprites/xi.png",
+    "fullBody": true,
+    "labKit": true,
+    "chargeDealt": 2.5,
+    "hint": "Étoile rouge : projectile, portée 440 · Protection : bouclier 1,6 s · Marteau rouge : frappe ciblée, esquivable",
+    "attack": {
+      "type": "projectile",
+      "travel": true,
+      "range": 440,
+      "speed": 490,
+      "damage": 10,
+      "knockback": 180,
+      "cooldown": 0.75,
+      "recovery": 0.19,
+      "label": "Étoile rouge",
+      "icon": "sprites/xi_attack.png",
+      "visual": "xiStar"
+    },
+    "defense": {
+      "type": "shield",
+      "duration": 1.6,
+      "cooldown": 6,
+      "label": "Protection",
+      "icon": "sprites/xi.png"
+    },
+    "super": {
+      "type": "zone",
+      "target": "enemy",
+      "range": 520,
+      "radius": 70,
+      "delay": 0.8,
+      "aftermath": 1.1,
+      "damage": 28,
+      "knockback": 300,
+      "cooldown": 6,
+      "charge": 100,
+      "label": "Marteau rouge",
+      "icon": "sprites/xi_super.png",
+      "visual": "xiHammer"
+    }
   },
   "schwarzenegger": {
     "name": "Schwarzenegger", "hp": 105, "speed": 195, "sprite": "schwarzenegger", "hint": "Hasta La Vista: standard hit up close · Get To The Choppa: shoving charge · I'll Be Back: targeted strike with huge knockback, charges in combat",

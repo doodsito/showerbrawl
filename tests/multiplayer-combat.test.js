@@ -98,7 +98,7 @@ test('snapshots carry authoritative wall, charge, dash and attack visual state',
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
- const {game,p,q}=setup(t,'schwarzenegger','maduro');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
+ const {game,p,q}=setup(t,'schwarzenegger','harris');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
  cast(game,p,'defense');assert.equal(p.invulnT,0);assert.ok(p.dashHit);
  q.char={...q.char,super:{type:'burst',radius:90,damage:9,knockback:300,cooldown:1}};cast(game,q,'super');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'),'burst = onde au sol');
  cast(game,q,'defense');assert.ok(q.shieldT>0);
