@@ -33,19 +33,6 @@ export const SFX = {
       this._preload();
     } catch (e) {}
   },
-  // Lobby, sans geste: contexte cree (suspendu, repris au premier geste) et fichiers telecharges + decodes.
-  prepare() {
-    try {
-      if (this.ctx) { this._preload(); return; }
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      this.ctx = new AC();
-      this.out = this.ctx.createGain(); this.out.gain.value = this.muted ? 0 : 1; this.out.connect(this.ctx.destination);
-      this.master = this.ctx.createGain(); this.master.gain.value = SFX_MASTER; this.master.connect(this.out);
-      this.voice = this.ctx.createGain(); this.voice.gain.value = VOICE_VOLUME; this.voice.connect(this.out);
-      this._preload();
-    } catch (e) {}
-  },
   // Safari: un son joue pendant le geste + resume explicite.
   _resume() {
     try {

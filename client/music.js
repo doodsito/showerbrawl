@@ -194,8 +194,6 @@ export const Music = {
     wanted = phase === 'playing' ? 'combat' : 'lobby';
     switchTo(wanted);
   },
-  // Lobby, sans geste: contexte cree (suspendu) et MP3 du combat telecharge + decode, pour que le START ne decode rien.
-  preload() { try { if (ensureCtx()) loadTrack(); } catch (e) {} },
   // Premiere interaction utilisateur (autoplay policy). Safari: resume explicite dans le geste.
   unlock() {
     try {
