@@ -55,7 +55,10 @@ io.on('connection', (socket) => {
   // Client measures round-trip time with the ack callback
   socket.on(MSG.LATENCY, (ack) => typeof ack === 'function' && ack());
 
-  socket.on(MSG.HOST, () => { console.log(`[host] ${socket.id}`); socket.data.host = true; socket.join('hosts'); game.sendLobby(); });
+  socket.on(MSG.HOST, () => {
+    try { console.log(`[host] ${socket.id}`); socket.data.host = true; socket.join('hosts'); game.sendLobby(); }
+    catch (e) { console.error('[host] erreur', e?.stack || e); }
+  });
   socket.on(MSG.JOIN, (data, ack) => {
     let res;
     try { res = game.join(socket, data); } catch { res = { ok: false, error: 'error' }; }
@@ -64,12 +67,14 @@ io.on('connection', (socket) => {
   });
   // Retour volontaire au roster : liberation immediate, sans delai de reconnexion.
   socket.on('leave', (ack) => {
+    try {
     if (game.phase === 'playing' && !game.queued(socket.id)) {
       if (typeof ack === 'function') ack({ ok: false, error: 'match in progress' });
       return;
     }
     game.leave(socket.id);
     if (typeof ack === 'function') ack({ ok: true });
+    } catch (e) { console.error('[leave] erreur', e?.stack || e); if (typeof ack === 'function') ack({ ok: false, error: 'error' }); }
   });
   socket.on(MSG.INPUT, (d) => { try { game.input(socket.id, d); } catch {} });
   socket.on(MSG.START, (ack) => {
@@ -80,7 +85,8 @@ io.on('connection', (socket) => {
 
   // Hote: libere a la main le perso d'un joueur (fantome bloque).
   socket.on('kick', (id, ack) => {
-    const ok = !!socket.data.host && game.kick(id);
+    let ok = false;
+    try { ok = !!socket.data.host && game.kick(id); } catch (e) { console.error('[kick] erreur', e?.stack || e); }
     console.log(`[kick] ${id} par ${socket.id} ->`, ok);
     if (typeof ack === 'function') ack({ ok });
   });
@@ -92,9 +98,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    if (!socket.data.replaced) game.disconnect(socket.id); // remplace par une reprise: rien a liberer
-    if (socket.data.host) game.sendLobby(); // plus d'ecran hote: le premier joueur recupere le bouton START
-    io.emit(MSG.COUNT, io.engine.clientsCount);
+    try {
+      if (!socket.data.replaced) game.disconnect(socket.id); // remplace par une reprise: rien a liberer
+      if (socket.data.host) game.sendLobby(); // plus d'ecran hote: le premier joueur recupere le bouton START
+      io.emit(MSG.COUNT, io.engine.clientsCount);
+    } catch (e) { console.error('[disconnect] erreur', e?.stack || e); }
   });
 });
 
