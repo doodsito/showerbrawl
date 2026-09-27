@@ -77,7 +77,7 @@ function draw(cv) {
     if (!soundStamp) { soundStamp = true; stampSfx(); }
     const k = (t - T_STAMP) / 1000;
     const sc = k < 0.18 ? 3 - 2.1 * (k / 0.18) : 0.9 + 0.1 * Math.min(1, (k - 0.18) / 0.15) + (k < 0.45 ? 0.08 * Math.sin((k - 0.18) * 40) * (1 - (k - 0.18) / 0.27) : 0);
-    g.save(); g.translate(W * 0.5, t >= T_TRUMP ? H * 0.2 : H * 0.5); g.rotate(-0.22); g.scale(sc, sc);
+    g.save(); g.translate(W * 0.5, H * 0.5); g.rotate(-0.22); g.scale(sc, sc);
     g.globalAlpha = Math.min(1, k / 0.08);
     if (ok(imgs.stamp)) { const w = S * 0.7, h = w * imgs.stamp.naturalHeight / imgs.stamp.naturalWidth; g.drawImage(imgs.stamp, -w / 2, -h / 2, w, h); }
     else {
