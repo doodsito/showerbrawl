@@ -23,22 +23,6 @@ function slim(o) {
   for (const k in o) { const v = o[k]; if (VIEW_DROP.has(k) || (!VIEW_KEEP.has(k) && (v === false || v == null))) continue; out[k] = v; }
   return out;
 }
-// Reseau: timers a 2 decimales, coordonnees/vitesses/angles/reste a 1 decimale; entiers intacts.
-const TIMERS = new Set(['age', 'ttl', 'duration', 'delay', 'remaining', 'progress', 'pose', 'recoil', 'uppercut', 'nap', 'cycle', 'countdown', 'respawnIn', 'attack', 'defense', 'super']);
-// A zero, le client les traite deja comme absents (p.pose||0, p.recoil>0, p.respawnIn>0, p.energy||0).
-const ZERO_DROP = new Set(['pose', 'recoil', 'respawnIn', 'energy']);
-const r1 = (v) => Math.round(v * 10) / 10, r2 = (v) => Math.round(v * 100) / 100;
-function roundNum(k, v) { return Number.isInteger(v) || !Number.isFinite(v) ? v : TIMERS.has(k) ? r2(v) : r1(v); }
-// Copie arrondie, sans champs vides (false/null/undefined) sauf VIEW_KEEP; sous-objets traites pareil, tableaux gardes.
-export function pack(o) {
-  const out = {};
-  for (const k in o) {
-    const v = o[k];
-    if (!VIEW_KEEP.has(k) && (v === false || v == null || (v === 0 && ZERO_DROP.has(k)))) continue;
-    out[k] = typeof v === 'number' ? roundNum(k, v) : v && typeof v === 'object' && !Array.isArray(v) ? pack(v) : v;
-  }
-  return out;
-}
 export const GHOST_MS = 5000; // perso reserve apres perte du socket, le temps d'une reprise
 const END_SCREEN = 11; // s d'ecran de victoire avant retour lobby (6 + 5 s de gag Trump cote hote)
 const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
@@ -468,17 +452,17 @@ export class Game {
 
   broadcast() {
     if (this.phase !== 'playing') return;
-    const r = r1;
+    const r = (v) => Math.round(v * 10) / 10;
     const state = {
       t: Date.now(),
-      countdown: r2(this.countdown || 0),
-      players: [...this.players.values()].map((p) => pack({
+      countdown: Math.round((this.countdown || 0) * 100) / 100,
+      players: [...this.players.values()].map((p) => ({
         id: p.id, name: p.name, team: p.team, character: p.character,
         x: r(p.x), y: r(p.y), hp: Math.ceil(p.hp), maxHp: p.maxHp, alive: p.alive,
         shield: p.shieldT > 0, dashing: p.dashT > 0, protected: p.protectT > 0,
         fx: r(p.fx), fy: r(p.fy), respawnIn: p.alive ? 0 : Math.max(0, Math.ceil(p.respawnT)),
         kills: p.kills, deaths: p.deaths,
-        energy: p.energy, pose: p.poseT, action: p.action, flash: p.flashT > 0,
+        energy: r(p.energy), pose: r(p.poseT), action: p.action, flash: p.flashT > 0,
         moving: Math.hypot(p.dx,p.dy) > .1 && p.stunT <= 0 && !p.dashT && !(p.napT>0) && !(p.cycleT>0) && !p.exfil && !p.mustache,
         dash: p.dashT > 0 ? {x:p.dashVx,y:p.dashVy,remaining:p.dashT} : null,
         shove: p.shove ? {ux:p.shove.ux,uy:p.shove.uy,progress:1-p.shove.remaining/p.shove.duration} : null,
@@ -486,12 +470,12 @@ export class Game {
         mustache:p.mustache?{phase:p.mustache.phase,age:p.mustache.age,ux:p.mustache.ux,uy:p.mustache.uy,delay:p.mustache.delay,range:p.mustache.range,travel:p.mustache.travel}:undefined, uppercut:p.uppercutT>0?p.uppercutT:undefined,
         exfil:p.exfil?{...p.exfil}:undefined, nap:p.napT>0?p.napT:undefined, cycle:p.cycleT>0?p.cycleT:undefined, recoil: p.recoilT, burning:!!p.muskBurn, carried:!!p.carriedBy,
 
-        cd: { attack: p.cd.attack, defense: p.cd.defense, super: p.cd.super },
+        cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
       })),
-      projectiles: this.projectiles.map((p) => pack({ id: p.id, x: p.x, y: p.y, r: p.r, team: p.team, visual:p.visual, vx:p.vx, vy:p.vy, height:p.height })),
-      zones: this.zones.map((z) => pack({ id: z.id, x: z.x, y: z.y, r: z.r, team: z.team, ttl:z.ttl, kind:z.kind, visual:z.visual, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit, ux:z.ux, uy:z.uy, reach:z.reach, halfAngle:z.halfAngle, owner:z.owner, c:this.players.get(z.owner)?.character })),
+      projectiles: this.projectiles.map((p) => ({ id: p.id, x: r(p.x), y: r(p.y), r: p.r, team: p.team, visual:p.visual, vx:p.vx, vy:p.vy, height:p.height })),
+      zones: this.zones.map((z) => ({ id: z.id, x: r(z.x), y: r(z.y), r: z.r, team: z.team, ttl:z.ttl == null ? undefined : r(z.ttl), kind:z.kind, visual:z.visual, age:z.age, delay:z.delay, duration:z.duration, hit:z.hit, ux:z.ux, uy:z.uy, reach:z.reach, halfAngle:z.halfAngle, owner:z.owner, c:this.players.get(z.owner)?.character })),
       events: this.events.splice(0),
-      walls: this.walls.map(pack), effects: this.effects.map(pack),
+      walls: this.walls.map(w => ({...w})), effects: this.effects.map(e => ({...e})),
       score: this.score,
       timeLeft: Math.max(0, Math.ceil(this.timeLeft)),
     };
@@ -499,13 +483,11 @@ export class Game {
     const rooms = typeof this.io.to === 'function';
     (rooms ? this.io.to('hosts') : this.io).emit(MSG.STATE, state);
     if (rooms) {
-      const ms = this._meStats || (this._meStats = { bytes: 0, n: 0 });
-      for (const p of this.players.values()) this.io.to(p.id).emit(MSG.ME, ms.last = {
+      for (const p of this.players.values()) this.io.to(p.id).emit(MSG.ME, {
         hp: Math.ceil(p.hp), maxHp: p.maxHp, alive: p.alive, respawnIn: p.alive ? 0 : Math.max(0, Math.ceil(p.respawnT)),
-        energy: r(p.energy || 0), cd: { attack: r2(p.cd.attack), defense: r2(p.cd.defense), super: r2(p.cd.super) },
+        energy: r(p.energy || 0), cd: { attack: r(p.cd.attack), defense: r(p.cd.defense), super: r(p.cd.super) },
         score: this.score, timeLeft: state.timeLeft, countdown: state.countdown,
       });
-      if (ms.last) { ms.bytes += JSON.stringify(ms.last).length; ms.n++; }
     }
     // VIEW: la camera manette cadre toute l'arene, chaque joueur recoit tout le combat (meme format, sans filtre de distance).
     if (rooms) {
@@ -528,9 +510,7 @@ export class Game {
       console.log(`[net] STATE moyen ${Math.round(m.bytes / m.n)} octets (${m.n} envois), ecrans hotes: ${hosts}`);
       const vs = this._viewStats;
       if (vs?.n) console.log(`[net] VIEW moyen ${Math.round(vs.bytes / vs.n)} octets (${vs.n} envois, toute l arene)`);
-      const me = this._meStats;
-      if (me?.n) console.log(`[net] ME moyen ${Math.round(me.bytes / me.n)} octets (echantillon par tick)`);
-      this._stateStats = { bytes: 0, n: 0, since: Date.now() }; this._viewStats = { bytes: 0, n: 0 }; this._meStats = { bytes: 0, n: 0 };
+      this._stateStats = { bytes: 0, n: 0, since: Date.now() }; this._viewStats = { bytes: 0, n: 0 };
     }
   }
 }
