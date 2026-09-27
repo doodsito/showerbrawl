@@ -25,6 +25,9 @@ function slim(o) {
 const END_SCREEN = 6; // s d'ecran de victoire avant retour lobby
 const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
 
+// 8 joueurs max (config.js fige a 20): le 9e est refuse.
+const MAX_PLAYERS = 8;
+
 export class Game {
   constructor(io, { characters, arena, lobbyExtra = {}, autoTick = true, fixedTeams = false }) {
     this.io = io;
@@ -71,12 +74,12 @@ export class Game {
     if (data.character && !char) return { ok: false, error: 'character no longer available', repick: true };
     if (!char) return { ok: false, error: 'invalid character' };
     const existing = this.players.get(socket.id);
-    if (!existing && this.players.size >= CONFIG.MAX_PLAYERS) return { ok: false, error: 'room is full' };
+    if (!existing && this.players.size >= MAX_PLAYERS) return { ok: false, error: 'game is full' };
     // Un perso = un joueur tant qu'il en reste un libre; sinon doublons autorises.
     const forced = this.fixedTeams && CONFIG.TEAMS.includes(data.team) ? data.team : null;
-    const used = new Set([...this.players.values()].filter((o) => o.id !== socket.id && (!forced || o.team === forced)).map((o) => o.character));
-    const freeLeft = Object.keys(this.characters).some((c) => !used.has(c));
-    if (freeLeft && used.has(data.character)) return { ok: false, error: 'character already taken' };
+    // Un perso = un joueur, toutes equipes confondues, sans exception.
+    const owner = [...this.players.values()].find((o) => o.id !== socket.id && o.character === data.character);
+    if (owner) return { ok: false, error: 'character already taken' };
     const team = forced || existing?.team || this.smallestTeam();
     const name = String(data.name || char.name).slice(0, 16);
     const p = existing || { id: socket.id, kills: 0, deaths: 0, input: { dx: 0, dy: 0 } };
