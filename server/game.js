@@ -28,7 +28,7 @@ const END_SCREEN = 11; // s d'ecran de victoire avant retour lobby (6 + 5 s de g
 const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
 
 // 8 joueurs max (config.js fige a 20): au-dela, file d'attente.
-export const MAX_PLAYERS = 8;
+export const MAX_PLAYERS = 4; // 2 contre 2
 export const QUEUE_GHOST_MS = 10000; // joueur en file deconnecte: garde sa place 10 s
 
 export class Game {
