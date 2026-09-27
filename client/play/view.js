@@ -9,11 +9,12 @@ const MARGIN = 0.03; // petite marge laterale (fraction de la largeur)
 const LIFT = 0.3; // part de l'espace vertical libre laissee au-dessus: cadrage decale vers le haut, loin du joystick et des boutons
 
 // Cadrage fixe (px canvas): octogone entier, centre en x, remonte en y. Recalcule a chaque changement de taille.
-export function fitCamera(W, H) {
-  const bw = BOX.x1 - BOX.x0, bh = BOX.y1 - BOX.y0;
-  const scale = Math.min((W * (1 - 2 * MARGIN)) / bw, (H * (1 - MARGIN)) / bh);
+// Portrait: la vue n'occupe que le haut de l'ecran, octogone centre verticalement et agrandi au maximum (marge minimale).
+export function fitCamera(W, H, portrait = false) {
+  const bw = BOX.x1 - BOX.x0, bh = BOX.y1 - BOX.y0, m = portrait ? 0.01 : MARGIN;
+  const scale = Math.min((W * (1 - 2 * m)) / bw, (H * (1 - m)) / bh);
   const tx = W / 2 - ((BOX.x0 + BOX.x1) / 2) * scale;
-  const ty = (H - bh * scale) * LIFT - BOX.y0 * scale;
+  const ty = (H - bh * scale) * (portrait ? 0.5 : LIFT) - BOX.y0 * scale;
   return { scale, tx, ty };
 }
 const MAX_DPR = 2;
@@ -23,6 +24,7 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
   let updates = [], clockOffset = null, active = false, raf = 0;
   const cam = { fit: null, me: null, ready: false };
   let lastFrame = 0, fpsFrames = 0, fpsAcc = 0;
+  const portraitMq = matchMedia('(orientation: portrait)');
 
   // --- interpolation (meme principe que client/host.js) ---
   const serverNow = () => performance.now() + (clockOffset ?? 0) - RENDER_DELAY;
@@ -74,7 +76,8 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     if (!arena) return;
     resize();
     cam.me = myId();
-    if (!cam.fit || cam.fit.W !== canvas.width || cam.fit.H !== canvas.height) cam.fit = { ...fitCamera(canvas.width, canvas.height), W: canvas.width, H: canvas.height };
+    const portrait = portraitMq.matches;
+    if (!cam.fit || cam.fit.W !== canvas.width || cam.fit.H !== canvas.height || cam.fit.portrait !== portrait) cam.fit = { ...fitCamera(canvas.width, canvas.height, portrait), W: canvas.width, H: canvas.height, portrait };
     cam.ready = true;
     ctx.imageSmoothingEnabled = false;
     render(ctx, canvas.width, canvas.height, arena, st, getCharacters(), cam);
