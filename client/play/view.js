@@ -29,7 +29,18 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
 
   // --- interpolation (meme principe que client/host.js) ---
   const serverNow = () => performance.now() + (clockOffset ?? 0) - RENDER_DELAY;
+  // Champs fixes des joueurs (name, character, team, maxHp): le serveur ne les renvoie que 2 fois par seconde.
+  const statics = new Map();
+  function fillStatics(players) {
+    for (let i = 0; i < (players?.length || 0); i++) {
+      const p = players[i];
+      if (p.character !== undefined) { let c = statics.get(p.id); if (!c) { c = {}; statics.set(p.id, c); } c.name = p.name; c.character = p.character; c.team = p.team; c.maxHp = p.maxHp; }
+      else { const c = statics.get(p.id); if (c) { p.name = c.name; p.character = c.character; p.team = c.team; p.maxHp = c.maxHp; } }
+    }
+    if (statics.size > 32) statics.clear();
+  }
   function push(v) {
+    fillStatics(v.players);
     const off = v.t - performance.now();
     clockOffset = clockOffset == null ? off : clockOffset + (off - clockOffset) * 0.1; // horloge lissee
     if (v.events?.length) pushEvents(v.events);
