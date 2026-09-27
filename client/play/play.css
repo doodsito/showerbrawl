@@ -104,6 +104,7 @@ body[data-alive="0"][data-phase=playing] #pad{background:repeating-linear-gradie
 .endcard small{color:var(--mut);font-size:11px;letter-spacing:.3em}
 .endcard h2{margin:8px 0;font-size:26px;color:var(--gold);text-shadow:3px 3px 0 var(--line)}
 .endcard p{font-size:13px;margin:8px 0}
+.endcard .gag{font-size:16px;font-weight:900;color:var(--gold);text-shadow:2px 2px 0 var(--line);animation:pulse .6s steps(2) 2}
 .endcard p:last-child{font-size:10px;color:var(--mut)}
 
 @keyframes pulse{50%{transform:scale(1.06)}}
