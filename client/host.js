@@ -262,7 +262,7 @@ function showEnd(d) {
     clearInterval(endTimer); tickEnd(); endTimer = setInterval(tickEnd, 1000);
     $('end').style.display = 'flex';
     SFX.end(win[0] === 'draw');
-    startGag(); // gag "Trump gagne comme toujours" (visuel seulement, resultat reel inchange)
+    startGag(); // gag "Trump wins. As always." a chaque fin de match (visuel seulement, resultat reel inchange)
   } catch (e) { console.warn('[host] ecran de fin', e); }
 }
 
