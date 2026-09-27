@@ -69,7 +69,6 @@ export function createDecor() {
   poly([[411,157],[433,149],[522,149],[549,157],[549,163],[522,157],[435,157],[411,164]],'#ebe4cb');
   for(let x=418;x<547;x+=8){const yy=x<435?153:x>523?153:148;rect(x,yy-11,3,11,'#dddcc7');}
   poly([[411,143],[434,135],[523,135],[549,143],[549,147],[522,139],[435,139],[411,147]],'#eee4ca');
-  rect(477,97,2,39,'#cfd5cb');rect(476,96,4,3,'#ebd39a');
   // Building floodlit foundations, clipped hedges and central lawn.
   for(const x of [263,301,339,377,571,609,647,687]){
     poly([[x-7,277],[x-3,245],[x+3,245],[x+7,277]],'#e9cf9540');rect(x,278,3,2,'#ffe2a3');
@@ -92,8 +91,6 @@ export function createDecor() {
     }
     poly([[x-12,208],[x+29,208],[x+120,370],[x-100,370]],'#f4d99005');
   }
-  function screen(x){rect(x-3,249,85,47,'#0b1724');rect(x,252,79,41,'#5d6678');rect(x+2,254,75,37,'#192d4b');poly([[x+2,254],[x+31,254],[x+77,289],[x+48,289]],'#9e3449');label('UFC',x+40,280,22,'#faf0da');rect(x+37,296,4,22,'#172730');}
-  screen(119);screen(765);
   // Audience: seeded silhouettes, varied clothing, faces, raised arms, seats.
   const people=[];
   const clothes=['#384f6a','#883e4e','#cdc0a1','#182638','#5a6f7c','#b58b6e','#526153','#a1a5a5'];
@@ -119,10 +116,7 @@ export function createDecor() {
   poly(inset(.92),'#697784');poly(inset(.903),'#d0cfca');poly(inset(.76),'#87939a');poly(inset(.745),'#d0cfca');
   poly([[281,342],[340,342],[205,488],[232,486]],'#e6dfc830');
   for(let i=0;i<100;i++){const x=230+rand()*500,y=370+rand()*110;rect(x,y,2,1,'#9caaa31c');}
-  g.save();g.translate(480,446);g.transform(1,0,-.28,.62,0,0);label('UFC',0,0,65,'#65717b');g.restore();
-  label('SOUTH LAWN',480,467,8,'#87918f');
-  g.save();g.translate(246,393);g.rotate(-.31);label('RED CORNER',0,0,9,'#ad4c58');g.restore();
-  g.save();g.translate(714,393);g.rotate(.31);label('BLUE CORNER',0,0,9,'#477397');g.restore();
+  g.save();g.translate(480,452);g.transform(1,0,-.28,.62,0,0);label('UFC',0,0,65,'#65717b');g.restore();
 
   function fenceEdge(a,b,height,front=false){
     const [x,y]=a,[xx,yy]=b;
@@ -134,18 +128,21 @@ export function createDecor() {
     line(x,y-height,xx,yy-height,'#0b1727',front?5:7);line(x,y-height-2,xx,yy-height-2,'#78838c',2);
     line(x,y,xx,yy,'#263444',3);
   }
-  function post(x,y,h,color){rect(x-5,y-h-3,10,h+7,'#081421');rect(x-3,y-h,6,h,color);rect(x-2,y-h,2,h,'#ffffff20');rect(x-5,y-h-3,10,3,'#949f9e');if(h>35){g.save();g.translate(x,y-h+13);g.rotate(Math.PI/2);label('UFC',10,2,7,'#e5e8df');g.restore();}}
+  function post(x,y,h,color){rect(x-5,y-h-3,10,h+7,'#081421');rect(x-3,y-h,6,h,color);rect(x-2,y-h,2,h,'#ffffff20');rect(x-5,y-h-3,10,3,'#949f9e');}
   // Rear cage is part of the cached scenery; foreground is drawn after fighters.
   for(const i of [6,7,0,1,2])fenceEdge(OCTAGON[i],OCTAGON[(i+1)%8],53);
   for(const i of [0,1,2,3,6,7]){const [x,y]=OCTAGON[i];post(x,y,53,i===0?'#c64652':i===1?'#386fc0':'#223343');}
 
-  function flag(x,y,w,h,t){
-    rect(x-1,y-5,2,185,'#aab7b8');rect(x-2,y-7,4,3,'#e4c38b');
+  // Un seul modele de drapeau (ratio US 1.9:1), meme taille, meme onde; seul le mat s'adapte au support.
+  const FLAG_W=40,FLAG_H=22;
+  function flag(x,y,pole,t){
+    const w=FLAG_W,h=FLAG_H,sh=h/13;
+    rect(x-1,y-5,2,pole,'#aab7b8');rect(x-2,y-7,4,3,'#e4c38b');
     for(let col=0;col<w;col+=2){
-      const wave=Math.round(Math.sin(col*.11-t*3)*col/w*4);
-      for(let stripe=0;stripe<13;stripe++)rect(x+2+col,y+wave+stripe*h/13,2,Math.ceil(h/13),stripe%2?'#e7e2cd':'#b93e53');
-      if(col<w*.43)rect(x+2+col,y+wave,2,h*7/13,'#254c7c');
-      if(col<w*.43&&col%6===0)for(let sy=3;sy<h*7/13;sy+=5)rect(x+2+col,y+wave+sy,1,1,'#eef0d9');
+      const wave=Math.round(Math.sin(col*.11-t*3)*col/w*3);
+      for(let stripe=0;stripe<13;stripe++)rect(x+2+col,y+wave+Math.floor(stripe*sh),2,Math.ceil(sh),stripe%2?'#e7e2cd':'#b93e53');
+      if(col<w*.4)rect(x+2+col,y+wave,2,Math.round(h*7/13),'#254c7c');
+      if(col<w*.4&&col%4===2)for(let sy=2;sy<h*7/13-1;sy+=3)rect(x+2+col,y+wave+sy,1,1,'#eef0d9');
     }
   }
   return {
@@ -154,7 +151,7 @@ export function createDecor() {
     // Elements animes par-dessus le fond: drapeaux et foule qui leve les bras.
     animate(target, time) {
       g = target;
-      flag(193,139,53,33,time); flag(763,139,53,33,time); flag(478,99,25,16,time);
+      flag(193,139,185,time); flag(763,139,185,time); flag(477,96,44,time);
       for (const p of people) person(p.x,p.y,p.s,p.v,true,time);
     },
     // Cage avant, dessinee apres les joueurs.
