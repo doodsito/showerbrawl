@@ -63,7 +63,7 @@ const BRICKS = {
     const e = nearestEnemy(ctx, p, reach + p.r * 2);
     // Un mur invoque entre moi et ma cible (ou devant moi) encaisse le coup a sa place.
     { const d = e ? Math.hypot(e.x - p.x, e.y - p.y) : reach, ux = e ? (e.x - p.x) / (d || 1) : p.fx, uy = e ? (e.y - p.y) / (d || 1) : p.fy;
-      const wall = ctx.walls?.length ? firstWall(ctx, p, ux * d, uy * d) : null;
+      const wall = ctx.walls?.length ? firstWall(ctx, p, ux * d, uy * d, p.team) : null;
       if (wall) { p.fx = ux; p.fy = uy; hitWall(ctx, wall, a.damage ?? 10, p.id); fx(ctx, 'strike', wall.x, wall.y, { ux, uy, visual: a.visual }, .3); return; } }
     if (!e) { fx(ctx, 'whiff', p.x + p.fx * reach * .6, p.y + p.fy * reach * .6, { ux: p.fx, uy: p.fy, visual: a.visual }, .25); return; }
     face(p, e);
@@ -189,7 +189,7 @@ export function updateProjectiles(ctx, dt) {
     const stepTime = Math.min(dt, pr.ttl), steps = Math.max(1, Math.ceil(Math.hypot(pr.vx, pr.vy) * stepTime / 4));
     for (let i = 0; i < steps; i++) {
       const dx = pr.vx * stepTime / steps, dy = pr.vy * stepTime / steps;
-      const wall = firstWall(ctx, pr, dx, dy);
+      const wall = firstWall(ctx, pr, dx, dy, pr.team);
       if (wall) { hitWall(ctx, wall, pr.wallDamage??12, pr.chargeHit===0||pr.visual==='baguette'||pr.visual==='decree'||pr.visual==='sonicLaugh'?null:pr.owner); return false; }
       pr.x += dx; pr.y += dy;
       if (physics.collidesWithWall(pr.x, pr.y, pr.r, false)) return false;

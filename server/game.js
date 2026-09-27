@@ -24,7 +24,7 @@ function slim(o) {
   return out;
 }
 export const GHOST_MS = 5000; // perso reserve apres perte du socket, le temps d'une reprise
-const END_SCREEN = 6; // s d'ecran de victoire avant retour lobby
+const END_SCREEN = 11; // s d'ecran de victoire avant retour lobby (6 + 5 s de gag Trump cote hote)
 const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
 
 // 8 joueurs max (config.js fige a 20): le 9e est refuse.

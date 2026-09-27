@@ -393,6 +393,7 @@ socket.on(MSG.END, (d) => {
     $('#endScore').textContent = `Blue ${d?.score?.A ?? 0} - ${d?.score?.B ?? 0} Red`;
     const m = d?.mvp;
     $('#endMvp').textContent = m ? `MVP: ${m.name || m.id || m}` : '';
+    const gg = $('#endGag'); gg.hidden = true; clearTimeout(st.gagT); st.gagT = setTimeout(() => { gg.hidden = false; }, 3200); // gag hote
     show('end');
   } catch (e) {}
 });
