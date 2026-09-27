@@ -18,7 +18,7 @@ export function drawSleep(g,p,time,quiet,standing,height=76){
  }
  const breath=quiet?0:Math.sin(time*5)*.8;
  // Keep his contact with the floor fixed while the chest expands.
- if(img)g.drawImage(img,30,248,1480,540,-46,-35-breath,92,35+breath);
+ if(img){const k=img.naturalWidth/1536;g.drawImage(img,30*k,248*k,1480*k,540*k,-46,-35-breath,92,35+breath);}
  else if(standing){g.save();g.translate(0,-15);g.rotate(Math.PI/2);const w=height*standing.naturalWidth/standing.naturalHeight;g.drawImage(standing,-w/2,-height/2,w,height);g.restore();}
  else{g.fillStyle='#203453';g.fillRect(-36,-15,66,15);}
  g.strokeStyle='#bdefff';g.lineWidth=1.5;

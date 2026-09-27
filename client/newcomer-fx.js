@@ -28,7 +28,8 @@ export function newcomerFX(g,project,kx,ky,reducedMotion){
       g.fillStyle='#111728';g.globalAlpha=.3;g.beginPath();g.ellipse(0,0,30+descent*12,10+descent*5,0,0,Math.PI*2);g.fill();
     }
     g.globalAlpha=waiting?Math.min(1,z.age/.12):Math.min(1,(1.1-after)/.4);
-    g.drawImage(art.xi_hammer,sx,sy,sw,sh,-ax*size,-ay*size-lift,sw*size,sh*size);
+    const k=art.xi_hammer.naturalWidth/1536; // coords de la planche d'origine 1536x1024
+    g.drawImage(art.xi_hammer,sx*k,sy*k,sw*k,sh*k,-ax*size,-ay*size-lift,sw*size,sh*size);
     g.restore();
   }
   function summon(z){
@@ -57,7 +58,7 @@ export function newcomerFX(g,project,kx,ky,reducedMotion){
     };
     const plane=(x,y)=>{
       g.save();g.translate(x,y);
-      if(art.maduro_plane)g.drawImage(art.maduro_plane,20,130,1500,640,-150,-64,300,128);
+      if(art.maduro_plane){const k=art.maduro_plane.naturalWidth/1536;g.drawImage(art.maduro_plane,20*k,130*k,1500*k,640*k,-150,-64,300,128);}
       else{poly([[-130,0],[100,-12],[150,0],[90,18],[-110,12]],'#eee0b3','#152439');poly([[-40,5],[0,-55],[40,5]],'#889caf');}
       // Propeller arcs sit over the two engine hubs in the supplied airplane sprite.
       if(!quiet)for(const [x,y] of [[-1,-1],[117,6]]){
