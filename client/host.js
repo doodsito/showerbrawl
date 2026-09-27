@@ -170,6 +170,11 @@ function renderSlots(d) {
         txt.append(pn, cn);
         if (t === 'B') { li.style.flexDirection = 'row-reverse'; txt.style.alignItems = 'flex-end'; }
         li.append(spr, txt);
+        if (p.offline) li.classList.add('offline');
+        // KICK discret: libere a la main un perso bloque (fantome).
+        const kick = document.createElement('button'); kick.className = 'kick'; kick.title = 'KICK'; kick.textContent = '\u00d7';
+        kick.onclick = (e) => { e.stopPropagation(); socket.emit('kick', p.id, (r) => console.log('[host] KICK', p.name, r)); };
+        li.appendChild(kick);
       }
       ul.appendChild(li);
     }

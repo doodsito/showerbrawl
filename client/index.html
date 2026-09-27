@@ -43,6 +43,9 @@
   .slot .cn{font-size:clamp(10px,1.8vh,18px);letter-spacing:.1em;text-transform:uppercase}
   #teamA .slot.on{border-color:var(--blue);background:linear-gradient(90deg,#2f7de144,#08111fcc)}#teamA .cn{color:var(--blueL)}
   #teamB .slot.on{border-color:var(--red);background:linear-gradient(270deg,#e0413a44,#08111fcc)}#teamB .cn{color:var(--redL)}
+  .slot{position:relative}.slot.offline{opacity:.45}
+  .slot .kick{position:absolute;top:2px;right:2px;width:clamp(18px,2.6vh,26px);height:clamp(18px,2.6vh,26px);padding:0;border:1px solid #ffffff33;background:#0008;color:#fff9;font:700 clamp(12px,2vh,18px)/1 var(--mono);cursor:pointer;opacity:.35}
+  .slot .kick:hover{opacity:1;color:#fff;border-color:var(--red)}#teamB .slot .kick{right:auto;left:2px}
   .slot.empty{color:var(--muted);border-style:dashed;font-size:clamp(10px,1.8vh,17px);letter-spacing:.12em}
   .slot.empty .plus{flex:0 0 auto;width:clamp(36px,7.6vh,76px);text-align:center;font:900 clamp(20px,4vh,40px)/1 var(--mono);color:#ffffff44}
   #roster{grid-area:roster;justify-self:center;display:flex;justify-content:center;align-items:flex-end;gap:1.2vw;padding:.8vh 1.4vw;max-width:100%;overflow:hidden}
