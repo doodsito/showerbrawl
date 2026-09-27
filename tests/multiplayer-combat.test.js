@@ -8,7 +8,7 @@ import { wallContact } from '../shared/wall-geometry.js';
 
 // Perso de test hors roster: coup au contact (attaque standard normalisee par le loader), charge qui pousse, super cible chargee.
 const TESTER={...characters.trump,name:'Tester',sprite:'tester',labKit:false,shieldStyle:undefined,hint:undefined,
-  attack:{...characters.trump.attack,label:'Test Hit'},
+  attack:{type:'projectile',label:'Test Hit',icon:characters.trump.attack.icon},
   defense:{type:'dash',distance:220,duration:0.16,damage:8,knockback:240,cooldown:6,label:'Test Charge',invulnerable:false},
   super:{type:'zone',target:'enemy',range:420,radius:95,delay:0.8,damage:34,knockback:440,cooldown:6,charge:100,label:'Test Strike'}};
 const COMBAT_CHARS={...characters,tester:TESTER};
@@ -25,7 +25,7 @@ const advance=(g,seconds)=>{for(let left=seconds;left>1e-8;left-=.01)g.tick(Math
 
 test('Trump has a melee punch; misses do not damage or create a projectile',t=>{
  const {game,p,q}=setup(t);assert.equal(cast(game,p,'attack'),true);assert.equal(q.hp,q.maxHp);assert.equal(game.projectiles.length,0);
- advance(game,.6);q.x=370;cast(game,p,'attack');assert.equal(q.hp,q.maxHp-CONFIG.BASE_ATTACK.damage);assert.ok(p.energy>0);advance(game,.2);assert.ok(q.x>=380);
+ advance(game,.6);q.x=370;cast(game,p,'attack');advance(game,.15);assert.equal(q.hp,q.maxHp-CONFIG.BASE_ATTACK.damage);assert.ok(p.energy>0);advance(game,.2);assert.ok(q.x>=380);
 });
 test('summoned wall blocks both teams, absorbs three enemy punches (not its owner\'s), then frees the passage',t=>{
  const {game,p,q}=setup(t,'trump','tester');assert.ok(cast(game,p,'defense'));const wall=game.walls[0];
