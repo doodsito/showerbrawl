@@ -273,42 +273,30 @@ document.querySelectorAll('.btn').forEach((b) => {
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
 });
 
-// Boucle UI de la manette: elements lus une fois, DOM ecrit seulement quand une valeur change (pas d'allocation par frame).
-const backBtns = [...document.querySelectorAll('.back-select')];
-const padBtns = [...document.querySelectorAll('.btn')].map((b) => ({ b, k: b.dataset.k, cd: b.querySelector('.cd'), em: b.querySelector('em'), p: null, t: null, dis: null, cool: null, ready: null }));
-const ui = { back: null, phase: null, alive: null, status: null, wait: null };
-const meStatus = $('#meStatus'), waitEl = $('#wait');
 function cdLoop() {
   try {
-    const now = performance.now(), playing = st.phase === 'playing';
-    const backDis = !!st.returning || !socket.connected || playing;
-    if (ui.back !== backDis + '' + playing) { ui.back = backDis + '' + playing; for (const b of backBtns) { b.hidden = playing; b.disabled = backDis; } }
-    const kit = st.characters[st.character];
-    for (const x of padBtns) {
-      const cdRaw = Number(kit?.[x.k]?.cooldown) || 0;
+    const now = performance.now();
+    document.querySelectorAll('.back-select').forEach(b => {
+      b.hidden = st.phase === 'playing';
+      b.disabled = !!st.returning || !socket.connected || st.phase === 'playing';
+    });
+    document.querySelectorAll('.btn').forEach((b) => {
+      const k = b.dataset.k;
+      const cdRaw = Number(st.characters[st.character]?.[k]?.cooldown) || 0;
       const total = cdRaw > 50 ? cdRaw : cdRaw * 1000;
-      const left = Math.max(0, cds[x.k] - now), charged = x.k === 'super' && kit?.super?.charge;
-      const p = charged && st.energy < 100 ? 1 - st.energy / 100 : total ? left / total : 0;
-      const pr = Math.round(p * 200) / 200;
-      if (pr !== x.p) { x.p = pr; x.cd.style.setProperty('--p', pr); }
-      const t = charged && st.energy < 100 ? `${Math.floor(st.energy)}%` : left > 0 ? `${Math.ceil(left / 1000)}s` : charged ? 'READY' : '';
-      if (t !== x.t) { x.t = t; x.em.textContent = t; }
-      const dis = !st.joined || !playing || !st.alive;
-      if (dis !== x.dis) { x.dis = dis; x.b.disabled = dis; }
-      const cool = left > 0 || (!!charged && st.energy < 100);
-      if (cool !== x.cool) { x.cool = cool; x.b.classList.toggle('cool', cool); }
-      const ready = !!charged && st.energy >= 100 && left === 0;
-      if (ready !== x.ready) { x.ready = ready; x.b.classList.toggle('ready', ready); }
-    }
+      const left = Math.max(0, cds[k] - now),charged=k==='super'&&st.characters[st.character]?.super?.charge;
+      b.querySelector('.cd').style.setProperty('--p', charged&&st.energy<100?1-st.energy/100:total ? left / total : 0);
+      b.querySelector('em').textContent = charged&&st.energy<100?`${Math.floor(st.energy)}%`:left > 0 ? `${Math.ceil(left / 1000)}s` : charged?'READY':'';
+      b.disabled=!st.joined||st.phase!=='playing'||!st.alive;
+      b.classList.toggle('cool',left>0||(!!charged&&st.energy<100));
+      b.classList.toggle('ready',!!charged&&st.energy>=100&&left===0);
+    });
   } catch (e) {}
-  try {
-    const ph = st.phase, alive = st.alive ? '1' : '0', bd = document.body.dataset;
-    if (ph !== ui.phase) { ui.phase = ph; bd.phase = ph; }
-    if (alive !== ui.alive) { ui.alive = alive; bd.alive = alive; }
-    const status = !socket.connected ? 'OFFLINE' : ph === 'playing' ? (st.alive ? 'IN MATCH' : 'KNOCKED OUT') : ph === 'ended' ? 'OVER' : 'READY';
-    if (status !== ui.status) { ui.status = status; meStatus.textContent = status; }
-    const w = ph === 'playing';
-    if (w !== ui.wait) { ui.wait = w; waitEl.hidden = w; }
+    try {
+    const ph = st.phase, alive = st.alive, bd = document.body.dataset;
+    bd.phase = ph; bd.alive = alive ? '1' : '0';
+    $('#meStatus').textContent = !socket.connected ? 'OFFLINE' : ph === 'playing' ? (alive ? 'IN MATCH' : 'KNOCKED OUT') : ph === 'ended' ? 'OVER' : 'READY';
+    $('#wait').hidden = ph === 'playing';
   } catch (e) {}
   requestAnimationFrame(cdLoop);
 }
@@ -415,26 +403,23 @@ function hitFeedback(dmg, dead) {
   clearTimeout(hitTimer); hitTimer = setTimeout(() => { h.classList.remove('on', 'dead'); }, dead ? 450 : 150);
 }
 
-// ME a 20/s: le DOM n'est ecrit que si le texte change.
-const scoreA = $('#score .a'), scoreB = $('#score .b'), timerEl = $('#timer');
-const setText = (el, v) => { v = String(v); if (el.__t !== v) { el.__t = v; el.textContent = v; } };
 // Etat perso leger envoye par le serveur a ce seul socket (le STATE complet ne va qu'a l'ecran hote).
 socket.on(MSG.ME, (me) => {
   if (!stateLogged) { stateLogged = true; console.log('[play] premier ME'); }
   try {
     if (!st.joined || !me) return;
     const sc = me.score || {};
-    setText(scoreA, sc.A ?? 0); setText(scoreB, sc.B ?? 0);
+    $('#score .a').textContent = sc.A ?? 0; $('#score .b').textContent = sc.B ?? 0;
     const t = Math.max(0, Math.ceil(me.timeLeft ?? 0));
-    setText(timerEl, `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`);
+    $('#timer').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
     st.alive=me.alive;st.energy=me.energy||0;
     for(const k of Object.keys(cds))cds[k]=performance.now()+Math.max(0,me.cd?.[k]||0)*1000;
     if (st.lastHp != null && me.hp < st.lastHp && me.alive !== false) hitFeedback(st.lastHp - me.hp, false);
     if (st.wasAlive === true && me.alive === false) hitFeedback(0, true);
     st.wasAlive = me.alive; st.lastHp = me.hp;
     const r = $('#respawn');
-    if (me.alive === false) { const h = `<b>KNOCKED OUT</b><span>RESPAWN IN ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}S</span>`; if (r.hidden) r.hidden = false; if (r.__h !== h) { r.__h = h; r.innerHTML = h; } }
-    else if (!r.hidden) r.hidden = true;
+    if (me.alive === false) { r.hidden = false; r.innerHTML = `<b>KNOCKED OUT</b><span>RESPAWN IN ${Math.max(0, Math.ceil(me.respawnIn ?? 0))}S</span>`; }
+    else r.hidden = true;
   } catch (e) {}
 });
 
