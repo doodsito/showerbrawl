@@ -27,8 +27,9 @@ export const GHOST_MS = 5000; // perso reserve apres perte du socket, le temps d
 const END_SCREEN = 11; // s d'ecran de victoire avant retour lobby (6 + 5 s de gag Trump cote hote)
 const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
 
-// 8 joueurs max (config.js fige a 20): le 9e est refuse.
-const MAX_PLAYERS = 8;
+// 8 joueurs max (config.js fige a 20): au-dela, file d'attente.
+export const MAX_PLAYERS = 8;
+export const QUEUE_GHOST_MS = 10000; // joueur en file deconnecte: garde sa place 10 s
 
 export class Game {
   constructor(io, { characters, arena, lobbyExtra = {}, autoTick = true, fixedTeams = false }) {
@@ -40,6 +41,7 @@ export class Game {
     this.physics = makePhysics(arena, () => this.walls);
     this.lobbyExtra = lobbyExtra;
     this.players = new Map();
+    this.queue = []; // file d'attente: { id, key, name, character, offline, timer }, ordre d'arrivee
     this.projectiles = [];
     this.zones = [];
     this.events = [];
@@ -56,7 +58,7 @@ export class Game {
     ] : [];
   }
 
-  dispose() { for (const timer of this.timers) clearInterval(timer); clearTimeout(this.endTimer); for (const p of this.players.values()) clearTimeout(p.ghostTimer); }
+  dispose() { for (const timer of this.timers) clearInterval(timer); clearTimeout(this.endTimer); for (const p of this.players.values()) clearTimeout(p.ghostTimer); for (const q of this.queue) clearTimeout(q.timer); }
 
   lobbyPayload() {
     const teams = { A: [], B: [] };
@@ -64,7 +66,7 @@ export class Game {
     // Jouer sans ecran hote: si aucun hote n'est connecte, le premier joueur inscrit peut lancer la manche.
     const hasHost = (this.io.sockets?.adapter?.rooms?.get('hosts')?.size ?? 0) > 0;
     const firstPlayer = this.players.keys().next().value ?? null;
-    return { phase: this.phase, teams, characters: this.characters, hasHost, firstPlayer,
+    return { phase: this.phase, teams, characters: this.characters, hasHost, firstPlayer, waiting: this.queue.length,
       arena: { cellSize: this.arena.cellSize, grid: this.arena.grid, spawns: this.arena.spawns, obstacles: this.arena.obstacles },
       ...this.lobbyExtra };
   }
@@ -82,7 +84,28 @@ export class Game {
       const prev = [...this.players.values()].find((o) => o.key === key);
       if (prev) { existing = prev; this.rekey(prev, socket.id); }
     }
-    if (!existing && this.players.size >= MAX_PLAYERS) return { ok: false, error: 'game is full' };
+    if (!existing) {
+      // Deja en file (reprise via playerKey ou nouveau choix): on garde sa place.
+      const q = this.queue.find((o) => o.id === socket.id || (key && o.key === key));
+      if (q) {
+        const old = q.id; q.id = socket.id; clearTimeout(q.timer); q.timer = null; q.offline = false;
+        q.name = String(data.name || char.name).slice(0, 16); q.character = data.character;
+        if (old !== socket.id) { const os = this.io.sockets?.sockets?.get?.(old); if (os) { os.data.replaced = true; try { os.disconnect(true); } catch {} } }
+        this.fillQueue();
+        if (this.players.has(socket.id)) return { ok: true, id: socket.id, phase: this.phase, character: this.players.get(socket.id).character };
+        this.sendQueue(); this.sendLobby();
+        return { ok: true, queued: true, position: this.queue.indexOf(q) + 1 };
+      }
+      // Plein (places ou persos): file d'attente au lieu d'un refus.
+      if (this.players.size >= MAX_PLAYERS || !this.freeCharacter() || this.queue.length) {
+        const e = { id: socket.id, key, name: String(data.name || char.name).slice(0, 16), character: data.character, offline: false, timer: null };
+        this.queue.push(e);
+        this.fillQueue();
+        if (this.players.has(socket.id)) return { ok: true, id: socket.id, phase: this.phase, character: this.players.get(socket.id).character };
+        this.sendQueue(); this.sendLobby();
+        return { ok: true, queued: true, position: this.queue.indexOf(e) + 1 };
+      }
+    }
     // Un perso = un seul joueur, toutes equipes confondues, sans exception.
     const forced = this.fixedTeams && CONFIG.TEAMS.includes(data.team) ? data.team : null;
     const holder = [...this.players.values()].find((o) => o !== existing && o.character === data.character);
@@ -100,6 +123,48 @@ export class Game {
     return { ok: true, id: socket.id, phase: this.phase };
   }
 
+  freeCharacter(prefer) {
+    const used = new Set([...this.players.values()].map((o) => o.character));
+    if (prefer && this.characters[prefer] && !used.has(prefer)) return prefer;
+    return Object.keys(this.characters).find((c) => !used.has(c)) || null;
+  }
+  // Fait entrer les premiers de la file (en ligne) tant qu'il reste des places, uniquement pendant le lobby.
+  fillQueue() {
+    if (this.phase !== 'lobby') return 0;
+    let n = 0;
+    for (let i = 0; i < this.queue.length && this.players.size < MAX_PLAYERS;) {
+      const q = this.queue[i];
+      const character = this.freeCharacter(q.character);
+      if (!character) break;
+      if (q.offline) { i++; continue; } // deconnecte: garde sa place, passe son tour
+      this.queue.splice(i, 1);
+      const char = this.characters[character];
+      const p = { id: q.id, kills: 0, deaths: 0, input: { dx: 0, dy: 0 }, key: q.key, team: this.smallestTeam(), character, char, name: q.name, maxHp: char.hp, r: CONFIG.PLAYER_RADIUS };
+      this.players.set(q.id, p);
+      this.spawn(p);
+      const sock = this.io.sockets?.sockets?.get?.(q.id);
+      if (sock) try { sock.emit('admitted', { character }); } catch {}
+      n++;
+    }
+    if (n) { this.sendQueue(); this.sendLobby(); }
+    return n;
+  }
+  // Position (1, 2, 3...) envoyee a chaque joueur en file.
+  sendQueue() {
+    this.queue.forEach((q, i) => {
+      const sock = this.io.sockets?.sockets?.get?.(q.id);
+      if (sock) try { sock.emit('queue', { position: i + 1, total: this.queue.length }); } catch {}
+    });
+  }
+  queued(id) { return this.queue.find((q) => q.id === id) || null; }
+  unqueue(id) {
+    const i = this.queue.findIndex((q) => q.id === id);
+    if (i < 0) return false;
+    clearTimeout(this.queue[i].timer); this.queue.splice(i, 1);
+    this.fillQueue(); this.sendQueue(); this.sendLobby();
+    return true;
+  }
+
   // Change l'id (socket) d'un joueur en gardant sa place dans l'ordre d'inscription.
   rekey(p, id) {
     const old = p.id;
@@ -115,6 +180,12 @@ export class Game {
   markOnline(p) { clearTimeout(p.ghostTimer); p.ghostTimer = null; p.offline = false; }
   // Socket perdu: le perso reste reserve GHOST_MS pour une reprise via playerKey, puis il est libere.
   disconnect(id) {
+    const q = this.queued(id);
+    if (q) {
+      q.offline = true; clearTimeout(q.timer);
+      q.timer = setTimeout(() => { if (q.offline) this.unqueue(q.id); }, QUEUE_GHOST_MS);
+      return;
+    }
     const p = this.players.get(id);
     if (!p) return;
     if (!p.key || GHOST_MS <= 0) return this.leave(id);
@@ -135,6 +206,7 @@ export class Game {
   purgeOffline() {
     const gone = [...this.players.values()].filter((p) => p.offline);
     for (const p of gone) { clearTimeout(p.ghostTimer); this.players.delete(p.id); }
+    this.fillQueue();
     return gone.length;
   }
 
@@ -156,11 +228,17 @@ export class Game {
     list.forEach((p, i) => { p.team = CONFIG.TEAMS[(i + first) % 2]; });
   }
 
-  leave(id) { const p = this.players.get(id); if (p) clearTimeout(p.ghostTimer); if (this.players.delete(id)) this.sendLobby(); }
+  leave(id) {
+    if (this.unqueue(id)) return;
+    const p = this.players.get(id); if (p) clearTimeout(p.ghostTimer);
+    if (this.players.delete(id)) { this.fillQueue(); this.sendLobby(); }
+  }
   // Perso retire de characters.json: ses joueurs quittent la partie et retournent au choix de perso.
   dropMissingCharacters() {
     const gone = [...this.players.values()].filter((p) => !this.characters[p.character]).map((p) => p.id);
     for (const id of gone) this.players.delete(id);
+    for (const q of this.queue) if (!this.characters[q.character]) q.character = null;
+    this.fillQueue();
     if (gone.length) this.sendLobby();
     return gone;
   }
