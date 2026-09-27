@@ -16,7 +16,7 @@ let stateLogged = false;
 socket.on('connect', () => {
   console.log('[play] socket connecte', socket.id);
   // Reconnexion (veille du tel, reseau): on rejoint automatiquement avec le meme choix.
-  if (st.wantJoin && st.team && st.character) doJoin();
+  if (st.wantJoin && st.character) doJoin();
 });
 socket.on('connect_error', (e) => console.warn('[play] serveur injoignable', e.message));
 const st = { phase: 'lobby', teams: { A: [], B: [] }, characters: {}, team: null, character: null, joined: false, lastHp: null, energy: 0, alive: false };
@@ -24,7 +24,7 @@ const input = { dx: 0, dy: 0, attack: false, defense: false, super: false };
 const cds = { attack: 0, defense: 0, super: 0 };
 
 try { $('#name').value = localStorage.getItem('sb_name') || ''; } catch (e) {}
-try { const t = localStorage.getItem('sb_team'); if (t === 'A' || t === 'B') st.team = t; st.character = localStorage.getItem('sb_char'); } catch (e) {}
+try { st.character = localStorage.getItem('sb_char'); } catch (e) {}
 
 // A release refresh restores the same player choice on the new connection.
 try { st.wantJoin = sessionStorage.getItem('sb_release_rejoin') === '1'; sessionStorage.removeItem('sb_release_rejoin'); } catch {}
@@ -43,36 +43,34 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 function show(id) { for (const s of ['select', 'pad', 'end']) $('#' + s).hidden = s !== id; }
 
-function taken(team, ch) {
-  const others = (st.teams?.[team] || []).filter((p) => p.id !== socket.id);
+// Un perso = un joueur (toutes equipes), tant qu'il en reste un libre.
+function taken(ch) {
+  const others = ['A', 'B'].flatMap((t) => st.teams?.[t] || []).filter((p) => p.id !== socket.id);
   const used = new Set(others.map((p) => p.character));
   if (Object.keys(st.characters || {}).every((c) => used.has(c))) return false; // tous pris: doublons autorises
   return used.has(ch);
 }
 
 function renderSelect() {
-  document.querySelectorAll('.team').forEach((b) => b.classList.toggle('on', b.dataset.team === st.team));
   const box = $('#chars'); box.innerHTML = '';
   if (st.character && Object.keys(st.characters).length && !st.characters[st.character]) st.character = null;
-  if (st.character && st.team && taken(st.team, st.character)) st.character = null;
+  if (st.character && taken(st.character)) st.character = null;
   for (const [id, c] of Object.entries(st.characters || {})) {
     const b = document.createElement('button');
     b.className = 'char' + (id === st.character ? ' on' : '');
-    b.disabled = !!(st.team && taken(st.team, id));
+    b.disabled = taken(id);
     if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src=assetUrl(c.sprite);img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
     const s = document.createElement('small'); s.textContent = `HP ${c.hp ?? '?'}`; b.appendChild(s);
     b.onclick = () => { st.character = id; renderSelect(); };
     box.appendChild(b);
   }
-  $('#join').disabled = !(st.team && st.character);
+  $('#join').disabled = !st.character;
 }
-
-document.querySelectorAll('.team').forEach((b) => (b.onclick = () => { st.team = b.dataset.team; renderSelect(); }));
 
 function doJoin() {
   const name = ($('#name').value || '').trim().slice(0, 16);
-  socket.emit(MSG.JOIN, { team: st.team, character: st.character, name }, (res) => {
+  socket.emit(MSG.JOIN, { character: st.character, name }, (res) => {
     console.log('[play] JOIN ack', res);
     if (res && res.repick) { st.character = null; try { localStorage.removeItem('sb_char'); } catch (e) {} }
     if (res && res.ok === false) { st.joined = false; st.wantJoin = false; $('#err').textContent = res.error || 'Could not join'; renderSelect(); show('select'); return; }
@@ -84,7 +82,7 @@ function doJoin() {
 $('#join').onclick = () => {
   try {
     const name = $('#name').value.trim().slice(0, 16);
-    try { localStorage.setItem('sb_name', name); localStorage.setItem('sb_team', st.team); localStorage.setItem('sb_char', st.character); } catch (e) {}
+    try { localStorage.setItem('sb_name', name); localStorage.setItem('sb_char', st.character); } catch (e) {}
     $('#err').textContent = '';
     st.joined = true; st.wantJoin = true; st.lastHp = null;
     setupPad(); show('pad');
@@ -98,6 +96,12 @@ function logStick() {
   const now = performance.now();
   if (now - lastStickLog > 250) { lastStickLog = now; console.log('[play] joystick dx dy', input.dx.toFixed(2), input.dy.toFixed(2)); }
 }
+// Equipe assignee par le serveur (tirage au sort): couleur et libelle mis a jour en direct.
+function applyTeam() {
+  document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : st.team === 'B' ? 'var(--b)' : 'var(--gold)');
+  document.body.dataset.team = st.team || '';
+  $('#meTeam').textContent = st.team === 'A' ? 'BLUE TEAM' : st.team === 'B' ? 'RED TEAM' : 'TEAM';
+}
 function setupPad() {
   const ch = st.characters[st.character] || {};
   document.querySelectorAll('.btn').forEach((b) => {
@@ -108,11 +112,9 @@ function setupPad() {
   });
   $('#kit-hint').textContent=ch.super?.charge?'Super charges in combat · Dodge: joystick + button':'Hold a direction and use your abilities';
   if(ch.hint)$('#kit-hint').textContent=ch.hint; // texte d'aide propre au perso (champ hint de characters.json)
-  document.body.style.setProperty('--team', st.team === 'A' ? 'var(--a)' : 'var(--b)');
-  document.body.dataset.team = st.team || '';
+  applyTeam();
   const nm = ($('#name').value || '').trim() || 'PLAYER', img = $('#meImg');
   $('#meName').textContent = nm; $('#meChar').textContent = ch.name || st.character || '--';
-  $('#meTeam').textContent = st.team === 'A' ? 'BLUE TEAM' : 'RED TEAM';
   $('#meInit').textContent = (ch.name || st.character || '?')[0].toUpperCase();
   $('#heroName').textContent = ch.name || st.character || '--'; $('#heroInit').textContent = $('#meInit').textContent;
   const hi = $('#heroImg'); hi.hidden = !/\.png$/i.test(ch.sprite || ''); if (!hi.hidden) { hi.src = assetUrl(ch.sprite); hi.onerror = () => { hi.hidden = true; }; }
@@ -231,7 +233,9 @@ socket.on(MSG.LOBBY, (d) => {
     if (d?.characters) { st.characters = d.characters; preloadCombatArt(st.characters); }
     if (d?.arena) st.arena = d.arena;
     $('#startMatch').hidden = !(st.phase === 'lobby' && d?.hasHost === false && d?.firstPlayer === socket.id);
-    const inTeam = ['A', 'B'].some((t) => (st.teams[t] || []).some((p) => p.id === socket.id));
+    const myTeam = ['A', 'B'].find((t) => (st.teams[t] || []).some((p) => p.id === socket.id));
+    const inTeam = !!myTeam;
+    if (myTeam !== st.team) { st.team = myTeam || null; applyTeam(); }
     if (st.phase === 'lobby' && prev === 'ended') { st.joined = false; }
     // Perso retire du jeu (deploiement): retour propre au choix de perso.
     if (!inTeam && st.character && Object.keys(st.characters).length && !st.characters[st.character]) {
