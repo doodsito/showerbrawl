@@ -29,7 +29,7 @@ Macron : `macron_baguettes.svg` et `macron_sunglasses.svg` sont les icônes dess
 
 ## Biden — kit multijoueur
 
-`biden.png` et `biden_sleep.png` proviennent du pack `client/personnages/biden_game_assets.json` (PNG décodés sans modification). Le renderer cadre la pose endormie à l'affichage. Les SVG glace, sieste et vélo viennent du lab local.
+`biden.png` et `biden_sleep.png` proviennent du pack `client/personnages/biden_game_assets.json` (PNG décodés sans modification). La pose endormie du multi utilise désormais `biden_nap_v2.png`, image RGBA générée dans le lab avec image_gen et copiée sans modification. Elle reprend le costume du sprite en pied ; le cadrage conserve le corps entier et le contact au sol. L’ancien `biden_sleep.png` reste une illustration d’effet et n’est plus utilisé pour dessiner le corps. Les SVG glace, sieste et vélo viennent du lab local.
 
 Le cornet est un projectile serveur : portée 400, vitesse 390, dégâts 12, recharge 0,75 s. Nap Time immobilise et protège pendant 2,4 s, recharge 7 s. Le vélo part après 0,55 s, parcourt au maximum 650 unités à 520 unités/s, frappe à 30 dégâts et transporte la cible jusqu'à un obstacle ou la fin de trajet. La direction reste fixe et permet l'esquive. Les murs MAGA se brisent sur le vélo ; boucliers et sieste l'arrêtent.
 
