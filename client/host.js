@@ -363,3 +363,15 @@ requestAnimationFrame(loop);
 $('version').textContent = `v ${CLIENT_VERSION}`;
 // SHA visible uniquement en debug (?debug=1 ou ?fps=1) pour verifier un deploiement.
 if (SHOW_FPS || new URLSearchParams(location.search).get('debug') === '1') $('version').style.display = 'block';
+
+// Debug (?debug=1): touche G = rejoue le gag Trump immediatement, sans match.
+if (new URLSearchParams(location.search).get('debug') === '1') {
+  if (window.__sbGagKey) removeEventListener('keydown', window.__sbGagKey);
+  window.__sbGagKey = (e) => {
+    if (e.key !== 'g' && e.key !== 'G') return;
+    const end = $('end');
+    if (getComputedStyle(end).display === 'none') { $('endBox').innerHTML = '<div class="victory">VICTORY</div><div class="foot"></div>'; end.style.display = 'flex'; }
+    startGag(0);
+  };
+  addEventListener('keydown', window.__sbGagKey);
+}
