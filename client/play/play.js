@@ -3,7 +3,8 @@ import nipplejs from 'nipplejs';
 import { io } from 'socket.io-client';
 import { MSG } from '../../shared/protocol.js';
 import { createView } from './view.js';
-import { preloadCombatArt } from '../combat-assets.js';
+import { warmCombatArt } from '../combat-assets.js';
+import { prepareScene } from '../scene.js';
 
 const $ = (s) => document.querySelector(s);
 // Reconnexion sans recharger: websocket d'abord, tentatives illimitees, 500 ms a 3 s.
@@ -345,7 +346,7 @@ socket.on(MSG.LOBBY, (d) => {
     checkVersion();
     if(st.phase!=='playing'){clearInput();st.energy=0;st.alive=false;for(const k of Object.keys(cds))cds[k]=0;}
     st.teams = d?.teams || { A: [], B: [] };
-    if (d?.characters) { st.characters = d.characters; preloadCombatArt(st.characters); }
+    if (d?.characters) { st.characters = d.characters; const chars = st.characters; warmCombatArt(chars).then(() => { try { prepareScene(); } catch (e) {} }); }
     if (d?.arena) st.arena = d.arena;
     $('#startMatch').hidden = !(st.phase === 'lobby' && d?.hasHost === false && d?.firstPlayer === socket.id);
     const myTeam = ['A', 'B'].find((t) => (st.teams[t] || []).some((p) => p.id === socket.id));
