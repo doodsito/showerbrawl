@@ -217,8 +217,6 @@ body.viewing .stick{background:none}
 .startmatch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:16px 26px;border:4px solid #08111f;border-radius:2px;
   background:linear-gradient(#ffe07a,#f6c343 55%,#d99a1c);color:#08111f;font:900 22px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;box-shadow:0 5px 0 #08111f;touch-action:manipulation;z-index:6}
 .startmatch[hidden]{display:none}
-.rotate{display:none}
-@media (orientation:portrait){body.viewing .rotate{display:block;position:absolute;left:0;right:0;bottom:6px;margin:0;text-align:center;font-size:11px;color:#f6c343;text-shadow:0 1px 0 #000;z-index:2;pointer-events:none}}
 /* Vue de jeu: boutons compacts et translucides en bas a droite pour laisser voir le combat */
 body.viewing .btns{top:auto;bottom:10px;right:10px;width:auto;display:grid;grid-template-columns:repeat(3,auto);align-items:end;gap:8px}
 body.viewing .btn,body.viewing .btn.big{width:74px;height:74px;aspect-ratio:auto;opacity:.6;padding:6px 4px 16px}
@@ -309,3 +307,26 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 body[data-phase=playing] .back-select{display:none}
 body[data-phase=playing] #pad .band{left:calc(6px + var(--sl));max-width:44%}
+
+/* ---------- Portrait: jeu en haut (55 %), panneau de controles opaque en bas (45 %), gros boutons au pouce ---------- */
+@media (orientation:portrait){
+  #pad{--ctl:45%}
+  #pad::before{content:"";position:absolute;z-index:1;left:0;right:0;bottom:0;height:var(--ctl);background:linear-gradient(#101a31,var(--bg) 40%);border-top:4px solid var(--line);box-shadow:inset 0 2px 0 var(--inner);pointer-events:none}
+  #view{top:0;bottom:auto;height:calc(100% - var(--ctl))}
+  .hero,body:not([data-phase=playing]) .hero{top:calc(40px + var(--st));height:calc(100% - var(--ctl) - 40px - var(--st));justify-content:center}
+  .startmatch{top:calc((100% - var(--ctl)) / 2)}
+  #pad .stick,body.viewing #pad .stick{left:var(--sl);right:auto;top:auto;bottom:var(--sb);width:44vw;height:calc(var(--ctl) - var(--sb));z-index:2}
+  #pad .btns,body.viewing #pad .btns{display:block;left:auto;top:auto;right:var(--sr);bottom:var(--sb);width:56vw;height:calc(var(--ctl) - var(--sb));gap:0;z-index:2}
+  #pad .btns .btn{position:absolute;margin:0;opacity:1;aspect-ratio:1;padding:6px 6px 18px;border-width:4px}
+  #pad .btns .btn[data-k=attack]{left:22vw;top:calc(50% - 11vw);width:30vw;height:30vw}
+  #pad .btns .btn[data-k=defense]{left:0;top:calc(50% + 9vw);width:22vw;height:22vw}
+  #pad .btns .btn[data-k=super]{left:3vw;top:calc(50% - 29vw);width:22vw;height:22vw}
+  #pad .btns .btn span{font-size:clamp(9px,2.9vw,12px);letter-spacing:0;overflow-wrap:normal}
+  #pad .btns .btn.big span{font-size:17px}
+  #pad .btns .btn img{width:34px;height:30px}
+  #pad .btns .btn.big img{width:46px;height:40px}
+  #pad .btns .btn::after{font-size:11px;top:7px}
+  #pad .btns .btn em{font-size:26px}
+  #pad .btns .btn:not(.cool) em{font-size:12px;bottom:7px}
+  #pad .btns .btn[data-k=super]:not(.cool) em{font-size:13px}
+}
