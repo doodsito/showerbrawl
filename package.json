@@ -12,8 +12,7 @@
     "start:all": "npm run dev:all",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "node --test tests/*.test.js laboratoire/maison-blanche/tests/*.test.js",
-    "test:e2e": "node --test tests/*.e2e.js",
-    "perf:launch": "node scripts/perf-launch.js"
+    "test:e2e": "node --test tests/*.e2e.js"
   },
   "dependencies": {
     "express": "^5.2.1",
