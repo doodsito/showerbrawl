@@ -18,14 +18,11 @@ const CSS = `
 #gag{position:fixed;inset:0;z-index:9;pointer-events:none;overflow:hidden}
 #gag canvas{position:absolute;inset:0;width:100%;height:100%}
 #end.gag-glitch #endBox{animation:gagGlitch .3s steps(6) 1}
-#end.gag-shake{animation:gagShake .35s linear 1}
-@keyframes gagGlitch{0%{transform:translate(0);filter:none}
- 20%{transform:translate(-8px,3px);filter:drop-shadow(6px 0 0 #f00c) drop-shadow(-6px 0 0 #0ffc)}
- 40%{transform:translate(7px,-4px) skewX(6deg);filter:drop-shadow(-8px 0 0 #f00c) drop-shadow(8px 0 0 #0ffc)}
- 60%{transform:translate(-5px,2px);filter:hue-rotate(90deg) drop-shadow(5px 0 0 #f0fc)}
- 80%{transform:translate(4px,0) skewX(-4deg);filter:drop-shadow(-4px 0 0 #0f0c)}
- 100%{transform:translate(0);filter:none}}
-@keyframes gagShake{0%,100%{transform:translate(0)}20%{transform:translate(-10px,6px)}40%{transform:translate(9px,-7px)}60%{transform:translate(-6px,4px)}80%{transform:translate(4px,-2px)}}
+@keyframes gagGlitch{0%,100%{filter:none}
+ 20%{filter:drop-shadow(6px 0 0 #f00c) drop-shadow(-6px 0 0 #0ffc)}
+ 40%{filter:drop-shadow(-8px 0 0 #f00c) drop-shadow(8px 0 0 #0ffc)}
+ 60%{filter:hue-rotate(90deg) drop-shadow(5px 0 0 #f0fc)}
+ 80%{filter:drop-shadow(-4px 0 0 #0f0c)}}
 `;
 
 let raf = 0, timers = [], t0 = 0, confetti = [], soundStamp = false, soundTrump = false;
@@ -33,7 +30,7 @@ export function stopGag() {
   cancelAnimationFrame(raf); raf = 0;
   for (const t of timers) clearTimeout(t); timers = [];
   document.getElementById('gag')?.remove();
-  const end = document.getElementById('end'); if (end) end.classList.remove('gag-glitch', 'gag-shake');
+  const end = document.getElementById('end'); if (end) end.classList.remove('gag-glitch');
 }
 
 export function startGag() {
@@ -44,8 +41,7 @@ export function startGag() {
   const cv = document.createElement('canvas'); wrap.appendChild(cv); document.body.appendChild(wrap);
   t0 = performance.now(); confetti = []; soundStamp = soundTrump = false;
   timers.push(setTimeout(() => end?.classList.add('gag-glitch'), T_GLITCH));
-  timers.push(setTimeout(() => { end?.classList.remove('gag-glitch'); end?.classList.add('gag-shake'); }, T_STAMP + 180));
-  timers.push(setTimeout(() => end?.classList.remove('gag-shake'), T_STAMP + 560));
+  timers.push(setTimeout(() => end?.classList.remove('gag-glitch'), T_GLITCH + 300));
   const loop = () => { try { draw(cv); } catch (e) { console.warn('[gag]', e); } raf = requestAnimationFrame(loop); };
   raf = requestAnimationFrame(loop);
 }
