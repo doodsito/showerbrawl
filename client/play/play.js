@@ -195,12 +195,19 @@ function setupPad() {
   const hi = $('#heroImg'); hi.hidden = !/\.png$/i.test(ch.sprite || ''); if (!hi.hidden) { hi.src = assetUrl(ch.sprite); hi.onerror = () => { hi.hidden = true; }; }
   img.hidden = !/\.png$/i.test(ch.sprite || ''); if (!img.hidden) { img.src = assetUrl(ch.sprite); img.onerror = () => { img.hidden = true; }; }
   if (stick) return;
+  createStick();
+}
+// Portrait: gros joystick (40 % de la largeur) centre dans le panneau du bas. Paysage: inchange.
+const portraitMq = matchMedia('(orientation: portrait)');
+function createStick() {
   try {
     // Mode static: dessin fixe en bas a gauche, en miroir exact du bouton ATTACK (taille et marges CSS).
     const cs = getComputedStyle(document.documentElement), padBtn = parseFloat(cs.getPropertyValue('--pad-btn')) || 88;
     const at = `calc(var(--pad-m) + ${padBtn / 2}px + `;
-    stick = nipplejs.create({ zone: $('#stick'), mode: 'static', size: padBtn, restOpacity: 1,
-      position: { left: at + 'var(--sl))', bottom: at + 'var(--sb))' },
+    const zone = $('#stick'), portrait = portraitMq.matches;
+    const size = portrait ? Math.round(Math.min(innerWidth * 0.4, (zone.clientHeight || innerHeight * 0.45) * 0.8)) : padBtn;
+    stick = nipplejs.create({ zone, mode: 'static', size, restOpacity: 1,
+      position: portrait ? { left: '50%', top: '50%' } : { left: at + 'var(--sl))', bottom: at + 'var(--sb))' },
       color: { front: 'radial-gradient(circle at 40% 32%, #ffffff 0%, #d7dee8 40%, #9aa7b8 100%)', back: 'radial-gradient(circle, #243756 0%, #1b2942 70%)' } });
     // nipplejs v1: handler(evt) avec evt.data. v0.x: handler(evt, data). On gere les deux.
     stick.on('move', (evt, legacy) => {
@@ -222,6 +229,17 @@ function setupPad() {
     stick.on('end', () => { input.dx = 0; input.dy = 0; pushInput(); console.log('[play] joystick relache'); });
   } catch (e) {}
 }
+// Rotation en cours de partie: on relache tout et on recree le joystick a la nouvelle taille (socket intact).
+let lastPortrait = portraitMq.matches;
+function onOrientation() {
+  if (portraitMq.matches === lastPortrait) return;
+  lastPortrait = portraitMq.matches;
+  if (!stick) return;
+  clearInput(); stick.destroy(); stick = null;
+  requestAnimationFrame(() => { if (!stick && st.joined) createStick(); });
+}
+portraitMq.addEventListener?.('change', onOrientation);
+window.addEventListener('resize', onOrientation);
 
 document.querySelectorAll('.btn').forEach((b) => {
   const k = b.dataset.k;
