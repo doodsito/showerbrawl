@@ -21,21 +21,17 @@ const FX_DELAY = 100;
 let fx = [];
 const hitUntil = new Map();
 const trails = new Map();
-// Impact: hit-stop (perso touche fige 60 ms), tremblement proportionnel aux degats, KO! geant 1 s.
+// Impact: hit-stop (perso touche fige 60 ms), KO! geant 1 s. Aucun tremblement d'ecran.
 const HIT_STOP_MS = 60, KO_MS = 1000;
 const hitStops = new Map();
-let shake = { t0: 0, until: 0, force: 0 };
 let kos = [];
 export function pushEvents(events) {
   const t0 = performance.now() + FX_DELAY;
   for (const e of events || []) {
     if (e.k === 'hit') {
       hitStops.set(e.id, { from: t0, until: t0 + HIT_STOP_MS, x: null, y: null });
-      const force = Math.min(10, 1.5 + (e.amount || 0) * 0.35);
-      if (force >= shake.force * Math.max(0, (shake.until - t0) / 260)) shake = { t0, until: t0 + 260, force };
     } else if (e.k === 'kill') {
       kos.push({ ...e, t0 });
-      shake = { t0, until: t0 + 380, force: 11 };
     }
   }
   for (const e of events || []) if(!e.lab) fx.push({ ...e, t0 });
@@ -123,16 +119,6 @@ export function render(ctx, W, H, arena, state, characters, camera) {
     fxCache={ctx,b,rm:reducedMotion.matches,project:pr,fx:combatFX(ctx,pr,kx,ky,reducedMotion.matches),musk:muskFX(ctx,pr,kx,ky,reducedMotion.matches)};
   }
   const project=fxCache.project, fx=fxCache.fx, musk=fxCache.musk;
-  const impact=(state?.effects||[]).find(e=>e.kind==='impact'&&e.age<.38);
-  const drop=(state?.zones||[]).find(z=>(z.kind==='micDrop'||z.kind==='decree')&&z.age>=z.delay&&z.age-z.delay<.38);
-  if(!reducedMotion.matches){
-    // Tremblement generalise: le plus fort entre impact/Mic Drop (serveur) et coups/KO (evenements).
-    let age=0,force=0;
-    if(impact||drop){age=drop?drop.age-drop.delay:impact.age;force=(1-age/.38)*(drop?9:6);}
-    const nowMs=performance.now();
-    if(nowMs>=shake.t0&&nowMs<shake.until){const a=(nowMs-shake.t0)/1000,f=shake.force*(1-(nowMs-shake.t0)/(shake.until-shake.t0));if(f>force){force=f;age=a;}}
-    if(force>0)ctx.translate(Math.sin(age*97)*force,Math.cos(age*79)*force*.55);
-  }
   ctx.drawImage(decor.background, 0, 0);
   decor.animate(ctx, time);
 
