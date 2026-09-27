@@ -61,6 +61,27 @@ function glow(col) {
   return c;
 }
 
+// Lobby: decor fige, halos et fonctions d'effets prets avant la premiere frame de match.
+export function prepareScene() {
+  if (!decor) decor = createDecor();
+  for (const c of Object.values(TEAM_COL)) glow(c);
+  glow('#fff');
+}
+// Frame de chauffe hors ecran: l'arene complete avec un joueur par perso (sprites, noms, barres, HUD), jamais affichee.
+export function warmRender(W, H, arena, characters, camera) {
+  if (!arena || !arena.grid || typeof document === 'undefined') return;
+  prepareScene();
+  const b = worldBounds(arena), ids = Object.keys(characters || {}).filter((id) => id !== '_schema');
+  const players = ids.map((id, i) => ({ id: '__warm' + i, name: 'WARM', team: i % 2 ? 'B' : 'A', character: id,
+    x: b.x0 + (b.x1 - b.x0) * (i + 1) / (ids.length + 1), y: (b.y0 + b.y1) / 2, hp: 50, maxHp: 100, alive: true, fx: 1, fy: 0, energy: 50, moving: true, shield: i === 0 }));
+  const k = document.createElement('canvas'); k.width = W; k.height = H;
+  const g = k.getContext('2d', { alpha: false });
+  const cam = camera ? { fit: camera.fit, me: players[0]?.id } : undefined;
+  try { render(g, W, H, arena, { players, projectiles: [], zones: [], walls: [], effects: [], score: { A: 0, B: 0 }, timeLeft: 0 }, characters, cam); } catch (e) {}
+  for (const p of players) poses.delete(p.id);
+  k.width = k.height = 0;
+}
+
 // Boite englobante des cases jouables '.' de arena.json (coords monde).
 function worldBounds(arena) {
   const key = arena.grid.join('|') + arena.cellSize;
@@ -116,9 +137,9 @@ export function render(ctx, W, H, arena, state, characters, camera) {
   // Fonctions d'effets creees une fois par (contexte, arene, reduced-motion) au lieu de chaque frame.
   if(!fxCache||fxCache.ctx!==ctx||fxCache.b!==b||fxCache.rm!==reducedMotion.matches){
     const pr=(x,y)=>worldToScreen(x,y,b);
-    fxCache={ctx,b,rm:reducedMotion.matches,project:pr,fx:combatFX(ctx,pr,kx,ky,reducedMotion.matches),musk:muskFX(ctx,pr,kx,ky,reducedMotion.matches)};
+    fxCache={ctx,b,rm:reducedMotion.matches,project:pr,fx:combatFX(ctx,pr,kx,ky,reducedMotion.matches),musk:muskFX(ctx,pr,kx,ky,reducedMotion.matches),lab:newcomerFX(ctx,pr,kx,ky,reducedMotion.matches)};
   }
-  const project=fxCache.project, fx=fxCache.fx, musk=fxCache.musk;
+  const project=fxCache.project, fx=fxCache.fx, musk=fxCache.musk, lab=fxCache.lab;
   ctx.drawImage(decor.background, 0, 0);
   decor.animate(ctx, time);
 
@@ -176,12 +197,12 @@ export function render(ctx, W, H, arena, state, characters, camera) {
   if(state)for(const z of state.zones||[])if(z.kind==='decree'||(z.kind==='strike'&&z.visual==='decree'))fx.decree(z,true);
   if(state)for(const z of state.zones||[])if(z.kind==='strike'){const anim=characters?.[z.c]?.super?.anim;if(anim?.style==='kamalaStep')drawKamalaImpact(ctx,z,project,reducedMotion.matches);else if(anim)fx.superAnim(z,anim);}
   if(state)for(const z of state.zones||[])if(z.kind==='flamethrower')musk.flame(z);
-  if(state)for(const z of state.zones||[])if(z.visual==='xiHammer'||z.visual==='inflation')newcomerFX(ctx,project,kx,ky,reducedMotion.matches).summon(z);
+  if(state)for(const z of state.zones||[])if(z.visual==='xiHammer'||z.visual==='inflation')lab.summon(z);
   if(state)drawFx(ctx,state,b);
   if(state)drawKOs(ctx,b);
   decor.foreground(ctx);
   if(state)for(const e of state.effects||[])if(e.kind==='truckWreck')musk.wreck(e);else fx.effect(e,true);
-  if(state)for(const p of state.players||[])if(p.alive&&p.exfil)newcomerFX(ctx,project,kx,ky,reducedMotion.matches).extraction(p);
+  if(state)for(const p of state.players||[])if(p.alive&&p.exfil)lab.extraction(p);
   ctx.restore();
   // HUD superieur (design/hud-top-approved.json), dessine dans le repere 960x540 du decor. Pas sur la manette (camera).
   if (state && !camera) {

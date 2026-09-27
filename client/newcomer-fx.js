@@ -3,7 +3,8 @@ import {EXFIL} from '../shared/exfiltration.js';
 // Lab animations drawn from authoritative ages and locations, on host and phone.
 export function newcomerFX(g,project,kx,ky,reducedMotion){
   const motionOptions={reducedMotion};
-  const art={maduro:getImage('sprites/maduro.png'),maduro_plane:getImage('sprites/maduro_plane_v1.png'),xi_hammer:getImage('sprites/xi_hammer_v2.png')};
+  // Lu a chaque acces: l'objet d'effets est cree une fois par contexte, les images peuvent arriver apres.
+  const art={get maduro(){return getImage('sprites/maduro.png');},get maduro_plane(){return getImage('sprites/maduro_plane_v1.png');},get xi_hammer(){return getImage('sprites/xi_hammer_v2.png');}};
   const rect=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));};
   const poly=(points,color,stroke)=>{g.beginPath();points.forEach(([x,y],i)=>i?g.lineTo(Math.round(x),Math.round(y)):g.moveTo(Math.round(x),Math.round(y)));g.closePath();g.fillStyle=color;g.fill();if(stroke){g.strokeStyle=stroke;g.lineWidth=2;g.stroke();}};
   const line=(x,y,x2,y2,c,width=1)=>{g.strokeStyle=c;g.lineWidth=width;g.beginPath();g.moveTo(Math.round(x),Math.round(y));g.lineTo(Math.round(x2),Math.round(y2));g.stroke();};
