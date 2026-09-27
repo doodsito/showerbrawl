@@ -6,9 +6,15 @@ import { characters, arena } from '../server/loader.js';
 import { cast } from '../server/abilities.js';
 import { wallContact } from '../shared/wall-geometry.js';
 
+// Perso de test hors roster: coup au contact (attaque standard normalisee par le loader), charge qui pousse, super cible chargee.
+const TESTER={...characters.trump,name:'Tester',sprite:'tester',labKit:false,shieldStyle:undefined,hint:undefined,
+  attack:{...characters.trump.attack,label:'Test Hit'},
+  defense:{type:'dash',distance:220,duration:0.16,damage:8,knockback:240,cooldown:6,label:'Test Charge',invulnerable:false},
+  super:{type:'zone',target:'enemy',range:420,radius:95,delay:0.8,damage:34,knockback:440,cooldown:6,charge:100,label:'Test Strike'}};
+const COMBAT_CHARS={...characters,tester:TESTER};
 function setup(t, a='trump', b='obama') {
   const events=[];
-  const game=new Game({emit:(name,data)=>events.push({name,data})},{characters,arena,autoTick:false, fixedTeams: true});
+  const game=new Game({emit:(name,data)=>events.push({name,data})},{characters:COMBAT_CHARS,arena,autoTick:false, fixedTeams: true});
   t.after(()=>game.dispose());
   game.join({id:'a'},{team:'A',character:a});game.join({id:'b'},{team:'B',character:b});game.start();game.countdown=0; // tests de combat: on saute le 3-2-1
   const p=game.players.get('a'),q=game.players.get('b');
@@ -98,7 +104,7 @@ test('snapshots carry authoritative wall, charge, dash and attack visual state',
  game.reset();game.start();game.countdown=0;game.broadcast();const fresh=events.at(-1).data;assert.equal(fresh.walls.length,0);assert.equal(fresh.projectiles.length,0);
 });
 test('generic bricks: melee strike, ground shockwave, centred zone, charge, shield',t=>{
- const {game,p,q}=setup(t,'schwarzenegger','harris');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
+ const {game,p,q}=setup(t,'tester','harris');cast(game,p,'attack');assert.equal(game.projectiles.length,0);assert.equal(q.hp,q.maxHp,'trop loin');
  cast(game,p,'defense');assert.equal(p.invulnT,0);assert.ok(p.dashHit);
  q.char={...q.char,super:{type:'burst',radius:90,damage:9,knockback:300,cooldown:1}};cast(game,q,'super');assert.equal(game.projectiles.length,0);assert.ok(game.effects.some(e=>e.kind==='shockwave'),'burst = onde au sol');
  cast(game,q,'defense');assert.ok(q.shieldT>0);
@@ -106,7 +112,7 @@ test('generic bricks: melee strike, ground shockwave, centred zone, charge, shie
  assert.equal(game.zones.length,1);assert.equal(game.zones[0].x,q.x,'zone sans target: centree sur le lanceur');
 });
 test('charge (dash) hits and pushes the enemy on its path',t=>{
- const {game,p,q}=setup(t,'schwarzenegger','biden');q.x=p.x+120;const hp=q.hp,x0=q.x;
+ const {game,p,q}=setup(t,'tester','biden');q.x=p.x+120;const hp=q.hp,x0=q.x;
  cast(game,p,'defense');advance(game,.3);assert.equal(q.hp,hp-p.char.defense.damage);assert.ok(q.x-x0>30,'pousse devant');
 });
 test('burst shockwave damages and knocks back every nearby enemy, not the far ones',t=>{
@@ -189,7 +195,7 @@ test('super cible sans ennemi a portee: frappe devant le lanceur a mi-portee',t=
   const z=game.zones.find(z=>z.kind==='strike');assert.ok(z);assert.ok(Math.abs(z.x-(p.x+characters.harris.super.range/2))<1);
 });
 test('super cible: sans charge d\'energie, pas de super',t=>{
-  const {game,p}=duel(t,'schwarzenegger');p.energy=40;assert.equal(cast(game,p,'super'),false);
+  const {game,p}=duel(t,'tester');p.energy=40;assert.equal(cast(game,p,'super'),false);
 });
 test('super a impacts multiples (pouvoir de test): 3 impacts decales',t=>{
   const {game,p}=duel(t,'harris');p.energy=100;
