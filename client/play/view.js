@@ -1,6 +1,7 @@
 // Vue de jeu sur la manette: camera fixe qui cadre l'octogone entier, mon perso reste mis en evidence (fleche + anneau).
 // Reutilise le rendu de l'ecran hote (client/scene.js) avec le parametre camera. Donnees: MSG.VIEW (toute l'arene).
-import { render, pushEvents, OCT } from '../scene.js';
+import { render, pushEvents, OCT, warmRender } from '../scene.js';
+import { isCombatArtReady } from '../combat-assets.js';
 
 const RENDER_DELAY = 70, MAX_EXTRAPOLATION = 50; // identiques a l'ecran hote
 // Boite a cadrer dans le decor 960x540: le sol de l'octogone + la hauteur des sprites et des noms au bord du toit.
@@ -23,7 +24,7 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   let updates = [], clockOffset = null, active = false, raf = 0;
   const cam = { fit: null, me: null, ready: false };
-  let lastFrame = 0, fpsFrames = 0, fpsAcc = 0;
+  let lastFrame = 0, fpsFrames = 0, fpsAcc = 0, warmed = false, activeSince = 0;
   const portraitMq = matchMedia('(orientation: portrait)');
 
   // --- interpolation (meme principe que client/host.js) ---
@@ -79,8 +80,11 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     const portrait = portraitMq.matches;
     if (!cam.fit || cam.fit.W !== canvas.width || cam.fit.H !== canvas.height || cam.fit.portrait !== portrait) cam.fit = { ...fitCamera(canvas.width, canvas.height, portrait), W: canvas.width, H: canvas.height, portrait };
     cam.ready = true;
+    const ready = isCombatArtReady() || now - activeSince > 3000;
+    // Compte a rebours: une frame invisible de l'arene complete (hors ecran) chauffe le rendu avant FIGHT!.
+    if (!warmed && ready) { warmed = true; try { warmRender(canvas.width, canvas.height, arena, getCharacters(), cam); } catch (e) {} }
     ctx.imageSmoothingEnabled = false;
-    render(ctx, canvas.width, canvas.height, arena, st, getCharacters(), cam);
+    if (ready) render(ctx, canvas.width, canvas.height, arena, st, getCharacters(), cam);
     if (fpsEl) { fpsFrames++; fpsAcc += dt; if (fpsAcc >= 0.5) { fpsEl.textContent = `${Math.round(fpsFrames / fpsAcc)} fps`; fpsFrames = 0; fpsAcc = 0; } }
   }
 
@@ -89,7 +93,7 @@ export function createView(canvas, { getArena, getCharacters, myId, fpsEl }) {
     setActive(on) {
       if (on === active) return;
       active = on; canvas.hidden = !on;
-      if (on) { lastFrame = 0; resize(); raf = requestAnimationFrame(frame); }
+      if (on) { lastFrame = 0; activeSince = performance.now(); resize(); raf = requestAnimationFrame(frame); }
       else { cancelAnimationFrame(raf); raf = 0; updates = []; }
     },
     camera: cam,
