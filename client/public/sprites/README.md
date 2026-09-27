@@ -29,7 +29,7 @@ Macron : `macron_baguettes.svg` et `macron_sunglasses.svg` sont les icônes dess
 
 ## Biden — kit multijoueur
 
-`biden.png` provient du pack `client/personnages/biden_game_assets.json` (PNG décodés sans modification). La pose endormie du multi utilise désormais `biden_nap_v2.png`, image RGBA générée dans le lab avec image_gen et copiée sans modification. Elle reprend le costume du sprite en pied ; le cadrage conserve le corps entier et le contact au sol. Les SVG glace, sieste et vélo viennent du lab local.
+`biden.png` et `biden_sleep.png` proviennent du pack `client/personnages/biden_game_assets.json` (PNG décodés sans modification). La pose endormie du multi utilise désormais `biden_nap_v2.png`, image RGBA générée dans le lab avec image_gen et copiée sans modification. Elle reprend le costume du sprite en pied ; le cadrage conserve le corps entier et le contact au sol. L’ancien `biden_sleep.png` reste une illustration d’effet et n’est plus utilisé pour dessiner le corps. Les SVG glace, sieste et vélo viennent du lab local.
 
 Le cornet est un projectile serveur : portée 400, vitesse 390, dégâts 12, recharge 0,75 s. Nap Time immobilise et protège pendant 2,4 s, recharge 7 s. Le vélo part après 0,55 s, parcourt au maximum 650 unités à 520 unités/s, frappe à 30 dégâts et transporte la cible jusqu'à un obstacle ou la fin de trajet. La direction reste fixe et permet l'esquive. Les murs MAGA se brisent sur le vélo ; boucliers et sieste l'arrêtent.
 
@@ -42,5 +42,3 @@ Les sprites de personnages et les projectiles de l’équipe sont conservés. `m
 - Xi : étoile rouge à portée 440, vitesse 490, 10 dégâts, recharge 0,75 s. Bouclier de 1,6 s, recharge 6 s. Marteau rouge : portée 520, rayon 70, délai 0,8 s, 28 dégâts, animation calée sur l’impact serveur.
 
 Les supers chargent avec les dégâts infligés ou reçus. Leur cible est fixée au lancement et peut esquiver. Les coups normaux repoussent jusqu’au bord ; seuls les supers peuvent éjecter. Le serveur transmet les phases d’exfiltration aux deux écrans ; la caméra téléphone s’élargit temporairement pour montrer l’avion et le parachute.
-
-Poids: `xi_hammer_v2.png` (1200x800), `maduro_plane_v1.png` (624x416), `maduro_mustache_v1.png` (576x576) et `biden_nap_v2.png` (192x128) sont réduits à 2x leur plus grande taille dessinée dans le repère 960x540, palette optimisée, moins de 100 Ko chacun. Le code garde les rectangles source de la planche d'origine et les met à l'échelle par `naturalWidth`.

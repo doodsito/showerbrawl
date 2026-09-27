@@ -27,8 +27,7 @@ export function drawMustache(g,p,quiet){
     // The two lower poses nearly touch: exclude the neighbour's trailing shoe.
     g.beginPath();g.moveTo(0,0);g.lineTo(sw,0);g.lineTo(sw,325);g.lineTo(499,325);g.lineTo(499,sh);g.lineTo(0,sh);g.closePath();g.clip();
   }
-  const k=img.naturalWidth/1254; // coords de la planche d'origine 1254x1254
-  g.drawImage(img,sx*k,sy*k,sw*k,sh*k,0,0,sw,sh);g.restore();return true;
+  g.drawImage(img,sx,sy,sw,sh,0,0,sw,sh);g.restore();return true;
 }
 export function drawMustacheWarning(g,p,project,kx,ky){
   const m=p.mustache;if(!m||m.phase!=='windup'||!p.alive)return;
