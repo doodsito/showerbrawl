@@ -25,7 +25,10 @@ function slim(o) {
 }
 // VIEW (manette): champs que la manette ne lit pas, omis. action ne sert qu'avec pose; owner/maxHp des murs et owner
 // des effets ne sont pas lus; les events lab sont ignores par pushEvents cote client.
-function viewPlayer(p) { const o = slim(p); if (!o.pose) delete o.action; return o; }
+// Champs fixes d'un joueur (name, character, team, maxHp): envoyes 2 fois par seconde et a chaque changement de roster,
+// la manette les garde en cache par id (client/play/view.js) entre deux envois complets.
+const VIEW_STATIC = ['name', 'character', 'team', 'maxHp'];
+function viewPlayer(p, full) { const o = slim(p); if (!o.pose) delete o.action; if (!full) for (const k of VIEW_STATIC) delete o[k]; return o; }
 function viewWall(w) { const o = slim(w); delete o.owner; delete o.maxHp; return o; }
 function viewEffect(e) { const o = slim(e); delete o.owner; return o; }
 // Reseau: timers a 2 decimales, coordonnees/vitesses/angles/reste a 1 decimale; entiers intacts.
@@ -515,7 +518,11 @@ export class Game {
     // VIEW: la camera manette cadre toute l'arene, chaque joueur recoit tout le combat (meme format, sans filtre de distance).
     if (rooms) {
       const vs = this._viewStats || (this._viewStats = { bytes: 0, n: 0 });
-      const players = state.players.map(viewPlayer), zones = state.zones.map(slim), effects = state.effects.map(viewEffect);
+      const tick = this._viewTick = (this._viewTick || 0) + 1;
+      const roster = state.players.map((p) => p.id + p.character + p.team + p.name + p.maxHp).join('|');
+      const full = tick % 10 === 1 || roster !== this._viewRoster;
+      this._viewRoster = roster;
+      const players = state.players.map((p) => viewPlayer(p, full)), zones = state.zones.map(slim), effects = state.effects.map(viewEffect);
       const walls = state.walls.map(viewWall), events = state.events.filter((e) => !e.lab);
       for (const me of state.players) {
         const view = {
