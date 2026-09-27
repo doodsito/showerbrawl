@@ -21,7 +21,7 @@ app.get('/fixtures',(req,res)=>{
   const facing={up:[384,420,384,160],down:[384,150,384,410],left:[600,320,340,320]}[req.query.direction];
   if(facing){p.x=facing[0];p.y=facing[1];q.x=facing[2];q.y=facing[3];}
   g.input('a',{dx:0,dy:0,[slot]:true});g.tick(1/30);g.input('a',{dx:0,dy:0,[slot]:false});const ok=g.events.some(e=>e.k==='cast'&&e.id==='a'&&e.slot===slot);g.broadcast();
-  for(let i=0;i<90;i++){g.tick(1/30);g.broadcast();}
+  for(let i=0;i<120;i++){g.tick(1/30);g.broadcast();}
   cases.push({id:id+'-'+slot,character:id,slot,label:c[slot].label,ok,frames,views});g.dispose();
  }
  }finally{console.log=oldLog;}

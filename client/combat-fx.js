@@ -276,6 +276,12 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
   return {wall,
     decree(drop,front=false){const [x,y]=project(drop.x,drop.y);decree({...drop,x,y},front);},
     projectile(shot){
+      if(shot.visual==='maduroOil'||shot.visual==='xiStar'){
+        const [x,y]=project(shot.x,shot.y),star=shot.visual==='xiStar',img=getImage(star?'sprites/xi_attack.png':'sprites/maduro_attack.png');
+        g.save();g.translate(x,y-34);g.rotate(Math.atan2(shot.vy*ky,shot.vx*kx));
+        if(img)g.drawImage(img,-45,-18,60,36);else poly([[-14,-8],[12,-8],[18,0],[12,8],[-14,8]],star?'#e44040':'#695938','#f5c359');
+        g.restore();return true;
+      }
       if(shot.visual==='icecream'){
         const [x,y]=project(shot.x,shot.y),img=getImage('sprites/biden_icecream.svg');
         g.save();g.translate(x,y-34);g.rotate(Math.atan2(shot.vy*ky,shot.vx*kx)+Math.PI/2);
@@ -320,6 +326,9 @@ export function combatFX(g, project, kx, ky, reducedMotion) {
       g.restore();
     },
     effect(e,front=false){const [x,y]=project(e.x,e.y);
+      if(e.visual==='maduroOil'||e.visual==='xiStar'){
+        if(front){g.save();g.globalAlpha=Math.max(0,1-e.age/e.duration);for(let i=0;i<12;i++){const a=i*2.399,r=6+e.age*55;rect(x+Math.cos(a)*r,y-25+Math.sin(a)*r*.5,3,3,e.visual==='xiStar'?(i%2?'#ed5148':'#eac56a'):'#645b44');}g.restore();}return;
+      }
       if(e.visual==='icecream'||e.kind==='bikeWreck'){
         if(front){g.save();g.globalAlpha=Math.max(0,1-e.age/e.duration);for(let i=0;i<12;i++){const a=i*2.399,r=8+e.age*70;rect(x+Math.cos(a)*r,y-15+Math.sin(a)*r*.4,4,4,e.kind==='bikeWreck'?'#e5bd62':i%2?'#ffe4d9':'#efb3c4');}g.restore();}return;
       }

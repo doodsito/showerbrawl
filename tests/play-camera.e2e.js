@@ -39,7 +39,7 @@ const PROBE = (pts) => `((pts) => {
   const self = last?.players.find(p=>p.id===cam.me);
   const cx = self ? 480 + (((self.x-x0)/(x1-x0))*2-1)*330 + 55 : cam.x;
   const cy = self ? 422 + (((self.y-y0)/(y1-y0))*2-1)*70 + 10 : cam.y;
-  const settled = Math.hypot(cam.x-cx,cam.y-cy)<1;
+  const settled = !!self && cam.ready && Math.hypot(cam.x-cx,cam.y-cy)<1;
   const rects = [...document.querySelectorAll('#stick .ring, .btns .btn')].map((e) => e.getBoundingClientRect()).map((r) => ({ l: r.left, t: r.top, r: r.right, b: r.bottom }));
   return { settled, W, H, zoom: cam.zoom, tx, ty, scale, rects, me: v.camera.me, players: (last?.players || []).map((p) => ({ id: p.id, s: scr(p.x, p.y) })), pts: pts.map((p) => ({ id: p.id, s: scr(p.x, p.y) })) };
 })(${JSON.stringify(pts)})`;

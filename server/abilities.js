@@ -1,3 +1,5 @@
+import {isExtracted} from '../shared/exfiltration.js';
+import {castExfiltration} from './exfiltration.js';
 import {castBiden} from './biden-combat.js';
 import { CONFIG } from '../shared/config.js';
 import { castMusk, updateMuskZone } from './musk-combat.js';
@@ -9,7 +11,7 @@ import { charge, hasLabKit, castLab, firstWall, hitWall, shove, updateMicDrop } 
 export function nearestEnemy(ctx, p, maxRange = Infinity) {
   let best = null, bd = maxRange;
   for (const o of ctx.players.values()) {
-    if (o === p || !o.alive || o.team === p.team) continue;
+    if (o === p || !o.alive || o.team === p.team || isExtracted(o)) continue;
     const d = Math.hypot(o.x - p.x, o.y - p.y);
     if (d < bd) { bd = d; best = o; }
   }
@@ -32,7 +34,7 @@ function face(p, o) {
   const d = Math.hypot(o.x - p.x, o.y - p.y) || 1;
   p.fx = (o.x - p.x) / d; p.fy = (o.y - p.y) / d;
 }
-const hitable = (p, o) => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch;
+const hitable = (p, o) => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch && !isExtracted(o);
 
 // Opt-in moving shots. The generic contact attacks keep their existing rules.
 function volley(ctx, p, a) {
@@ -121,7 +123,7 @@ function targetedStrike(ctx, p, a) {
     ctx.zones.push({
       id: ctx.nextId(), kind: 'strike', owner: p.id, team: p.team,
       x: x - p.fy * off, y: y + p.fx * off, ux: p.fx, uy: p.fy,
-      visual: a.visual, r: a.radius || 90, age: 0, delay: delay + i * gap, duration: delay + i * gap + 0.4,
+      visual: a.visual, r: a.radius || 90, age: 0, delay: delay + i * gap, duration: delay + i * gap + (a.aftermath ?? .4),
       canRingOut: a.canRingOut, damage: a.damage ?? 25, knockback: a.knockback ?? 450, hit: false,
     });
   }
@@ -131,11 +133,13 @@ export function updateStrike(ctx, z, dt) {
   z.age += dt;
   if (!z.hit && z.age >= z.delay) {
     z.hit = true;
-    fx(ctx, 'shockwave', z.x, z.y, { r: z.r, team: z.team }, .5);
+    const custom=z.visual==='xiHammer'||z.visual==='inflation';
+    if(custom){for(const wall of [...ctx.walls])if(Math.hypot(wall.x-z.x,wall.y-z.y)<z.r+45)hitWall(ctx,wall,wall.hp,null);}
+    if(!custom)fx(ctx, 'shockwave', z.x, z.y, { r: z.r, team: z.team }, .5);
     for (const o of ctx.players.values()) {
       if (!o.alive || o.hp <= 0 || o.team === z.team || o.launch || Math.hypot(o.x - z.x, o.y - z.y) > z.r + o.r) continue;
       // pousse depuis un point en amont de la visee: une cible au centre part quand meme en arriere
-      if (ctx.damage(o, z.damage, z.owner, z.x - (z.ux || 0) * 30, z.y - (z.uy || 0) * 30, z.knockback, false, false, z.canRingOut)) fx(ctx, 'strike', o.x, o.y, { heavy: true }, .4);
+      if (ctx.damage(o, z.damage, z.owner, z.x - (z.ux || 0) * 30, z.y - (z.uy || 0) * 30, z.knockback, false, false, z.canRingOut)&&!custom) fx(ctx, 'strike', o.x, o.y, { heavy: true }, .4);
     }
   }
   return z.age < z.duration;
@@ -162,9 +166,9 @@ export function standardAttack(own = {}) {
 
 export function cast(ctx, p, slot) {
   const a = slot === 'attack' ? standardAttack(p.char.attack) : p.char[slot];
-  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0 || p.napT > 0 || p.cycleT > 0) return false;
+  if (!a || p.cd[slot] > 0 || !p.alive || p.hp <= 0 || p.stunT > 0 || p.launch || p.shove || p.carriedBy || p.dashT > 0 || p.napT > 0 || p.cycleT > 0 || p.exfil) return false;
   if (a.charge && (p.energy || 0) < a.charge) return false;
-  const handler = a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
+  const handler = a.behavior==='exfiltration' ? castExfiltration : a.behavior==='nap' ? castBiden : ['flamethrower','hyperloop','cybertruck','bicycle'].includes(a.behavior) ? castMusk : a.behavior ? castLab : BRICKS[a.type];
   if (!handler || handler(ctx, p, {...a, canRingOut: slot === 'super'}) === false) return false;
   if (a.charge) p.energy = 0;
   p.cd[slot] = a.cooldown || 1;
@@ -188,10 +192,10 @@ export function updateProjectiles(ctx, dt) {
       pr.x += dx; pr.y += dy;
       if (physics.collidesWithWall(pr.x, pr.y, pr.r, false)) return false;
       for (const o of ctx.players.values()) {
-        if (!o.alive || o.hp <= 0 || o.team === pr.team || o.launch) continue;
+        if (!o.alive || o.hp <= 0 || o.team === pr.team || o.launch || isExtracted(o)) continue;
         if (physics.circlesOverlap(pr, pr.r, o, o.r)) {
           const hit = ctx.damage(o, pr.damage, pr.owner, pr.x - pr.vx * .01, pr.y - pr.vy * .01, pr.pushDistance ? 0 : pr.knockback, !!pr.pushDistance, pr.chargeHit == null, !!pr.canRingOut);
-          if (pr.visual === 'energy' || pr.visual === 'baguette' || pr.visual === 'icecream') fx(ctx, hit ? 'strike' : 'whiff', pr.x, pr.y, {visual:pr.visual,ux:pr.vx/Math.hypot(pr.vx,pr.vy),uy:pr.vy/Math.hypot(pr.vx,pr.vy)}, .35);
+          if (pr.visual === 'energy' || pr.visual === 'baguette' || pr.visual === 'icecream' || pr.visual==='maduroOil' || pr.visual==='xiStar') fx(ctx, hit ? 'strike' : 'whiff', pr.x, pr.y, {visual:pr.visual,ux:pr.vx/Math.hypot(pr.vx,pr.vy),uy:pr.vy/Math.hypot(pr.vx,pr.vy)}, .35);
           if(hit && pr.chargeHit != null)charge(ctx.players.get(pr.owner),pr.chargeHit);
           if (hit && pr.pushDistance) shove(o, pr.vx, pr.vy, pr.pushDistance);
           return false;

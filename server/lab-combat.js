@@ -1,3 +1,4 @@
+import {isExtracted} from '../shared/exfiltration.js';
 // Authoritative versions of the lab abilities. Visuals consume these same world objects.
 import { wallContact, wallSegmentEntry, wallsOverlap } from '../shared/wall-geometry.js';
 
@@ -34,7 +35,7 @@ export function shove(target, ux, uy, distance, duration = .26) {
   target.kbVx = 0; target.kbVy = 0; target.superKbVx = 0; target.superKbVy = 0;
 }
 function enemy(ctx, p, range) {
-  return [...ctx.players.values()].filter(o => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch)
+  return [...ctx.players.values()].filter(o => o !== p && o.alive && o.hp > 0 && o.team !== p.team && !o.launch && !isExtracted(o))
     .map(o => ({ o, d: Math.hypot(o.x - p.x, o.y - p.y) }))
     .filter(o => o.d <= range).sort((a, b) => a.d - b.d)[0]?.o;
 }
@@ -135,7 +136,7 @@ export function updateMicDrop(ctx, z, dt) {
       if (wallContact(z, wall, z.r)) hitWall(ctx, wall, wall.hp, null);
     }
     for (const target of ctx.players.values()) {
-      if (!target.alive || target.team === z.team || target.launch || Math.hypot(target.x - z.x, target.y - z.y) > z.r + target.r) continue;
+      if (!target.alive || target.team === z.team || target.launch || isExtracted(target) || Math.hypot(target.x - z.x, target.y - z.y) > z.r + target.r) continue;
       if (ctx.damage(target, z.damage, z.owner, z.x, z.y, 0, true, false)) {
         const dx = target.x - z.x, dy = target.y - z.y;
         shove(target, Math.hypot(dx, dy) > 1e-6 ? dx : Math.cos(z.angle), Math.hypot(dx,dy)>1e-6?dy:Math.sin(z.angle), z.kind==='decree'?70:100, .32);
