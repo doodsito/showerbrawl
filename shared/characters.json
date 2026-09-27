@@ -1,5 +1,5 @@
 {
-  "_schema": {"note": "Un objet par perso. EQUITE: hp et speed fixes par shared/config.js. Les attaques generiques utilisent BASE_ATTACK; travel:true et behavior conservent leurs portees et simulations propres. REGLE DE COMBAT: contact, projectiles et cones selon le kit; super = peut viser a distance (frappe ciblee avec alerte au sol, esquivable). type DOIT etre dans: projectile, burst, zone, dash, shield.", "fields": {"name": "affiche a l'ecran", "hp": "points de vie", "speed": "vitesse px/s", "sprite": "chemin d'un PNG servi par Vite (ex: sprites/trump.png, fichier dans client/public/sprites/) OU id de crane genere au runtime (client/sprites.js) si pas de PNG", "attack/defense/super": "un pouvoir chacun, parametre une des 5 briques", "labKit": "optionnel, true = defense/super a l’appui seulement et effets dedies cote client", "fullBody": "optionnel, true = sprite PNG dessine en pied (grande taille) au lieu du format tete", "shieldStyle": "optionnel, 'sunglasses' = bulle bleue + lunettes de soleil sur le sprite pendant le bouclier", "hint": "optionnel, texte d'aide affiche sur la manette sous les boutons", "behavior (dans un pouvoir)": "optionnel, un pouvoir avec behavior passe par le code labo (server/lab-combat.js), sinon par les 5 briques", "super cible (type zone + target:enemy)": "vise l'ennemi vivant le plus proche dans range, alerte au sol pendant delay (s) puis frappe: range (portee), radius (rayon), delay (0.5 a 0.9), damage, knockback, hits (impacts successifs, defaut 1), spread (ecart entre impacts), gap (s entre impacts), charge (energie requise, 100). Sans ennemi a portee: frappe devant a mi-portee.", "recovery (dans un pouvoir)": "secondes de ralentissement apres un coup, distinctes du cooldown; tous les personnages retrouvent ensuite leur vitesse", "attack": "Sans travel ni behavior: valeurs de CONFIG.BASE_ATTACK. Avec travel:true ou behavior: kit explicite, portee et duree conservees. Ne pas convertir les tirs ni le lance-flammes en coups au contact.", "hp/speed": "doivent valoir CONFIG.BASE_HP / CONFIG.BASE_SPEED (verifie par les tests)"}},
+  "_schema": {"note": "Un objet par perso. EQUITE: hp et speed fixes par shared/config.js. Les attaques generiques utilisent BASE_ATTACK; travel:true et behavior conservent leurs portees et simulations propres. REGLE DE COMBAT: contact, projectiles et cones selon le kit; super = peut viser a distance (frappe ciblee avec alerte au sol, esquivable). type DOIT etre dans: projectile, burst, zone, dash, shield. TEXTES VISIBLES (name, label, hint) EN ANGLAIS.", "fields": {"name": "affiche a l'ecran", "hp": "points de vie", "speed": "vitesse px/s", "sprite": "chemin d'un PNG servi par Vite (ex: sprites/trump.png, fichier dans client/public/sprites/) OU id de crane genere au runtime (client/sprites.js) si pas de PNG", "attack/defense/super": "un pouvoir chacun, parametre une des 5 briques", "labKit": "optionnel, true = defense/super a l’appui seulement et effets dedies cote client", "fullBody": "optionnel, true = sprite PNG dessine en pied (grande taille) au lieu du format tete", "shieldStyle": "optionnel, 'sunglasses' = bulle bleue + lunettes de soleil sur le sprite pendant le bouclier", "hint": "optionnel, texte d'aide affiche sur la manette sous les boutons", "behavior (dans un pouvoir)": "optionnel, un pouvoir avec behavior passe par le code labo (server/lab-combat.js), sinon par les 5 briques", "super cible (type zone + target:enemy)": "vise l'ennemi vivant le plus proche dans range, alerte au sol pendant delay (s) puis frappe: range (portee), radius (rayon), delay (0.5 a 0.9), damage, knockback, hits (impacts successifs, defaut 1), spread (ecart entre impacts), gap (s entre impacts), charge (energie requise, 100). Sans ennemi a portee: frappe devant a mi-portee.", "recovery (dans un pouvoir)": "secondes de ralentissement apres un coup, distinctes du cooldown; tous les personnages retrouvent ensuite leur vitesse", "attack": "Sans travel ni behavior: valeurs de CONFIG.BASE_ATTACK. Avec travel:true ou behavior: kit explicite, portee et duree conservees. Ne pas convertir les tirs ni le lance-flammes en coups au contact.", "hp/speed": "doivent valoir CONFIG.BASE_HP / CONFIG.BASE_SPEED (verifie par les tests)"}},
   "trump": {
     "name": "Trump", "hp": 105, "speed": 195, "sprite": "sprites/trump.png", "labKit": true, "fullBody": true, "hint": "Jab: standard hit up close · MAGA Wall: blocking wall in front of you · You're fired!: close-range throw, charges in combat",
     "attack": {"type": "projectile", "label": "Jab", "icon": "sprites/fx_punch.png"},
@@ -72,7 +72,7 @@
     "speed": 195,
     "sprite": "sprites/maduro.png",
     "fullBody": true,
-    "hint": "Baril de pétrole : projectile, portée 400 · Exfiltration : avion puis parachute, retour vulnérable · Hyperinflation : tornade ciblée",
+    "hint": "Oil Barrel: projectile, range 400 · Exfiltration: escape by plane, vulnerable parachute landing · Hyperinflation: targeted money tornado",
     "attack": {
       "type": "projectile",
       "travel": true,
@@ -82,7 +82,7 @@
       "knockback": 180,
       "cooldown": 0.8,
       "recovery": 0.19,
-      "label": "Baril de pétrole",
+      "label": "Oil Barrel",
       "icon": "sprites/maduro_attack.png",
       "visual": "maduroOil"
     },
@@ -119,7 +119,7 @@
     "fullBody": true,
     "labKit": true,
     "chargeDealt": 2.5,
-    "hint": "Étoile rouge : projectile, portée 440 · Protection : bouclier 1,6 s · Marteau rouge : frappe ciblée, esquivable",
+    "hint": "Red Star: projectile, range 440 · Protection: 1.6 s shield · Red Hammer: targeted strike, dodgeable",
     "attack": {
       "type": "projectile",
       "travel": true,
@@ -129,7 +129,7 @@
       "knockback": 180,
       "cooldown": 0.75,
       "recovery": 0.19,
-      "label": "Étoile rouge",
+      "label": "Red Star",
       "icon": "sprites/xi_attack.png",
       "visual": "xiStar"
     },
@@ -151,16 +151,10 @@
       "knockback": 300,
       "cooldown": 6,
       "charge": 100,
-      "label": "Marteau rouge",
+      "label": "Red Hammer",
       "icon": "sprites/xi_super.png",
       "visual": "xiHammer"
     }
-  },
-  "schwarzenegger": {
-    "name": "Schwarzenegger", "hp": 105, "speed": 195, "sprite": "schwarzenegger", "hint": "Hasta La Vista: standard hit up close · Get To The Choppa: shoving charge · I'll Be Back: targeted strike with huge knockback, charges in combat",
-    "attack": {"type": "projectile", "label": "Hasta La Vista"},
-    "defense": {"type": "dash", "distance": 220, "duration": 0.16, "damage": 8, "knockback": 240, "cooldown": 6, "label": "Get To The Choppa", "invulnerable": false},
-    "super":  {"type": "zone", "target": "enemy", "range": 420, "radius": 95, "delay": 0.8, "damage": 34, "knockback": 440, "cooldown": 6, "charge": 100, "label": "I'll Be Back"}
   },
   "macron": {
     "name": "Macron", "hp": 105, "speed": 195, "sprite": "sprites/macron.png", "labKit": true, "fullBody": true, "shieldStyle": "sunglasses", "hint": "Triple Baguette: three flying baguettes · Sunglasses: short shield · 49.3: stamp on the nearest enemy plus a shockwave, charges in combat",
