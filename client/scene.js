@@ -296,9 +296,14 @@ function drawHud(g, state) {
   };
   side(X + 4, tX - 6, '#2f7de1', '#60a5fa', ['#e0413a', '#f4f1e8'], false);
   side(tX + tW + 6, X + Wd - 4, '#e0413a', '#f87171', ['#e0413a', '#8f2420'], true);
-  g.font = `900 22px ${HUD_FONT}`; g.textBaseline = 'middle';
-  g.textAlign = 'right'; g.fillStyle = '#030812'; g.fillText(`BLUE ${sc.A}`, tX - 14, Y + Hd / 2 + 2); g.fillStyle = '#ddebff'; g.fillText(`BLUE ${sc.A}`, tX - 14, Y + Hd / 2);
-  g.textAlign = 'left'; g.fillStyle = '#030812'; g.fillText(`${sc.B} RED`, tX + tW + 14, Y + Hd / 2 + 2); g.fillStyle = '#ffe2df'; g.fillText(`${sc.B} RED`, tX + tW + 14, Y + Hd / 2);
+  // Nom d'equipe (petit) au-dessus du score (gros), colles au timer: blocs symetriques par rapport a cx.
+  const label = (txt, x, y, align, fill) => { g.textAlign = align; g.fillStyle = '#030812'; g.fillText(txt, x, y + 2); g.fillStyle = fill; g.fillText(txt, x, y); };
+  g.textBaseline = 'middle';
+  const lx = tX - 14, rx = tX + tW + 14;
+  g.font = `900 11px ${HUD_FONT}`;
+  label('CONSPIRACY CREW', lx, secY + 12, 'right', '#9cc7ff'); label('CANCEL CLUB', rx, secY + 12, 'left', '#ffb4ad');
+  g.font = `900 24px ${HUD_FONT}`;
+  label(String(sc.A), lx, secY + 32, 'right', '#ddebff'); label(String(sc.B), rx, secY + 32, 'left', '#ffe2df');
   // Timer: panneau sombre isole au centre.
   pixelFrame(g, tX, Y + 5, tW, 48, { background: '#111a2b', outline: '#030812', outlineWidth: 2, inner: '#65758a', innerWidth: 2, cut: 2 });
   g.font = `900 34px ${HUD_FONT}`; g.textAlign = 'center';

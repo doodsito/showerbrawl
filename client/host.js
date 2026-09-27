@@ -168,7 +168,6 @@ function renderSlots(d) {
         const pn = document.createElement('span'); pn.className = 'pn'; pn.textContent = p.name || '?';
         const cn = document.createElement('span'); cn.className = 'cn'; cn.textContent = ch ? ch.name : p.character;
         txt.append(pn, cn);
-        if (t === 'B') { li.style.flexDirection = 'row-reverse'; txt.style.alignItems = 'flex-end'; }
         li.append(spr, txt);
         if (p.offline) li.classList.add('offline');
         // KICK discret: libere a la main un perso bloque (fantome).
@@ -219,10 +218,10 @@ function showEnd(d) {
   try {
     const box = $('endBox');
     const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const win = d.winner === 'A' ? ['A', 'BLUE TEAM WINS'] : d.winner === 'B' ? ['B', 'RED TEAM WINS'] : ['draw', 'DRAW'];
+    const win = d.winner === 'A' ? ['A', 'CONSPIRACY CREW WINS'] : d.winner === 'B' ? ['B', 'CANCEL CLUB WINS'] : ['draw', 'DRAW'];
     box.innerHTML = `<div class="victory">${win[0] === 'draw' ? 'MATCH OVER' : 'VICTORY'}</div>
       <div class="winner ${win[0]}">${win[1]}</div>
-      <div class="score"><div class="A">${d.score?.A ?? 0}<small>BLUE</small></div><div class="vs">VS</div><div class="B">${d.score?.B ?? 0}<small>RED</small></div></div>
+      <div class="score"><div class="A">${d.score?.A ?? 0}<small>CONSPIRACY CREW</small></div><div class="vs">VS</div><div class="B">${d.score?.B ?? 0}<small>CANCEL CLUB</small></div></div>
       <div class="mvp"></div>
       <div class="foot"><span id="endCount"></span><button id="replay">REMATCH</button></div>`;
     const m = d.mvp, chars = (lobby && lobby.characters) || {};
