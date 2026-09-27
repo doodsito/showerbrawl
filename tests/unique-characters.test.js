@@ -28,7 +28,7 @@ test('no duplicate even once every character is taken', (t) => {
 test('9th player is refused with "game is full"', (t) => {
   const game = setup(t);
   for (let i = 0; i < 8; i++) assert.equal(game.join({ id: 'p' + i }, { character: ids[i] }).ok, true);
-  const res = game.join({ id: 'p8' }, { character: ids[8] });
+  const res = game.join({ id: 'p8' }, { character: ids[0] }); // la limite passe avant le controle du perso
   assert.equal(res.ok, false); assert.equal(res.error, 'game is full');
   assert.equal(game.players.size, 8);
 });
