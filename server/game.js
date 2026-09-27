@@ -26,8 +26,9 @@ const END_SCREEN = 6; // s d'ecran de victoire avant retour lobby
 const COUNTDOWN = 3; // s de 3-2-1 avant FIGHT!, joueurs figes, timer arrete
 
 export class Game {
-  constructor(io, { characters, arena, lobbyExtra = {}, autoTick = true }) {
+  constructor(io, { characters, arena, lobbyExtra = {}, autoTick = true, fixedTeams = false }) {
     this.io = io;
+    this.fixedTeams = fixedTeams; // tests de combat uniquement: equipes imposees, pas de tirage
     this.characters = characters;
     this.arena = arena;
     this.walls = []; this.effects = [];
@@ -65,16 +66,18 @@ export class Game {
   sendLobby(target = this.io) { target.emit(MSG.LOBBY, this.lobbyPayload()); }
 
   join(socket, data = {}) {
-    const team = CONFIG.TEAMS.includes(data.team) ? data.team : null;
+    // Equipes aleatoires: le champ team du client est ignore.
     const char = this.characters[data.character];
-    if (team && data.character && !char) return { ok: false, error: 'character no longer available', repick: true };
-    if (!team || !char) return { ok: false, error: 'invalid team or character' };
+    if (data.character && !char) return { ok: false, error: 'character no longer available', repick: true };
+    if (!char) return { ok: false, error: 'invalid character' };
     const existing = this.players.get(socket.id);
     if (!existing && this.players.size >= CONFIG.MAX_PLAYERS) return { ok: false, error: 'room is full' };
-    // Perso unique par equipe tant qu'il en reste un libre; sinon doublons autorises (10v10 avec peu de persos).
-    const usedInTeam = new Set([...this.players.values()].filter((o) => o.id !== socket.id && o.team === team).map((o) => o.character));
-    const freeLeft = Object.keys(this.characters).some((c) => !usedInTeam.has(c));
-    if (freeLeft && usedInTeam.has(data.character)) return { ok: false, error: 'character already taken' };
+    // Un perso = un joueur tant qu'il en reste un libre; sinon doublons autorises.
+    const forced = this.fixedTeams && CONFIG.TEAMS.includes(data.team) ? data.team : null;
+    const used = new Set([...this.players.values()].filter((o) => o.id !== socket.id && (!forced || o.team === forced)).map((o) => o.character));
+    const freeLeft = Object.keys(this.characters).some((c) => !used.has(c));
+    if (freeLeft && used.has(data.character)) return { ok: false, error: 'character already taken' };
+    const team = forced || existing?.team || this.smallestTeam();
     const name = String(data.name || char.name).slice(0, 16);
     const p = existing || { id: socket.id, kills: 0, deaths: 0, input: { dx: 0, dy: 0 } };
     Object.assign(p, { team, character: data.character, char, name, maxHp: char.hp, r: CONFIG.PLAYER_RADIUS });
@@ -82,6 +85,20 @@ export class Game {
     this.spawn(p); // en phase playing, le joueur apparait directement dans l'arene
     this.sendLobby();
     return { ok: true, id: socket.id, phase: this.phase };
+  }
+
+  smallestTeam() {
+    const n = { A: 0, B: 0 };
+    for (const p of this.players.values()) if (p.team in n) n[p.team]++;
+    return n.A === n.B ? (Math.random() < 0.5 ? 'A' : 'B') : n.A < n.B ? 'A' : 'B';
+  }
+  // Tirage au sort: melange Fisher-Yates puis alternance A/B (ecart <= 1), equipe de depart aleatoire.
+  shuffleTeams() {
+    if (this.fixedTeams) return;
+    const list = [...this.players.values()];
+    for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+    const first = Math.random() < 0.5 ? 0 : 1;
+    list.forEach((p, i) => { p.team = CONFIG.TEAMS[(i + first) % 2]; });
   }
 
   leave(id) { if (this.players.delete(id)) this.sendLobby(); }
@@ -128,6 +145,7 @@ export class Game {
     this.timeLeft = CONFIG.MATCH_DURATION;
     this.score = { A: 0, B: 0 };
     this.projectiles = []; this.zones = []; this.walls = []; this.effects = []; this.events = [];
+    this.shuffleTeams(); // avant spawns et compte a rebours: chacun apparait du bon cote
     for (const p of this.players.values()) { p.kills = 0; p.deaths = 0; this.spawn(p); }
     this.sendLobby();
   }
