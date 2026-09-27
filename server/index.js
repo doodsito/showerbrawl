@@ -78,14 +78,6 @@ io.on('connection', (socket) => {
   });
   socket.on(MSG.INPUT, (d) => { try { game.input(socket.id, d); } catch {} });
   socket.on(MSG.START, (ack) => {
-    // START reserve a un ecran hote, ou au premier joueur inscrit s'il n'y a aucun hote connecte.
-    const { hasHost, firstPlayer } = game.lobbyPayload();
-    const allowed = hasHost ? socket.rooms.has('hosts') : socket.id === firstPlayer;
-    if (!allowed) {
-      console.warn(`[start] refuse pour ${socket.id} (hote connecte=${hasHost}, premier joueur=${firstPlayer})`);
-      if (typeof ack === 'function') ack({ ok: false, error: 'not allowed', phase: game.phase, players: game.players.size });
-      return;
-    }
     try { game.start(); } catch (e) { console.warn('[start] erreur', e.message); }
     console.log(`[start] recu de ${socket.id}, phase=${game.phase}, joueurs=${game.players.size}`);
     if (typeof ack === 'function') ack({ ok: game.phase === 'playing', phase: game.phase, players: game.players.size });
