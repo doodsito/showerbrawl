@@ -9,7 +9,7 @@ const LOOKAHEAD = 0.12;       // fenetre de programmation (s)
 const TICK_MS = 25;
 const STORE_KEY = 'sb_music_muted';
 const TRACK_URL = '/sounds/music_circus.mp3';
-const TRACK_GAIN = 1;         // mesure: RMS moyen du MP3 x VOLUME ~ niveau de la boucle synthetisee, pas d'attenuation
+const TRACK_GAIN = 2.4;       // le MP3 sortait ~2,4x plus bas que la chiptune du lobby (0,029 vs 0,069): aligne le combat sur le lobby
 
 // Notes -> frequence (A4 = 440)
 const NOTE = {};
