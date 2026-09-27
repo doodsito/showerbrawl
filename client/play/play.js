@@ -57,10 +57,11 @@ function renderSelect() {
     b.className = 'char' + (id === st.character ? ' on' : '');
     const holder = taken(id);
     b.disabled = !!holder;
-    if (holder) { b.classList.add('taken'); const tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = 'TAKEN'; b.appendChild(tg); }
+    if (holder) b.classList.add('taken');
     if(/\.png$/i.test(c.sprite||'')){const img=document.createElement('img');img.src=assetUrl(c.sprite);img.alt='';img.className='portrait';img.onerror=()=>{img.hidden=true;};b.appendChild(img);}
     const bn = document.createElement('b'); bn.textContent = c.name || id; b.appendChild(bn);
     const s = document.createElement('small'); s.textContent = holder ? `by ${holder.name}` : `HP ${c.hp ?? '?'}`; b.appendChild(s);
+    if (holder) { const tg = document.createElement('span'); tg.className = 'taken-tag'; tg.textContent = 'TAKEN'; b.appendChild(tg); }
     b.onclick = () => { st.character = id; renderSelect(); };
     box.appendChild(b);
   }
