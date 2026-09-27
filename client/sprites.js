@@ -25,7 +25,6 @@ export function spriteUrl(sprite, charId) {
 // Charge le PNG une fois (cache), log le resultat. Renvoie l'image prete ou null (crane en fallback).
 export function getImage(sprite, charId) {
   const im = loadImage(sprite, charId);
-  if (im && im.baked) return im.baked;
   return im && im.complete && im.naturalWidth && !im.failed ? im : null;
 }
 
@@ -43,17 +42,6 @@ export function loadImage(sprite, charId) {
     im.src = url;
   }
   return im;
-}
-
-// Lobby: copie deja decodee (ImageBitmap) d'une image raster, dessinee ensuite sans aucun decodage en match.
-// Garde naturalWidth/naturalHeight/complete pour les appelants. SVG exclus (reste vectoriel).
-export async function bakeImage(im) {
-  if (!im || im.baked || im.failed || !im.naturalWidth || typeof createImageBitmap !== 'function' || /\.svg(\?|$)/i.test(im.src)) return;
-  try {
-    const bm = await createImageBitmap(im);
-    Object.defineProperties(bm, { naturalWidth: { value: im.naturalWidth }, naturalHeight: { value: im.naturalHeight }, complete: { value: true }, src: { value: im.src } });
-    im.baked = bm;
-  } catch (e) {}
 }
 
 function px(ctx, x, y, c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
